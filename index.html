@@ -68,6 +68,59 @@
     .dateStrip{transition:opacity .16s ease}
     @media(max-width:360px){.tabs{grid-template-columns:1fr 1fr auto 42px}.cancelMini{min-width:48px;font-size:15px;padding-inline:4px}.menuBtn{width:34px;height:34px}}
   </style>
+
+
+  <style id="tabletResponsiveLayout">
+    :root{--app-max:430px;--sheet-max:430px;--nav-max:410px}
+    .app{width:min(100%,var(--app-max));}
+    .sticky{width:min(100%,var(--app-max));}
+    .sheet{width:min(100%,var(--sheet-max));}
+    .nav{width:min(calc(100vw - 20px),var(--nav-max));}
+    .calendarWide{display:block;}
+    .calendarMain{min-width:0;}
+    .calendarSide{min-width:0;}
+
+    @media (min-width:700px){
+      :root{--app-max:720px;--sheet-max:680px;--nav-max:620px;--sticky-h:138px;}
+      .app{padding-left:22px;padding-right:22px;}
+      .sticky{padding-left:22px;padding-right:22px;}
+      .dateStrip{justify-content:center;}
+      .pill{min-width:62px;padding:8px 11px;}
+      .pill strong{font-size:21px;}
+      .day{min-height:94px;padding:8px;}
+      .wd{min-height:34px;font-size:17px;}
+      .num{font-size:20px;}
+      .dots{left:10px;right:10px;bottom:10px;}
+      .dot{width:9px;height:9px;flex-basis:9px;}
+      .sheetBg{align-items:center;}
+      .sheet{max-height:min(82svh,760px);border-radius:24px;padding:12px 18px 18px;}
+      .nav{height:72px;}
+      .navBtn svg{width:24px;height:24px;}
+      .navBtn span{font-size:16px;}
+    }
+
+    @media (min-width:960px){
+      :root{--app-max:960px;--sheet-max:760px;--nav-max:720px;--sticky-h:142px;}
+      .app{padding-top:calc(var(--sticky-h) + 24px + env(safe-area-inset-top));}
+      .calendarCard{padding:16px;}
+      .calendarWide{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,.75fr);gap:14px;align-items:start;}
+      .calendarWide .detail{margin-top:0;position:sticky;top:calc(var(--sticky-h) + 16px);max-height:calc(100svh - var(--sticky-h) - var(--nav) - 58px);overflow:auto;}
+      .day{min-height:108px;}
+      #dashboard.page.on,#budget.page.on,#boss.page.on{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start;}
+      #dashboard .title,#budget .title,#boss .title{grid-column:1/-1;margin-bottom:0;}
+      #dashboard .card,#budget .card,#boss .card{margin-bottom:0;}
+      #dashboard #habitBlock,#budget article:last-child,#boss article:last-child{grid-column:1/-1;}
+      .moneyTabs{margin-top:12px;}
+      .chips{grid-template-columns:repeat(6,minmax(0,1fr));}
+    }
+
+    @media (min-width:1180px){
+      :root{--app-max:1080px;--sheet-max:820px;--nav-max:780px;}
+      .calendarWide{grid-template-columns:minmax(0,1.35fr) minmax(310px,.65fr);gap:16px;}
+      .day{min-height:116px;}
+    }
+  </style>
+
 </head>
 <body>
 
@@ -138,8 +191,15 @@
       <div class="title"><h2>Calendar</h2><small>Schedule + Tasks · Mon start</small></div>
       <article class="card">
         <div class="tabs"><button class="tab on" data-type="schedule">일정</button><button class="tab on" data-type="todo">할 일</button><label class="cancelMini" title="취소 일정 보기"><input type="checkbox" id="showCanceledSchedules"><span>취소</span></label><button class="tab add" id="openEntry">＋</button></div><p class="syncStatus" id="syncStatus">메뉴에서 Notion을 불러오거나 설정을 저장하면 자동으로 동기화됩니다.</p>
-        <div class="calHead"><button class="icon" id="prevMonth">‹</button><h3 id="monthTitle">Month</h3><button class="icon" id="nextMonth">›</button></div>
-        <div class="cal" id="calendarGrid"></div><div class="detail" id="calendarDetail"></div>
+        <div class="calendarWide">
+          <div class="calendarMain">
+            <div class="calHead"><button class="icon" id="prevMonth">‹</button><h3 id="monthTitle">Month</h3><button class="icon" id="nextMonth">›</button></div>
+            <div class="cal" id="calendarGrid"></div>
+          </div>
+          <aside class="calendarSide">
+            <div class="detail" id="calendarDetail"></div>
+          </aside>
+        </div>
       </article>
     </section>
 
