@@ -396,7 +396,12 @@
         set('#dashHabitSummary',`오늘 해빗 3개 중 2개 완료<br>대시보드에서 바로 확인`);
         set('#dashBossSummary',`이번 주 보스 ${bossTotal}개 중 ${bossDone}개 완료<br>누르면 보스 탭으로 이동`);
       }
-      function page(id){$$('.page').forEach(p=>p.classList.toggle('on',p.id===id));$$('.navBtn').forEach(b=>b.classList.toggle('on',b.dataset.target===id));scrollTo({top:0,behavior:'smooth'});if(id==='calendar')setTimeout(()=>loadCalendarFromWorker(true),180);});}
+      function page(id){
+  $$('.page').forEach(p=>p.classList.toggle('on',p.id===id));
+  $$('.navBtn').forEach(b=>b.classList.toggle('on',b.dataset.target===id));
+  scrollTo({top:0,behavior:'smooth'});
+  if(id==='calendar')setTimeout(()=>loadCalendarFromWorker(true),180);
+}
       function dateStrip(){const root=$('#dateStrip');root.innerHTML='';const mon=new Date(today);mon.setDate(today.getDate()-((today.getDay()+6)%7));for(let i=0;i<7;i++){const d=new Date(mon);d.setDate(mon.getDate()+i);root.insertAdjacentHTML('beforeend',`<div class="pill ${key(d)===key(today)?'on':''} ${isWeekend(d)?'weekend':''} ${isHoliday(d)?'holiday':''}" title="${HOLIDAYS_KR[key(d)]||''}"><strong>${d.getDate()}</strong><span>${wk[d.getDay()]}</span></div>`)}}
       function visible(k){return{schedule:state.show.schedule?state.schedules.filter(x=>x.date===k):[],todo:state.show.todo?state.tasks.filter(x=>x.date===k):[]}}
       function scheduleColor(subject){if(subject==='취소')return 'canceled';if(subject==='약속')return 'meeting';if(subject==='개인일정')return 'personal';return 'work'}
