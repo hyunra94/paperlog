@@ -231,6 +231,12 @@
     .calcBackBtn{min-height:54px;font-size:22px;background:#fffaf2}
     .calcStatus{min-height:18px;margin:10px 2px 0;color:#b55b5b;font-size:12px}
     @media(max-width:360px){.moneyCalcOpenBtn{min-width:48px;font-size:16px;padding-inline:7px}.calcBtn{min-height:44px;font-size:22px}.calcDisplayRow{grid-template-columns:minmax(0,1fr) 44px}}
+  
+    .calcIconImg{width:28px;height:28px;display:block;object-fit:contain;filter:drop-shadow(1px 1px 0 rgba(255,255,255,.65))}
+    .moneySaveActions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .moneySaveActions .save,.moneySaveActions .cancel{width:100%}
+    @media(max-width:360px){.calcIconImg{width:24px;height:24px}.moneySaveActions{grid-template-columns:1fr}}
+
   </style>
 
 </head>
@@ -406,14 +412,14 @@
             <button class="moneyTypeBtn" data-money-type="income" type="button">수입</button>
           </div>
           <div class="field"><label>내용</label><input id="moneyEntryTitle" required placeholder="예: 주유비, 5월 월급"></div>
-          <div class="row2"><div class="field"><label>날짜</label><input id="moneyEntryDate" type="date" required></div><div class="field"><label>금액</label><div class="moneyAmountControl"><input id="moneyEntryAmount" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" required placeholder="12000"><button class="moneyCalcOpenBtn" id="openMoneyCalc" type="button" aria-label="계산기 열기" title="계산기"><span class="moneyFabIcon">🧮</span></button></div></div></div>
+          <div class="row2"><div class="field"><label>날짜</label><input id="moneyEntryDate" type="date" required></div><div class="field"><label>금액</label><div class="moneyAmountControl"><input id="moneyEntryAmount" inputmode="decimal" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" required placeholder="12000"><button class="moneyCalcOpenBtn" id="openMoneyCalc" type="button" aria-label="계산기 열기" title="계산기"><img class="calcIconImg" src="./icons/calc-icon.png" alt=""></button></div></div></div>
           <div class="row2"><div class="field"><label>분류</label><select id="moneyEntrySubject"></select></div><div class="field"><label id="moneyCardLabel">결제수단</label><select id="moneyEntryCard"></select></div></div>
           <div class="field moneyIncomeOnly" hidden><label>기타</label><input id="moneyEntryMemo" placeholder="수입 메모"></div>
           <div class="moneyCheckRow moneyExpenseOnly">
             <label class="typeChip"><input type="checkbox" id="moneyEntryWaste"> 낭비 지출</label>
             <label class="typeChip"><input type="checkbox" id="moneyEntryDone" checked> 입력완료</label>
           </div>
-          <button class="save" type="submit">Notion에 저장</button>
+          <div class="moneySaveActions"><button class="save" type="submit">Notion에 저장</button><button class="cancel" id="moneySaveContinue" type="button">연속 추가</button></div>
           <p class="sheetNote" id="moneyEntryStatus">저장 후 현재 월 가계부가 자동으로 갱신됩니다.</p>
         </form>
       </section>
@@ -811,7 +817,7 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
           return;
         }
         if(action==='apply'){
-          try{const result=calcMoneyAmount(moneyCalcExpression);const input=$('#moneyEntryAmount');if(input)input.value=String(result);closeMoneyCalc();input?.focus()}
+          try{const result=calcMoneyAmount(moneyCalcExpression);const input=$('#moneyEntryAmount');if(input){input.value=String(result);input.blur()}closeMoneyCalc();if(document.activeElement&&document.activeElement.blur)document.activeElement.blur()}
           catch(err){if(status)status.textContent=err.message}
           return;
         }
@@ -983,10 +989,10 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
         moneySubjectTouched=false;moneyCardTouched=false;
         currentMoneyType=type;setMoneyType(type);
         const sheet=$('#moneySheet');if(sheet)sheet.hidden=false;
-        $('#moneySheetTitle')&&($('#moneySheetTitle').textContent='가계부 입력');
+        $('#moneySheetTitle')&&($('#moneySheetTitle').textContent='가계부 입력');$('#moneySaveContinue')&&($('#moneySaveContinue').hidden=false);
         $('#moneyEntryTitle')&&( $('#moneyEntryTitle').value='');
         $('#moneyEntryDate')&&( $('#moneyEntryDate').value=selectedMoneyDate||key(today));
-        $('#moneyEntryAmount')&&( putCalcResultToMoneyAmount(''));
+        $('#moneyEntryAmount')&&( $('#moneyEntryAmount').value='');
         $('#moneyEntrySubject')&&( $('#moneyEntrySubject').value='');
         const defaultCard=type==='income'?'국민카드':'토스뱅크';
         setSelectValue($('#moneyEntryCard'),defaultCard);
@@ -1001,10 +1007,10 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
         moneySubjectTouched=true;moneyCardTouched=true;
         currentMoneyType=record.type||'expense';setMoneyType(currentMoneyType);
         const sheet=$('#moneySheet');if(sheet)sheet.hidden=false;
-        $('#moneySheetTitle')&&($('#moneySheetTitle').textContent='가계부 수정');
+        $('#moneySheetTitle')&&($('#moneySheetTitle').textContent='가계부 수정');$('#moneySaveContinue')&&($('#moneySaveContinue').hidden=true);
         $('#moneyEntryTitle')&&( $('#moneyEntryTitle').value=record.title||'');
         $('#moneyEntryDate')&&( $('#moneyEntryDate').value=record.date||selectedMoneyDate||key(today));
-        $('#moneyEntryAmount')&&( putCalcResultToMoneyAmount(String(record.amount||'')));
+        $('#moneyEntryAmount')&&( $('#moneyEntryAmount').value=String(record.amount||''));
         setSelectValue($('#moneyEntrySubject'),record.category||'');
         setSelectValue($('#moneyEntryCard'),record.card||record.payment||record.account||'');
         $('#moneyEntryMemo')&&( $('#moneyEntryMemo').value=record.memo||'');
@@ -1023,8 +1029,8 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
         fillMoneySelect($('#moneyEntrySubject'),isIncome?MONEY_INCOME_CATEGORIES:MONEY_EXPENSE_CATEGORIES,'분류 선택');
         fillMoneySelect($('#moneyEntryCard'),MONEY_CARDS,isIncome?'계좌 선택':'카드 선택');
       }
-      async function saveMoneyEntry(e){
-        e.preventDefault();
+      async function saveMoneyEntry(e,keepOpen=false){
+        e?.preventDefault?.();
         let amount=0;
         try{amount=calcMoneyAmount($('#moneyEntryAmount')?.value||'')}catch(err){const s=$('#moneyEntryStatus');if(s)s.textContent=err.message;return}
         const saveType=editingMoneyRecord?editingMoneyRecord.type:currentMoneyType;
@@ -1047,13 +1053,26 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
           const res=await window.paperLog.fetch(path,{method,body:JSON.stringify(body)});
           const data=await res.json().catch(()=>({}));
           if(!res.ok||data.ok===false)throw new Error(data.message||data.error||(editingMoneyRecord?'수정 실패':'저장 실패'));
-          closeMoneySheet();
+
           editingMoneyRecord=null;
           const [y,m]=body.date.slice(0,7).split('-').map(Number);if(y&&m)moneyView=new Date(y,m-1,1);
           selectedMoneyDate=body.date;
           await loadMoneyFromWorker(true);
           loadDashboardMoneyFromWorker();
-          setMoneyStatus(method==='PATCH'?'가계부 기록을 수정했어요.':'가계부 기록을 저장했어요.');
+
+          if(keepOpen && method!=='PATCH'){
+            $('#moneySheetTitle')&&($('#moneySheetTitle').textContent='가계부 입력');
+            $('#moneyEntryTitle')&&($('#moneyEntryTitle').value='');
+            $('#moneyEntryAmount')&&($('#moneyEntryAmount').value='');
+            $('#moneyEntryMemo')&&($('#moneyEntryMemo').value='');
+            $('#moneyEntryWaste')&&($('#moneyEntryWaste').checked=false);
+            $('#moneyEntryDone')&&($('#moneyEntryDone').checked=true);
+            moneySubjectTouched=false;
+            const s=$('#moneyEntryStatus');if(s)s.textContent='저장했어. 이어서 입력할 수 있어.';
+          }else{
+            closeMoneySheet();
+            setMoneyStatus(method==='PATCH'?'가계부 기록을 수정했어요.':'가계부 기록을 저장했어요.');
+          }
         }catch(err){const s=$('#moneyEntryStatus');if(s)s.textContent=(editingMoneyRecord?'수정 실패: ':'저장 실패: ')+err.message;console.warn(err)}
       }
 
@@ -1078,6 +1097,7 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
       $('#moneyEntrySubject')?.addEventListener('change',()=>{moneySubjectTouched=true});
       $('#moneyEntryCard')?.addEventListener('change',()=>{moneyCardTouched=true});
       $('#moneyEntryForm')?.addEventListener('submit',saveMoneyEntry);
+      $('#moneySaveContinue')?.addEventListener('click',()=>saveMoneyEntry(null,true));
       $$('.navBtn').forEach(btn=>btn.addEventListener('click',()=>{if(btn.dataset.target==='budget')setTimeout(()=>loadMoneyFromWorker(true),220)}));
       $('#settingLoadNotion')?.addEventListener('click',()=>{setTimeout(()=>loadMoneyFromWorker(true),400);setTimeout(()=>loadDashboardMoneyFromWorker(),700)});
       $('#settingsForm')?.addEventListener('submit',()=>{setTimeout(()=>loadMoneyFromWorker(true),700);setTimeout(()=>loadDashboardMoneyFromWorker(),1000)});
