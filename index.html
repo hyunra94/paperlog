@@ -669,6 +669,7 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
       const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
       const wkMon=['mon','tue','wed','thu','fri','sat','sun'];
       const MONEY_CACHE_KEY='paperlog_money_cache_v1';
+      const MONEY_SUGGESTION_KEY='paperlog_money_suggestions_v1';
       const today=(()=>{const p=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()).split('-').map(Number);return new Date(p[0],p[1]-1,p[2])})();
       const key=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
       const won=n=>new Intl.NumberFormat('ko-KR').format(Number(n||0));
@@ -678,6 +679,8 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
       let moneyDays={};
       let currentMoneyType='expense';
       let editingMoneyRecord=null;
+      let moneySubjectTouched=false;
+      let moneyCardTouched=false;
       const MONEY_EXPENSE_CATEGORIES=['식비','간식','장비','카페','편의점','데이트','교통비','문화생활비','오락','쇼핑','쇼핑(기기)','쇼핑(의류)','쇼핑(화장품)','미용','친목','주거비','통신비','보험료','의료비','주유비','저축','투자','경조사비','교육비','기부금','숙박비','여행','공과금','기타','카드대금','확인','이체','법인카드'];
       const MONEY_INCOME_CATEGORIES=['월급','수당','시간외','배당금','이자','M','부수입','이체','법인카드','출장','기타'];
       const MONEY_CARDS=['토스뱅크','국민은행','국민카드','돼지카드','카카오뱅크','카카오페이','삼성카드','롯데카드','법인카드','주식','네이버페이','쿠팡','문화상품권'];
@@ -702,6 +705,53 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
       }
       function saveMoneyCache(){try{localStorage.setItem(MONEY_CACHE_KEY,JSON.stringify({month:monthKey(),records:moneyRecords,days:moneyDays,savedAt:Date.now()}))}catch(e){console.warn('가계부 캐시 저장 실패',e)}}
       function restoreMoneyCache(){try{const raw=localStorage.getItem(MONEY_CACHE_KEY);if(!raw)return false;const cached=JSON.parse(raw);if(!cached||!Array.isArray(cached.records))return false;moneyRecords=cached.records;moneyDays=cached.days||computeDays(moneyRecords);if(cached.month){const [y,m]=cached.month.split('-').map(Number);if(y&&m)moneyView=new Date(y,m-1,1)}renderMoney();return true}catch(e){console.warn('가계부 캐시 복구 실패',e);return false}}
+
+      function normalizeMoneyText(text){return String(text||'').toLowerCase().replace(/[()\[\]{}.,·_\-]/g,' ').replace(/\s+/g,' ').trim()}
+      function moneyTokens(text){return normalizeMoneyText(text).split(' ').filter(t=>t.length>=2)}
+      function loadSuggestionRecords(){try{const raw=localStorage.getItem(MONEY_SUGGESTION_KEY);const arr=raw?JSON.parse(raw):[];return Array.isArray(arr)?arr:[]}catch{return []}}
+      function saveSuggestionRecords(records){
+        try{
+          const merged=new Map(loadSuggestionRecords().map(r=>[r.id||`${r.type}_${r.title}_${r.date}`,r]));
+          (records||[]).forEach(r=>{if(!r||!r.title)return;merged.set(r.id||`${r.type}_${r.title}_${r.date}`,{id:r.id,type:r.type,title:r.title,date:r.date,category:r.category||'',card:r.card||r.payment||r.account||'',amount:r.amount||0})});
+          const arr=[...merged.values()].filter(r=>r.title&&r.type).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,600);
+          localStorage.setItem(MONEY_SUGGESTION_KEY,JSON.stringify(arr));
+        }catch(e){console.warn('추천 기록 저장 실패',e)}
+      }
+      function findMoneySuggestion(title,type){
+        const query=normalizeMoneyText(title);
+        if(query.length<2)return null;
+        const qTokens=moneyTokens(query);
+        const candidates=loadSuggestionRecords().filter(r=>r.type===type&&r.title&&(r.category||r.card));
+        const scored=[];
+        for(const r of candidates){
+          const name=normalizeMoneyText(r.title);
+          let score=0;
+          if(!name)continue;
+          if(name===query)score+=120;
+          if(name.includes(query)||query.includes(name))score+=80;
+          for(const t of qTokens){if(name.includes(t))score+=20}
+          if(score<=0)continue;
+          const recency=(r.date||'').replace(/-/g,'');
+          scored.push({...r,score,recency});
+        }
+        if(!scored.length)return null;
+        scored.sort((a,b)=>b.score-a.score||String(b.recency).localeCompare(String(a.recency)));
+        const top=scored.slice(0,12);
+        const categoryScore=new Map(), cardScore=new Map();
+        top.forEach((r,idx)=>{const weight=Math.max(1,top.length-idx)+Math.floor(r.score/20);if(r.category)categoryScore.set(r.category,(categoryScore.get(r.category)||0)+weight);if(r.card)cardScore.set(r.card,(cardScore.get(r.card)||0)+weight)});
+        const best=(m)=>[...m.entries()].sort((a,b)=>b[1]-a[1])[0]?.[0]||'';
+        return {category:best(categoryScore),card:best(cardScore),matched:top[0]?.title||''};
+      }
+      function applyMoneySuggestion(){
+        if(editingMoneyRecord)return;
+        const title=$('#moneyEntryTitle')?.value||'';
+        const suggestion=findMoneySuggestion(title,currentMoneyType);
+        if(!suggestion)return;
+        if(suggestion.category&&!moneySubjectTouched)setSelectValue($('#moneyEntrySubject'),suggestion.category);
+        if(suggestion.card&&!moneyCardTouched)setSelectValue($('#moneyEntryCard'),suggestion.card);
+        const status=$('#moneyEntryStatus');
+        if(status&&(suggestion.category||suggestion.card))status.textContent=`기존 기록 기준으로 ${suggestion.category||'분류'}${suggestion.card?' / '+suggestion.card:''} 추천했어요.`;
+      }
 
       function renderMoney(){
         const title=$('#moneyMonthTitle');if(title)title.textContent=moneyTitle();
@@ -746,6 +796,7 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
           const data=await res.json().catch(()=>({}));
           if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'가계부 불러오기 실패');
           moneyRecords=Array.isArray(data.records)?data.records:[];
+          saveSuggestionRecords(moneyRecords);
           moneyDays=data.days||computeDays(moneyRecords);
           renderMoney();saveMoneyCache();
           setMoneyStatus('가계부 불러오기 완료');
@@ -754,6 +805,7 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
 
       function openMoneySheet(type='expense'){
         editingMoneyRecord=null;
+        moneySubjectTouched=false;moneyCardTouched=false;
         currentMoneyType=type;setMoneyType(type);
         const sheet=$('#moneySheet');if(sheet)sheet.hidden=false;
         $('#moneySheetTitle')&&($('#moneySheetTitle').textContent='가계부 입력');
@@ -771,6 +823,7 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
       function openMoneyEdit(record){
         if(!record)return;
         editingMoneyRecord=record;
+        moneySubjectTouched=true;moneyCardTouched=true;
         currentMoneyType=record.type||'expense';setMoneyType(currentMoneyType);
         const sheet=$('#moneySheet');if(sheet)sheet.hidden=false;
         $('#moneySheetTitle')&&($('#moneySheetTitle').textContent='가계부 수정');
@@ -834,15 +887,19 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
       $('#openMoneyEntry')?.addEventListener('click',()=>openMoneySheet('expense'));
       $('#closeMoneyEntry')?.addEventListener('click',closeMoneySheet);
       $('#moneyRecordList')?.addEventListener('click',e=>{if(e.target.closest('a'))return;const el=e.target.closest('[data-money-edit]');if(!el)return;const id=el.dataset.moneyEdit;const record=moneyRecords.find(r=>r.id===id);if(record)openMoneyEdit(record)});
-      $$('.moneyTypeBtn').forEach(btn=>btn.addEventListener('click',()=>setMoneyType(btn.dataset.moneyType)));
+      $$('.moneyTypeBtn').forEach(btn=>btn.addEventListener('click',()=>{moneySubjectTouched=false;moneyCardTouched=false;setMoneyType(btn.dataset.moneyType);const def=btn.dataset.moneyType==='income'?'국민카드':'토스뱅크';setSelectValue($('#moneyEntryCard'),def);applyMoneySuggestion()}));
+      $('#moneyEntryTitle')?.addEventListener('input',()=>applyMoneySuggestion());
+      $('#moneyEntrySubject')?.addEventListener('change',()=>{moneySubjectTouched=true});
+      $('#moneyEntryCard')?.addEventListener('change',()=>{moneyCardTouched=true});
       $('#moneyEntryForm')?.addEventListener('submit',saveMoneyEntry);
       $$('.navBtn').forEach(btn=>btn.addEventListener('click',()=>{if(btn.dataset.target==='budget')setTimeout(()=>loadMoneyFromWorker(true),220)}));
       $('#settingLoadNotion')?.addEventListener('click',()=>setTimeout(()=>loadMoneyFromWorker(true),400));
       $('#settingsForm')?.addEventListener('submit',()=>setTimeout(()=>loadMoneyFromWorker(true),700));
       restoreMoneyCache();
+      saveSuggestionRecords(moneyRecords);
       renderMoney();
       if(window.paperLog?.getConfig?.().secretKey)setTimeout(()=>loadMoneyFromWorker(true),650);
-      window.paperMoney={load:loadMoneyFromWorker,render:renderMoney};
+      window.paperMoney={load:loadMoneyFromWorker,render:renderMoney,suggest:applyMoneySuggestion};
     });
   </script>
 
