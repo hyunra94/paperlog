@@ -189,7 +189,29 @@
     .moneyStatsEmpty{margin:0;color:var(--sub);font-family:'Gaegu';font-size:18px;line-height:1.4;text-align:center;padding:16px 4px}
 
     @media (min-width:700px){.moneyDay{min-height:58px}.moneyWd{min-height:33px;font-size:17px}.moneyFab{right:calc((100vw - var(--app-max))/2 + 32px);bottom:calc(var(--nav) + 30px)}.moneyStatsFab{right:calc((100vw - var(--app-max))/2 + 98px)}}
-    @media (min-width:960px){.moneySummaryGrid{grid-template-columns:repeat(4,minmax(0,1fr))}.moneySummaryBox.balance{grid-column:auto}.moneyFab{right:calc((100vw - var(--app-max))/2 + 40px)}.moneyStatsFab{right:calc((100vw - var(--app-max))/2 + 106px)}.moneyDay{min-height:64px}}
+    @media (min-width:960px){.moneyFab{right:calc((100vw - var(--app-max))/2 + 40px)}.moneyStatsFab{right:calc((100vw - var(--app-max))/2 + 106px)}.moneyDay{min-height:64px}}
+
+    /* v24 money UI polish */
+    .moneySummaryGrid{grid-template-columns:repeat(10,minmax(0,1fr))!important}
+    .moneySummaryGrid .moneySummaryBox:nth-child(1),.moneySummaryGrid .moneySummaryBox:nth-child(2){grid-column:span 5}
+    .moneySummaryBox.balance{grid-column:span 6!important}
+    .moneySummaryBox.waste{grid-column:span 4!important}
+    #moneyStatsSheet .sheetHead{position:sticky;top:-10px;z-index:12;margin:0 -2px 10px;padding:8px 0 10px;background:rgba(255,253,247,.98);backdrop-filter:blur(10px);border-bottom:1px solid rgba(47,42,40,.12)}
+    #moneyStatsSheet .sheetHead h3{font-size:30px}
+    .moneyStatsTabs{grid-template-columns:1fr 1fr auto}.moneyStatsViewBtn{border:1.5px solid var(--line);border-radius:999px;background:#fffaf4;padding:9px 10px;font-family:'Gaegu';font-size:20px;box-shadow:2px 2px 0 rgba(47,42,40,.12)}
+    .moneyStatsViewBtn.on{background:var(--yellow)}
+    .moneyStatsList.chartMode{gap:10px}
+    .moneyChartRow{border:1.4px solid var(--line);border-radius:16px;background:rgba(255,255,255,.35);padding:10px;display:grid;gap:7px}
+    .moneyChartTop{display:flex;justify-content:space-between;gap:8px;align-items:center;font-family:'Gaegu';font-size:20px;line-height:1.1}
+    .moneyChartMeta{color:var(--sub);font-size:11px;line-height:1.35}
+    .moneyChartTrack{height:13px;border:1px solid rgba(47,42,40,.45);border-radius:999px;background:#fffaf2;overflow:hidden}
+    .moneyChartFill{height:100%;border-radius:999px;background:var(--pink)}
+    .moneyChartFill.income{background:var(--blue)}
+    .moneyFabIcon{font-size:27px;line-height:1;filter:drop-shadow(1px 1px 0 rgba(255,255,255,.65))}
+    .moneyStatsFab{background:#d9ebf5}
+    .moneyCalcOpenBtn{min-width:46px;width:46px;padding:0;border-radius:15px;background:#f6e7a6;font-size:22px;display:grid;place-items:center}
+    .moneyCalcOpenBtn .moneyFabIcon{font-size:23px}
+    @media(max-width:360px){.moneySummaryBox strong{font-size:21px}.moneySummaryBox.waste strong{font-size:19px}.moneyStatsViewBtn{font-size:18px;padding-inline:7px}}
   </style>
 
 
@@ -198,15 +220,17 @@
     .moneyAmountControl input{min-width:0}
     .moneyCalcOpenBtn{height:43px;min-width:58px;border:1.5px solid var(--line);border-radius:13px;background:var(--card);box-shadow:2px 2px 0 rgba(47,42,40,.12);font-family:'Gaegu';font-size:18px;white-space:nowrap;padding:0 10px}
     .moneyCalcSheet{max-width:390px}
-    .calcDisplay{min-height:54px;border:1.6px solid var(--line);border-radius:17px;background:#fffaf2;padding:12px;margin:4px 0 12px;font-family:'Gaegu';font-size:28px;line-height:1.1;text-align:right;word-break:break-all}
+    .calcDisplayRow{display:grid;grid-template-columns:minmax(0,1fr) 48px;gap:8px;align-items:stretch;margin:4px 0 12px}
+    .calcDisplay{min-height:54px;border:1.6px solid var(--line);border-radius:17px;background:#fffaf2;padding:12px;font-family:'Gaegu';font-size:28px;line-height:1.1;text-align:right;word-break:break-all}
     .calcPad{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
     .calcBtn{border:1.5px solid var(--line);border-radius:15px;background:var(--card);min-height:48px;font-family:'Gaegu';font-size:24px;box-shadow:2px 2px 0 rgba(47,42,40,.12)}
     .calcBtn.op{background:#d9ebf5}
     .calcBtn.danger{background:#faecec}
     .calcBtn.equal{background:var(--yellow)}
-    .calcApply{grid-column:span 2;background:var(--green);font-size:21px}
+    .calcBtn.enter{background:var(--green)}
+    .calcBackBtn{min-height:54px;font-size:22px;background:#fffaf2}
     .calcStatus{min-height:18px;margin:10px 2px 0;color:#b55b5b;font-size:12px}
-    @media(max-width:360px){.moneyCalcOpenBtn{min-width:48px;font-size:16px;padding-inline:7px}.calcBtn{min-height:44px;font-size:22px}}
+    @media(max-width:360px){.moneyCalcOpenBtn{min-width:48px;font-size:16px;padding-inline:7px}.calcBtn{min-height:44px;font-size:22px}.calcDisplayRow{grid-template-columns:minmax(0,1fr) 44px}}
   </style>
 
 </head>
@@ -317,7 +341,7 @@
         <div class="moneyRecordHead"><div class="divTitle" style="margin:8px 0 10px;flex:1" id="moneyRecordTitle">이번 달 기록</div><button class="moneyClearFilter" id="moneyClearFilter" type="button" hidden>월 전체</button></div>
         <ul class="moneyList moneyRecords" id="moneyRecordList"></ul>
       </article>
-      <button class="moneyFab moneyStatsFab" id="openMoneyStats" type="button" aria-label="가계부 통계">▥</button>
+      <button class="moneyFab moneyStatsFab" id="openMoneyStats" type="button" aria-label="가계부 통계"><span class="moneyFabIcon">📊</span></button>
       <button class="moneyFab" id="openMoneyEntry" type="button" aria-label="가계부 입력">＋</button>
     </section>
 
@@ -358,9 +382,10 @@
         <div class="handle"></div>
         <div class="sheetHead"><h3>가계부 통계</h3><button class="icon" id="closeMoneyStats" type="button">×</button></div>
         <div class="moneyStatsHead"><span id="moneyStatsMonth">현재 월</span><strong class="moneyStatsTotal" id="moneyStatsTotal">0</strong></div>
-        <div class="moneyTypeTabs">
+        <div class="moneyTypeTabs moneyStatsTabs">
           <button class="moneyTypeBtn moneyStatsTypeBtn on" data-stats-type="expense" type="button">지출</button>
           <button class="moneyTypeBtn moneyStatsTypeBtn" data-stats-type="income" type="button">수입</button>
+          <button class="moneyStatsViewBtn" id="moneyStatsChartBtn" type="button">차트</button>
         </div>
         <div class="moneyStatsList" id="moneyStatsList"></div>
         <p class="sheetNote">현재 조회 중인 월 기준으로 카테고리별 합계를 보여줘요.</p>
@@ -381,7 +406,7 @@
             <button class="moneyTypeBtn" data-money-type="income" type="button">수입</button>
           </div>
           <div class="field"><label>내용</label><input id="moneyEntryTitle" required placeholder="예: 주유비, 5월 월급"></div>
-          <div class="row2"><div class="field"><label>날짜</label><input id="moneyEntryDate" type="date" required></div><div class="field"><label>금액</label><div class="moneyAmountControl"><input id="moneyEntryAmount" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" required placeholder="12000"><button class="moneyCalcOpenBtn" id="openMoneyCalc" type="button">계산기</button></div></div></div>
+          <div class="row2"><div class="field"><label>날짜</label><input id="moneyEntryDate" type="date" required></div><div class="field"><label>금액</label><div class="moneyAmountControl"><input id="moneyEntryAmount" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" required placeholder="12000"><button class="moneyCalcOpenBtn" id="openMoneyCalc" type="button" aria-label="계산기 열기" title="계산기"><span class="moneyFabIcon">🧮</span></button></div></div></div>
           <div class="row2"><div class="field"><label>분류</label><select id="moneyEntrySubject"></select></div><div class="field"><label id="moneyCardLabel">결제수단</label><select id="moneyEntryCard"></select></div></div>
           <div class="field moneyIncomeOnly" hidden><label>기타</label><input id="moneyEntryMemo" placeholder="수입 메모"></div>
           <div class="moneyCheckRow moneyExpenseOnly">
@@ -397,9 +422,15 @@
     <div class="sheetBg" id="moneyCalcSheet" hidden>
       <section class="sheet moneyCalcSheet">
         <div class="handle"></div>
-        <div class="sheetHead"><h3>간단 계산기</h3><button class="icon" id="closeMoneyCalc" type="button">×</button></div>
-        <div class="calcDisplay" id="moneyCalcDisplay">0</div>
+        <div class="sheetHead"><h3>금액 계산</h3><button class="icon" id="closeMoneyCalc" type="button">×</button></div>
+        <div class="calcDisplayRow">
+          <div class="calcDisplay" id="moneyCalcDisplay">0</div>
+          <button class="calcBtn calcBackBtn" data-calc="back" type="button" aria-label="지우기">←</button>
+        </div>
         <div class="calcPad" id="moneyCalcPad">
+          <button class="calcBtn danger" data-calc="clear" type="button">C</button>
+          <button class="calcBtn equal" data-calc="equals" type="button">=</button>
+          <button class="calcBtn op" data-calc="÷" type="button">÷</button>
           <button class="calcBtn" data-calc="7" type="button">7</button>
           <button class="calcBtn" data-calc="8" type="button">8</button>
           <button class="calcBtn" data-calc="9" type="button">9</button>
@@ -407,19 +438,15 @@
           <button class="calcBtn" data-calc="4" type="button">4</button>
           <button class="calcBtn" data-calc="5" type="button">5</button>
           <button class="calcBtn" data-calc="6" type="button">6</button>
-          <button class="calcBtn op" data-calc="-" type="button">−</button>
+          <button class="calcBtn op" data-calc="-" type="button">-</button>
           <button class="calcBtn" data-calc="1" type="button">1</button>
           <button class="calcBtn" data-calc="2" type="button">2</button>
           <button class="calcBtn" data-calc="3" type="button">3</button>
           <button class="calcBtn op" data-calc="×" type="button">×</button>
-          <button class="calcBtn" data-calc="0" type="button">0</button>
           <button class="calcBtn" data-calc="00" type="button">00</button>
+          <button class="calcBtn" data-calc="0" type="button">0</button>
           <button class="calcBtn" data-calc="." type="button">.</button>
-          <button class="calcBtn op" data-calc="÷" type="button">÷</button>
-          <button class="calcBtn danger" data-calc="clear" type="button">C</button>
-          <button class="calcBtn" data-calc="back" type="button">←</button>
-          <button class="calcBtn equal" data-calc="equals" type="button">=</button>
-          <button class="calcBtn calcApply" data-calc="apply" type="button">금액에 넣기</button>
+          <button class="calcBtn enter" data-calc="apply" type="button" aria-label="금액에 넣기">↵</button>
         </div>
         <p class="calcStatus" id="moneyCalcStatus"></p>
       </section>
@@ -890,6 +917,7 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
       }
 
       let currentMoneyStatsType='expense';
+      let moneyStatsChartMode=false;
       function getMoneyCategoryStats(type=currentMoneyStatsType){
         const monthly=moneyRecords.filter(r=>sameMonth(r.date)&&r.type===type);
         const map=new Map();
@@ -907,12 +935,19 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
       function renderMoneyStats(type=currentMoneyStatsType){
         currentMoneyStatsType=type;
         $$('.moneyStatsTypeBtn').forEach(btn=>btn.classList.toggle('on',btn.dataset.statsType===type));
-        const title=$('#moneyStatsMonth');if(title)title.textContent=`${moneyTitle()} ${type==='income'?'수입':'지출'} 통계`;
+        const chartBtn=$('#moneyStatsChartBtn');if(chartBtn)chartBtn.classList.toggle('on',moneyStatsChartMode);
+        const title=$('#moneyStatsMonth');if(title)title.textContent=`${moneyTitle()} ${type==='income'?'수입':'지출'} ${moneyStatsChartMode?'차트':'통계'}`;
         const rows=getMoneyCategoryStats(type);
         const total=rows.reduce((a,b)=>a+b.total,0);
         const totalEl=$('#moneyStatsTotal');if(totalEl)totalEl.textContent=(type==='income'?'+':'-')+won(total);
         const list=$('#moneyStatsList');if(!list)return;
+        list.classList.toggle('chartMode',moneyStatsChartMode);
         if(!rows.length){list.innerHTML='<p class="moneyStatsEmpty">표시할 통계가 없어요.</p>';return}
+        if(moneyStatsChartMode){
+          const max=Math.max(...rows.map(r=>r.total),1);
+          list.innerHTML=rows.map(row=>{const pct=Math.max(4,Math.round(row.total/max*100));return `<div class="moneyChartRow"><div class="moneyChartTop"><span>${row.category}</span><strong class="amount ${type==='income'?'income':'expense'}">${type==='income'?'+':'-'}${won(row.total)}</strong></div><div class="moneyChartTrack"><div class="moneyChartFill ${type==='income'?'income':'expense'}" style="width:${pct}%"></div></div><div class="moneyChartMeta">${row.count}건${row.waste?' · Waste '+won(row.waste)+'원':''}</div></div>`}).join('');
+          return;
+        }
         list.innerHTML=rows.map(row=>`<div class="moneyStatsRow"><span><strong>${row.category}</strong><small>${row.count}건${row.waste?' · Waste '+won(row.waste)+'원':''}</small></span><span class="amount ${type==='income'?'income':'expense'}">${type==='income'?'+':'-'}${won(row.total)}</span></div>`).join('');
       }
       function openMoneyStats(){const sheet=$('#moneyStatsSheet');if(sheet)sheet.hidden=false;renderMoneyStats(currentMoneyStatsType)}
@@ -1034,6 +1069,7 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
       $('#openMoneyStats')?.addEventListener('click',openMoneyStats);
       $('#closeMoneyStats')?.addEventListener('click',closeMoneyStats);
       $$('.moneyStatsTypeBtn').forEach(btn=>btn.addEventListener('click',()=>renderMoneyStats(btn.dataset.statsType)));
+      $('#moneyStatsChartBtn')?.addEventListener('click',()=>{moneyStatsChartMode=!moneyStatsChartMode;renderMoneyStats(currentMoneyStatsType)});
       $('#moneyMonthTitle')?.addEventListener('click',()=>{document.querySelector('#budget')?.scrollIntoView({behavior:'smooth',block:'start'});});
       $('#closeMoneyEntry')?.addEventListener('click',closeMoneySheet);
       $('#moneyRecordList')?.addEventListener('click',e=>{if(e.target.closest('a'))return;const el=e.target.closest('[data-money-edit]');if(!el)return;const id=el.dataset.moneyEdit;const record=moneyRecords.find(r=>r.id===id);if(record)openMoneyEdit(record)});
