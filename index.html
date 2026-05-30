@@ -192,6 +192,23 @@
     @media (min-width:960px){.moneySummaryGrid{grid-template-columns:repeat(4,minmax(0,1fr))}.moneySummaryBox.balance{grid-column:auto}.moneyFab{right:calc((100vw - var(--app-max))/2 + 40px)}.moneyStatsFab{right:calc((100vw - var(--app-max))/2 + 106px)}.moneyDay{min-height:64px}}
   </style>
 
+
+  <style id="moneyCalculatorStyles">
+    .moneyAmountControl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
+    .moneyAmountControl input{min-width:0}
+    .moneyCalcOpenBtn{height:43px;min-width:58px;border:1.5px solid var(--line);border-radius:13px;background:var(--card);box-shadow:2px 2px 0 rgba(47,42,40,.12);font-family:'Gaegu';font-size:18px;white-space:nowrap;padding:0 10px}
+    .moneyCalcSheet{max-width:390px}
+    .calcDisplay{min-height:54px;border:1.6px solid var(--line);border-radius:17px;background:#fffaf2;padding:12px;margin:4px 0 12px;font-family:'Gaegu';font-size:28px;line-height:1.1;text-align:right;word-break:break-all}
+    .calcPad{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+    .calcBtn{border:1.5px solid var(--line);border-radius:15px;background:var(--card);min-height:48px;font-family:'Gaegu';font-size:24px;box-shadow:2px 2px 0 rgba(47,42,40,.12)}
+    .calcBtn.op{background:#d9ebf5}
+    .calcBtn.danger{background:#faecec}
+    .calcBtn.equal{background:var(--yellow)}
+    .calcApply{grid-column:span 2;background:var(--green);font-size:21px}
+    .calcStatus{min-height:18px;margin:10px 2px 0;color:#b55b5b;font-size:12px}
+    @media(max-width:360px){.moneyCalcOpenBtn{min-width:48px;font-size:16px;padding-inline:7px}.calcBtn{min-height:44px;font-size:22px}}
+  </style>
+
 </head>
 <body>
 
@@ -364,7 +381,7 @@
             <button class="moneyTypeBtn" data-money-type="income" type="button">수입</button>
           </div>
           <div class="field"><label>내용</label><input id="moneyEntryTitle" required placeholder="예: 주유비, 5월 월급"></div>
-          <div class="row2"><div class="field"><label>날짜</label><input id="moneyEntryDate" type="date" required></div><div class="field"><label>금액</label><input id="moneyEntryAmount" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" required placeholder="12000+3500"></div></div>
+          <div class="row2"><div class="field"><label>날짜</label><input id="moneyEntryDate" type="date" required></div><div class="field"><label>금액</label><div class="moneyAmountControl"><input id="moneyEntryAmount" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" required placeholder="12000"><button class="moneyCalcOpenBtn" id="openMoneyCalc" type="button">계산기</button></div></div></div>
           <div class="row2"><div class="field"><label>분류</label><select id="moneyEntrySubject"></select></div><div class="field"><label id="moneyCardLabel">결제수단</label><select id="moneyEntryCard"></select></div></div>
           <div class="field moneyIncomeOnly" hidden><label>기타</label><input id="moneyEntryMemo" placeholder="수입 메모"></div>
           <div class="moneyCheckRow moneyExpenseOnly">
@@ -376,6 +393,38 @@
         </form>
       </section>
     </div>
+
+    <div class="sheetBg" id="moneyCalcSheet" hidden>
+      <section class="sheet moneyCalcSheet">
+        <div class="handle"></div>
+        <div class="sheetHead"><h3>간단 계산기</h3><button class="icon" id="closeMoneyCalc" type="button">×</button></div>
+        <div class="calcDisplay" id="moneyCalcDisplay">0</div>
+        <div class="calcPad" id="moneyCalcPad">
+          <button class="calcBtn" data-calc="7" type="button">7</button>
+          <button class="calcBtn" data-calc="8" type="button">8</button>
+          <button class="calcBtn" data-calc="9" type="button">9</button>
+          <button class="calcBtn op" data-calc="+" type="button">+</button>
+          <button class="calcBtn" data-calc="4" type="button">4</button>
+          <button class="calcBtn" data-calc="5" type="button">5</button>
+          <button class="calcBtn" data-calc="6" type="button">6</button>
+          <button class="calcBtn op" data-calc="-" type="button">−</button>
+          <button class="calcBtn" data-calc="1" type="button">1</button>
+          <button class="calcBtn" data-calc="2" type="button">2</button>
+          <button class="calcBtn" data-calc="3" type="button">3</button>
+          <button class="calcBtn op" data-calc="×" type="button">×</button>
+          <button class="calcBtn" data-calc="0" type="button">0</button>
+          <button class="calcBtn" data-calc="00" type="button">00</button>
+          <button class="calcBtn" data-calc="." type="button">.</button>
+          <button class="calcBtn op" data-calc="÷" type="button">÷</button>
+          <button class="calcBtn danger" data-calc="clear" type="button">C</button>
+          <button class="calcBtn" data-calc="back" type="button">←</button>
+          <button class="calcBtn equal" data-calc="equals" type="button">=</button>
+          <button class="calcBtn calcApply" data-calc="apply" type="button">금액에 넣기</button>
+        </div>
+        <p class="calcStatus" id="moneyCalcStatus"></p>
+      </section>
+    </div>
+
 
     <div class="sheetBg" id="bossSheet" hidden><section class="sheet"><div class="handle"></div><div class="sheetHead"><h3>기본 주간 보스 설정</h3><button class="icon" id="closeBoss">×</button></div><div class="bossSettingSummary" id="bossSettingSummary"></div><div class="ruleBox"><strong>설정 규칙</strong><span>같은 보스 계열은 1개만 저장됩니다.</span><span>주간 보스는 최대 12개까지만 저장됩니다.</span><span>월간 보스는 별도 월 1회 기준으로 생성됩니다.</span></div><div class="field"><label>캐릭터</label><select id="bossCharSelect"></select></div><div class="bossGrid" id="bossSettingGrid"></div><p class="sheetNote">캐릭터 DB의 ‘기본 주간 보스’ 관계형 속성으로 연결할 값입니다.</p><div class="sheetActions"><button class="cancel" id="cancelBoss" type="button">취소</button><button class="save" id="saveBoss" type="button">기본 보스 저장</button></div></section></div>
   </main>
@@ -718,6 +767,30 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
       function fillMoneySelect(select,options,placeholder='선택'){if(!select)return;select.innerHTML=`<option value="">${placeholder}</option>`+options.map(v=>`<option value="${v}">${v}</option>`).join('')}
       function setSelectValue(select,value){if(!select)return;const v=value||'';if(v&&!Array.from(select.options).some(o=>o.value===v)){select.insertAdjacentHTML('beforeend',`<option value="${v}">${v}</option>`)}select.value=v}
       function calcMoneyAmount(value){const raw=String(value||'').replace(/,/g,'').replace(/×/g,'*').replace(/÷/g,'/').trim();if(!raw)return 0;if(!/^[0-9+\-*/().\s]+$/.test(raw))throw new Error('금액에는 숫자와 + - * / 괄호만 사용할 수 있어.');const result=Function(`"use strict";return (${raw})`)();if(!Number.isFinite(result))throw new Error('계산할 수 없는 금액이야.');return Math.round(result)}
+
+      let moneyCalcExpression='';
+      function normalizeCalcExpression(value){return String(value||'').replace(/,/g,'').replace(/−/g,'-').replace(/×/g,'*').replace(/÷/g,'/').trim()}
+      function updateMoneyCalcDisplay(){const display=$('#moneyCalcDisplay');if(display)display.textContent=moneyCalcExpression||'0';const status=$('#moneyCalcStatus');if(status)status.textContent=''}
+      function openMoneyCalc(){moneyCalcExpression=$('#moneyEntryAmount')?.value||'';updateMoneyCalcDisplay();const sheet=$('#moneyCalcSheet');if(sheet)sheet.hidden=false}
+      function closeMoneyCalc(){const sheet=$('#moneyCalcSheet');if(sheet)sheet.hidden=true}
+      function handleMoneyCalcAction(action){
+        const status=$('#moneyCalcStatus');
+        if(!action)return;
+        if(action==='clear'){moneyCalcExpression='';updateMoneyCalcDisplay();return}
+        if(action==='back'){moneyCalcExpression=moneyCalcExpression.slice(0,-1);updateMoneyCalcDisplay();return}
+        if(action==='equals'){
+          try{moneyCalcExpression=String(calcMoneyAmount(moneyCalcExpression));updateMoneyCalcDisplay()}
+          catch(err){if(status)status.textContent=err.message}
+          return;
+        }
+        if(action==='apply'){
+          try{const result=calcMoneyAmount(moneyCalcExpression);const input=$('#moneyEntryAmount');if(input)input.value=String(result);closeMoneyCalc();input?.focus()}
+          catch(err){if(status)status.textContent=err.message}
+          return;
+        }
+        moneyCalcExpression+=action;
+        updateMoneyCalcDisplay();
+      }
       function sameMonth(dateText){return dateText&&dateText.slice(0,7)===monthKey()}
       function amountText(record){return `${record.type==='income'?'+':'-'}${won(record.amount)}`}
       function updateDashMoney(summary){const dash=$('#dashMoneySummary');if(!dash||!summary)return;dash.innerHTML=`이번 달 수입 ${won(summary.income)}원<br>이번 달 지출 ${won(summary.expense)}원`}
@@ -954,6 +1027,10 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
       $('#moneyMiniCal')?.addEventListener('click',e=>{const d=e.target.closest('[data-money-date]');if(!d)return;selectedMoneyDate=selectedMoneyDate===d.dataset.moneyDate?'':d.dataset.moneyDate;renderMoney()});
       $('#moneyClearFilter')?.addEventListener('click',()=>{selectedMoneyDate='';renderMoney()});
       $('#openMoneyEntry')?.addEventListener('click',()=>openMoneySheet('expense'));
+      $('#openMoneyCalc')?.addEventListener('click',openMoneyCalc);
+      $('#closeMoneyCalc')?.addEventListener('click',closeMoneyCalc);
+      $('#moneyCalcSheet')?.addEventListener('click',e=>{if(e.target?.id==='moneyCalcSheet')closeMoneyCalc()});
+      $('#moneyCalcPad')?.addEventListener('click',e=>{const btn=e.target.closest('[data-calc]');if(btn)handleMoneyCalcAction(btn.dataset.calc)});
       $('#openMoneyStats')?.addEventListener('click',openMoneyStats);
       $('#closeMoneyStats')?.addEventListener('click',closeMoneyStats);
       $$('.moneyStatsTypeBtn').forEach(btn=>btn.addEventListener('click',()=>renderMoneyStats(btn.dataset.statsType)));
