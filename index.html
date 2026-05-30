@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
   <title>Paper Log</title>
   <link rel="manifest" href="./manifest.json">
   <meta name="theme-color" content="#fbf7ed">
@@ -425,7 +425,7 @@
             <button class="moneyTypeBtn on" data-money-type="expense" type="button">지출</button>
             <button class="moneyTypeBtn" data-money-type="income" type="button">수입</button>
           </div>
-          <div class="field"><label>내용</label><input id="moneyEntryTitle" required placeholder="예: 주유비, 5월 월급"></div>
+          <div class="field"><label>내용</label><input id="moneyEntryTitle" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" required placeholder="예: 주유비, 5월 월급"></div>
           <div class="row2"><div class="field"><label>날짜</label><input id="moneyEntryDate" type="date" required></div><div class="field"><label>금액</label><div class="moneyAmountControl"><input id="moneyEntryAmount" inputmode="decimal" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" required placeholder="12000"><button class="moneyCalcOpenBtn" id="openMoneyCalc" type="button" aria-label="계산기 열기" title="계산기"><img class="calcIconImg" src="./icons/calc-icon.png" alt=""></button></div></div></div>
           <div class="row2"><div class="field"><label>분류</label><select id="moneyEntrySubject"></select></div><div class="field"><label id="moneyCardLabel">결제수단</label><select id="moneyEntryCard"></select></div></div>
           <div class="field moneyIncomeOnly" hidden><label>기타</label><input id="moneyEntryMemo" placeholder="수입 메모"></div>
@@ -814,6 +814,23 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
       function fillMoneySelect(select,options,placeholder='선택'){if(!select)return;select.innerHTML=`<option value="">${placeholder}</option>`+options.map(v=>`<option value="${v}">${v}</option>`).join('')}
       function setSelectValue(select,value){if(!select)return;const v=value||'';if(v&&!Array.from(select.options).some(o=>o.value===v)){select.insertAdjacentHTML('beforeend',`<option value="${v}">${v}</option>`)}select.value=v}
       function calcMoneyAmount(value){const raw=String(value||'').replace(/,/g,'').replace(/×/g,'*').replace(/÷/g,'/').trim();if(!raw)return 0;if(!/^[0-9+\-*/().\s]+$/.test(raw))throw new Error('금액에는 숫자와 + - * / 괄호만 사용할 수 있어.');const result=Function(`"use strict";return (${raw})`)();if(!Number.isFinite(result))throw new Error('계산할 수 없는 금액이야.');return Math.round(result)}
+      function formatAmountInputValue(value){
+        const raw=String(value||'').replace(/,/g,'').trim();
+        if(!raw)return '';
+        if(/[+\-*/×÷()]/.test(raw))return value;
+        const parts=raw.split('.');
+        if(!/^\d*$/.test(parts[0]))return value;
+        const head=parts[0]?Number(parts[0]).toLocaleString('ko-KR'):'';
+        return parts.length>1?`${head}.${parts.slice(1).join('.')}`:head;
+      }
+      function normalizeAmountInputBeforeCalc(){
+        const input=$('#moneyEntryAmount');
+        if(input)input.value=String(input.value||'').replace(/,/g,'');
+      }
+      function formatAmountInput(){
+        const input=$('#moneyEntryAmount');
+        if(input)input.value=formatAmountInputValue(input.value);
+      }
 
       let moneyCalcExpression='';
       function normalizeCalcExpression(value){return String(value||'').replace(/,/g,'').replace(/−/g,'-').replace(/×/g,'*').replace(/÷/g,'/').trim()}
@@ -970,7 +987,7 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
         }
         list.innerHTML=rows.map(row=>`<div class="moneyStatsRow"><span><strong>${row.category}</strong><small>${row.count}건${row.waste?' · Waste '+won(row.waste)+'원':''}</small></span><span class="amount ${type==='income'?'income':'expense'}">${type==='income'?'+':'-'}${won(row.total)}</span></div>`).join('');
       }
-      function openMoneyStats(){const sheet=$('#moneyStatsSheet');if(sheet)sheet.hidden=false;renderMoneyStats(currentMoneyStatsType)}
+      function openMoneyStats(){moneyStatsChartMode=true;const sheet=$('#moneyStatsSheet');if(sheet)sheet.hidden=false;renderMoneyStats(currentMoneyStatsType)}
       function closeMoneyStats(){const sheet=$('#moneyStatsSheet');if(sheet)sheet.hidden=true}
 
       async function loadMoneyFromWorker(silent=false){
@@ -1024,7 +1041,7 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
         $('#moneySheetTitle')&&($('#moneySheetTitle').textContent='가계부 수정');$('#moneySaveContinue')&&($('#moneySaveContinue').hidden=true);
         $('#moneyEntryTitle')&&( $('#moneyEntryTitle').value=record.title||'');
         $('#moneyEntryDate')&&( $('#moneyEntryDate').value=record.date||selectedMoneyDate||key(today));
-        $('#moneyEntryAmount')&&( $('#moneyEntryAmount').value=String(record.amount||''));
+        $('#moneyEntryAmount')&&( $('#moneyEntryAmount').value=formatAmountInputValue(String(record.amount||'')));
         setSelectValue($('#moneyEntrySubject'),record.category||'');
         setSelectValue($('#moneyEntryCard'),record.card||record.payment||record.account||'');
         $('#moneyEntryMemo')&&( $('#moneyEntryMemo').value=record.memo||'');
@@ -1046,7 +1063,7 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
       async function saveMoneyEntry(e,keepOpen=false){
         e?.preventDefault?.();
         let amount=0;
-        try{amount=calcMoneyAmount($('#moneyEntryAmount')?.value||'')}catch(err){const s=$('#moneyEntryStatus');if(s)s.textContent=err.message;return}
+        try{normalizeAmountInputBeforeCalc();amount=calcMoneyAmount($('#moneyEntryAmount')?.value||'');formatAmountInput()}catch(err){const s=$('#moneyEntryStatus');if(s)s.textContent=err.message;return}
         const saveType=editingMoneyRecord?editingMoneyRecord.type:currentMoneyType;
         const body={
           id:editingMoneyRecord?.id||'',
@@ -1099,6 +1116,7 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
       $('#closeMoneyCalc')?.addEventListener('click',closeMoneyCalc);
       $('#moneyCalcSheet')?.addEventListener('click',e=>{if(e.target?.id==='moneyCalcSheet')closeMoneyCalc()});
       $('#moneyCalcPad')?.addEventListener('click',e=>{const btn=e.target.closest('[data-calc]');if(btn)handleMoneyCalcAction(btn.dataset.calc)});
+      $('.calcBackBtn')?.addEventListener('click',()=>handleMoneyCalcAction('back'));
       $('#openMoneyStats')?.addEventListener('click',openMoneyStats);
       $('#closeMoneyStats')?.addEventListener('click',closeMoneyStats);
       $$('.moneyStatsTypeBtn').forEach(btn=>btn.addEventListener('click',()=>renderMoneyStats(btn.dataset.statsType)));
@@ -1108,6 +1126,8 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
       $('#moneyRecordList')?.addEventListener('click',e=>{if(e.target.closest('a'))return;const el=e.target.closest('[data-money-edit]');if(!el)return;const id=el.dataset.moneyEdit;const record=moneyRecords.find(r=>r.id===id);if(record)openMoneyEdit(record)});
       $$('.moneyTypeBtn').forEach(btn=>btn.addEventListener('click',()=>{moneySubjectTouched=false;moneyCardTouched=false;setMoneyType(btn.dataset.moneyType);const def=btn.dataset.moneyType==='income'?'국민카드':'토스뱅크';setSelectValue($('#moneyEntryCard'),def);applyMoneySuggestion()}));
       $('#moneyEntryTitle')?.addEventListener('input',()=>applyMoneySuggestion());
+      $('#moneyEntryAmount')?.addEventListener('blur',formatAmountInput);
+      $('#moneyEntryAmount')?.addEventListener('focus',normalizeAmountInputBeforeCalc);
       $('#moneyEntrySubject')?.addEventListener('change',()=>{moneySubjectTouched=true});
       $('#moneyEntryCard')?.addEventListener('change',()=>{moneyCardTouched=true});
       $('#moneyEntryForm')?.addEventListener('submit',saveMoneyEntry);
