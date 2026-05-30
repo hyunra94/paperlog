@@ -168,7 +168,7 @@
     .moneyDay{border:0}.moneyDay.incomeOnly{background:#d9ebf5}.moneyDay.expenseOnly{background:#f8dddd}.moneyDay.both{background:#eadff6}.moneyDay.wasteFlag:after{content:"";position:absolute;right:6px;top:6px;width:7px;height:7px;border:1px solid rgba(47,42,40,.45);border-radius:999px;background:#f4d98b}.moneyDay.mute{background:var(--cal-muted);opacity:.82}.moneyDay.mute.incomeOnly{background:#d6dde0}.moneyDay.mute.expenseOnly{background:#e6d8d8}.moneyDay.mute.both{background:#ddd8e3}.moneyDay.today .moneyNum,.moneyDay.sel .moneyNum{display:inline-grid;place-items:center;width:22px;height:22px;border:1.1px solid var(--line);border-radius:999px}.moneyDay.today .moneyNum{background:var(--cal-today)}.moneyDay.sel .moneyNum{background:var(--cal-sel)}
     .moneyNum{font-family:'Gaegu';font-size:17px;line-height:1}.moneyDay.weekend .moneyNum{color:var(--cal-red)}
     .moneyDots{position:absolute;left:6px;right:6px;bottom:6px;display:flex;gap:4px}.moneyDot{width:8px;height:8px;border:1px solid rgba(47,42,40,.45);border-radius:999px}.moneyDot.income{background:#b9dced}.moneyDot.expense{background:#e7c3c8}.moneyDot.waste{background:#f4d98b}
-    .moneyRecordHead{display:flex;align-items:center;justify-content:space-between;gap:8px}.moneyClearFilter{border:1.2px solid var(--line);border-radius:999px;background:var(--card);font-size:12px;padding:4px 8px;box-shadow:1.5px 1.5px 0 rgba(47,42,40,.08)}
+    .moneyRecordHead{display:flex;align-items:center;justify-content:space-between;gap:8px}.moneyRecordTotals{margin:-2px 2px 8px;text-align:right;color:var(--sub);font-size:11px;line-height:1.35}.moneyClearFilter{border:1.2px solid var(--line);border-radius:999px;background:var(--card);font-size:12px;padding:4px 8px;box-shadow:1.5px 1.5px 0 rgba(47,42,40,.08)}
     .moneyRecords li{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--grid);font-size:14px}.moneyRecords li:last-child{border-bottom:0}.moneyRecords small{display:block;color:var(--sub);font-size:11px;line-height:1.45;margin-top:2px}.moneyRecords .amount{font-family:'Gaegu';font-size:21px;font-weight:700;white-space:nowrap}.moneyRecords .wasteTag{display:inline-flex;margin-left:4px;border:1px solid rgba(47,42,40,.45);border-radius:999px;padding:0 5px;background:#f6e7a6;color:#806b2f;font-size:10px}
     .moneyEmpty{margin:0;color:var(--sub);font-family:'Gaegu';font-size:18px;line-height:1.4}.moneyFab{position:fixed;right:calc(18px + env(safe-area-inset-right));bottom:calc(var(--nav) + 26px + env(safe-area-inset-bottom));z-index:46;width:56px;height:56px;border:1.9px solid var(--line);border-radius:999px;background:var(--yellow);box-shadow:4px 4px 0 rgba(47,42,40,.16),0 10px 28px rgba(47,42,40,.14);font-family:'Gaegu';font-size:34px;line-height:1;display:grid;place-items:center}
     #budget:not(.on) .moneyFab{display:none}.moneyTypeTabs{display:grid;grid-template-columns:1fr 1fr;gap:8px}.moneyTypeBtn{border:1.5px solid var(--line);border-radius:999px;background:var(--card);padding:9px 10px;font-family:'Gaegu';font-size:20px;box-shadow:2px 2px 0 rgba(47,42,40,.12)}.moneyTypeBtn.on[data-money-type="expense"]{background:var(--pink)}.moneyTypeBtn.on[data-money-type="income"]{background:var(--blue)}.moneyExpenseOnly[hidden],.moneyIncomeOnly[hidden]{display:none!important}
@@ -358,7 +358,8 @@
         <div class="moneyMiniCal" id="moneyMiniCal"></div>
       </article>
       <article class="card">
-        <div class="moneyRecordHead"><div class="divTitle" style="margin:8px 0 10px;flex:1" id="moneyRecordTitle">이번 달 기록</div><button class="moneyClearFilter" id="moneyClearFilter" type="button" hidden>월 전체</button></div>
+        <div class="moneyRecordHead"><div class="divTitle" style="margin:8px 0 6px;flex:1" id="moneyRecordTitle">이번 달 기록</div><button class="moneyClearFilter" id="moneyClearFilter" type="button" hidden>월 전체</button></div>
+        <p class="moneyRecordTotals" id="moneyRecordTotals"></p>
         <ul class="moneyList moneyRecords" id="moneyRecordList"></ul>
       </article>
       <button class="moneyFab moneyStatsFab" id="openMoneyStats" type="button" aria-label="가계부 통계"><img class="statsIconImg" src="./icons/stats-icon.png" alt=""></button>
@@ -944,11 +945,14 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
       }
 
       function renderMoneyRecords(monthly){
-        const list=$('#moneyRecordList'), head=$('#moneyRecordTitle'), clear=$('#moneyClearFilter');if(!list)return;
+        const list=$('#moneyRecordList'), head=$('#moneyRecordTitle'), clear=$('#moneyClearFilter'), totalsEl=$('#moneyRecordTotals');if(!list)return;
         const filtered=selectedMoneyDate?monthly.filter(r=>r.date===selectedMoneyDate):monthly;
         const sorted=[...filtered].sort((a,b)=>(b.date||'').localeCompare(a.date||'')||String(b.id||'').localeCompare(String(a.id||'')));
         if(head)head.textContent=selectedMoneyDate?`${selectedMoneyDate} 기록`:`${moneyTitle()} 기록`;
         if(clear)clear.hidden=!selectedMoneyDate;
+        const totalIncome=filtered.filter(r=>r.type==='income').reduce((a,b)=>a+Number(b.amount||0),0);
+        const totalExpense=filtered.filter(r=>r.type==='expense').reduce((a,b)=>a+Number(b.amount||0),0);
+        if(totalsEl)totalsEl.textContent=`수입 총 ${won(totalIncome)}원 / 지출 총 ${won(totalExpense)}원`;
         if(!sorted.length){list.innerHTML='<li><p class="moneyEmpty">표시할 기록이 없어요.</p></li>';return}
         list.innerHTML=sorted.map(r=>`<li class="moneyRecordItem" data-money-edit="${r.id}" data-money-type="${r.type}" title="클릭해서 수정"><span><strong>${r.title||'(제목 없음)'}</strong><small>${r.date||''} · ${r.type==='income'?'수입':'지출'} · ${r.category||r.subject||'분류 없음'}${r.card?' · '+r.card:''}${r.waste?'<span class="wasteTag">Waste</span>':''}</small></span><span class="amount ${r.type==='income'?'income':'expense'}">${amountText(r)}</span>${r.url?`<a class="goLink" href="${r.url}" target="_blank" rel="noopener noreferrer" aria-label="Notion 바로가기">↗</a>`:'<span class="goLink disabled">↗</span>'}</li>`).join('');
       }
