@@ -160,12 +160,12 @@
     .moneySummaryBox{padding:11px 10px;border:1.5px solid var(--line);border-radius:16px;background:rgba(255,255,255,.35)}
     .moneySummaryBox span{display:block;color:var(--sub);font-size:12px}.moneySummaryBox strong{display:block;margin-top:4px;font-family:'Gaegu';font-size:24px;line-height:1.05}
     .moneySummaryBox.balance{grid-column:1/-1;background:#fffaf2}
-    .moneySummaryBox.count strong{font-size:22px}
+    .moneySummaryBox.waste{background:#fff7df}.moneySummaryBox.waste strong{font-size:22px}
     .moneyStatus{margin:8px 2px 0;color:var(--sub);font-size:12px;line-height:1.45}
     .moneyMiniCal{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--cal-line);border:1.5px solid var(--cal-line);border-radius:20px;overflow:hidden}
     .moneyWd,.moneyDay{background:var(--cal-cell);min-height:34px;padding:5px;text-align:left;position:relative}
     .moneyWd{text-align:center;background:var(--cal-head);font-family:'Patrick Hand';font-size:15px;min-height:29px;color:#3f382f}.moneyWd.weekend{color:var(--cal-red)}
-    .moneyDay{border:0}.moneyDay.mute{background:var(--cal-muted);opacity:.82}.moneyDay.today .moneyNum,.moneyDay.sel .moneyNum{display:inline-grid;place-items:center;width:22px;height:22px;border:1.1px solid var(--line);border-radius:999px}.moneyDay.today .moneyNum{background:var(--cal-today)}.moneyDay.sel .moneyNum{background:var(--cal-sel)}
+    .moneyDay{border:0}.moneyDay.incomeOnly{background:#d9ebf5}.moneyDay.expenseOnly{background:#f8dddd}.moneyDay.both{background:#eadff6}.moneyDay.wasteFlag:after{content:"";position:absolute;right:6px;top:6px;width:7px;height:7px;border:1px solid rgba(47,42,40,.45);border-radius:999px;background:#f4d98b}.moneyDay.mute{background:var(--cal-muted);opacity:.82}.moneyDay.mute.incomeOnly{background:#d6dde0}.moneyDay.mute.expenseOnly{background:#e6d8d8}.moneyDay.mute.both{background:#ddd8e3}.moneyDay.today .moneyNum,.moneyDay.sel .moneyNum{display:inline-grid;place-items:center;width:22px;height:22px;border:1.1px solid var(--line);border-radius:999px}.moneyDay.today .moneyNum{background:var(--cal-today)}.moneyDay.sel .moneyNum{background:var(--cal-sel)}
     .moneyNum{font-family:'Gaegu';font-size:17px;line-height:1}.moneyDay.weekend .moneyNum{color:var(--cal-red)}
     .moneyDots{position:absolute;left:6px;right:6px;bottom:6px;display:flex;gap:4px}.moneyDot{width:8px;height:8px;border:1px solid rgba(47,42,40,.45);border-radius:999px}.moneyDot.income{background:#b9dced}.moneyDot.expense{background:#e7c3c8}.moneyDot.waste{background:#f4d98b}
     .moneyRecordHead{display:flex;align-items:center;justify-content:space-between;gap:8px}.moneyClearFilter{border:1.2px solid var(--line);border-radius:999px;background:var(--card);font-size:12px;padding:4px 8px;box-shadow:1.5px 1.5px 0 rgba(47,42,40,.08)}
@@ -271,7 +271,7 @@
           <div class="moneySummaryBox"><span>이번 달 수입</span><strong class="income" id="moneyIncomeTotal">0</strong></div>
           <div class="moneySummaryBox"><span>이번 달 지출</span><strong class="expense" id="moneyExpenseTotal">0</strong></div>
           <div class="moneySummaryBox balance"><span>이번 달 잔액</span><strong id="moneyBalanceTotal">0</strong></div>
-          <div class="moneySummaryBox count"><span>기록 수</span><strong id="moneyRecordCount">0개</strong></div>
+          <div class="moneySummaryBox waste"><span>낭비 지출</span><strong class="expense" id="moneyWasteTotal">0</strong></div>
         </div>
         <p class="moneyStatus" id="moneyStatus">가계부 데이터를 불러오는 중...</p>
         <input id="expenseDate" type="hidden"><input id="incomeDate" type="hidden">
@@ -332,7 +332,7 @@
           </div>
           <div class="field"><label>내용</label><input id="moneyEntryTitle" required placeholder="예: 주유비, 5월 월급"></div>
           <div class="row2"><div class="field"><label>날짜</label><input id="moneyEntryDate" type="date" required></div><div class="field"><label>금액</label><input id="moneyEntryAmount" inputmode="numeric" required placeholder="54870"></div></div>
-          <div class="row2"><div class="field"><label>분류</label><input id="moneyEntrySubject" placeholder="식비, 주유비, 월급"></div><div class="field"><label id="moneyCardLabel">결제수단</label><input id="moneyEntryCard" placeholder="토스뱅크, 국민은행"></div></div>
+          <div class="row2"><div class="field"><label>분류</label><select id="moneyEntrySubject"></select></div><div class="field"><label id="moneyCardLabel">결제수단</label><select id="moneyEntryCard"></select></div></div>
           <div class="field moneyIncomeOnly" hidden><label>기타</label><input id="moneyEntryMemo" placeholder="수입 메모"></div>
           <label class="typeChip moneyExpenseOnly" style="justify-content:flex-start"><input type="checkbox" id="moneyEntryWaste"> 낭비 지출로 표시</label>
           <label class="typeChip moneyExpenseOnly" style="justify-content:flex-start"><input type="checkbox" id="moneyEntryDone" checked> 입력완료</label>
@@ -668,10 +668,14 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
       let moneyRecords=[];
       let moneyDays={};
       let currentMoneyType='expense';
+      const MONEY_EXPENSE_CATEGORIES=['식비','간식','장비','카페','편의점','데이트','교통비','문화생활비','오락','쇼핑','쇼핑(기기)','쇼핑(의류)','쇼핑(화장품)','미용','친목','주거비','통신비','보험료','의료비','주유비','저축','투자','경조사비','교육비','기부금','숙박비','여행','공과금','기타','카드대금','확인','이체','법인카드'];
+      const MONEY_INCOME_CATEGORIES=['월급','수당','시간외','배당금','이자','M','부수입','이체','법인카드','출장','기타'];
+      const MONEY_CARDS=['토스뱅크','국민은행','돼지카드','카카오뱅크','카카오페이','삼성카드','롯데카드','법인카드','주식','네이버페이','쿠팡','문화상품권'];
 
       function monthKey(){return `${moneyView.getFullYear()}-${String(moneyView.getMonth()+1).padStart(2,'0')}`}
       function moneyTitle(){return `${moneyView.getFullYear()}년 ${moneyView.getMonth()+1}월`}
       function setMoneyStatus(text){const el=$('#moneyStatus');if(el)el.textContent=text}
+      function fillMoneySelect(select,options,placeholder='선택'){if(!select)return;select.innerHTML=`<option value="">${placeholder}</option>`+options.map(v=>`<option value="${v}">${v}</option>`).join('')}
       function sameMonth(dateText){return dateText&&dateText.slice(0,7)===monthKey()}
       function amountText(record){return `${record.type==='income'?'+':'-'}${won(record.amount)}`}
       function updateDashMoney(summary){const dash=$('#dashMoneySummary');if(!dash||!summary)return;dash.innerHTML=`이번 달 수입 ${won(summary.income)}원<br>이번 달 지출 ${won(summary.expense)}원`}
@@ -679,7 +683,7 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
       function computeSummary(records){
         const income=records.filter(r=>r.type==='income').reduce((a,b)=>a+Number(b.amount||0),0);
         const expense=records.filter(r=>r.type==='expense').reduce((a,b)=>a+Number(b.amount||0),0);
-        return {income,expense,balance:income-expense,count:records.length};
+        const waste=records.filter(r=>r.type==='expense'&&r.waste).reduce((a,b)=>a+Number(b.amount||0),0);return {income,expense,balance:income-expense,waste,count:records.length};
       }
       function computeDays(records){
         return records.reduce((acc,r)=>{if(!r.date)return acc;(acc[r.date]??={income:false,expense:false,waste:false});if(r.type==='income')acc[r.date].income=true;if(r.type==='expense')acc[r.date].expense=true;if(r.waste)acc[r.date].waste=true;return acc},{});
@@ -696,7 +700,7 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
         $('#moneyIncomeTotal')&&( $('#moneyIncomeTotal').textContent='+'+won(summary.income));
         $('#moneyExpenseTotal')&&( $('#moneyExpenseTotal').textContent='-'+won(summary.expense));
         $('#moneyBalanceTotal')&&( $('#moneyBalanceTotal').textContent=(summary.balance>=0?'+':'-')+won(Math.abs(summary.balance)) );
-        $('#moneyRecordCount')&&( $('#moneyRecordCount').textContent=summary.count+'개');
+        $('#moneyWasteTotal')&&( $('#moneyWasteTotal').textContent='-'+won(summary.waste||0));
         updateDashMoney(summary);
         renderMoneyCalendar(byDay);
         renderMoneyRecords(monthly);
@@ -708,7 +712,7 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
         const first=new Date(moneyView.getFullYear(),moneyView.getMonth(),1), start=new Date(first);start.setDate(first.getDate()-((first.getDay()+6)%7));
         for(let i=0;i<42;i++){
           const d=new Date(start);d.setDate(start.getDate()+i);const k=key(d);const info=days[k]||{};
-          root.insertAdjacentHTML('beforeend',`<button class="moneyDay ${d.getMonth()!==moneyView.getMonth()?'mute':''} ${k===key(today)?'today':''} ${k===selectedMoneyDate?'sel':''} ${d.getDay()===0||d.getDay()===6?'weekend':''}" data-money-date="${k}" type="button"><span class="moneyNum">${d.getDate()}</span><div class="moneyDots">${info.income?'<span class="moneyDot income"></span>':''}${info.expense?'<span class="moneyDot expense"></span>':''}${info.waste?'<span class="moneyDot waste"></span>':''}</div></button>`);
+          const tone=info.income&&info.expense?'both':info.income?'incomeOnly':info.expense?'expenseOnly':'';const wasteClass=info.waste?'wasteFlag':'';root.insertAdjacentHTML('beforeend',`<button class="moneyDay ${tone} ${wasteClass} ${d.getMonth()!==moneyView.getMonth()?'mute':''} ${k===key(today)?'today':''} ${k===selectedMoneyDate?'sel':''} ${d.getDay()===0||d.getDay()===6?'weekend':''}" data-money-date="${k}" type="button"><span class="moneyNum">${d.getDate()}</span></button>`);
         }
       }
 
@@ -732,7 +736,7 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
           moneyRecords=Array.isArray(data.records)?data.records:[];
           moneyDays=data.days||computeDays(moneyRecords);
           renderMoney();saveMoneyCache();
-          setMoneyStatus(`가계부 불러오기 완료 · 기록 ${moneyRecords.length}개`);
+          setMoneyStatus('가계부 불러오기 완료');
         }catch(err){setMoneyStatus('가계부 불러오기 실패: '+err.message);console.warn(err)}
       }
 
@@ -756,6 +760,8 @@ const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
         $$('.moneyIncomeOnly').forEach(el=>el.hidden=!isIncome);
         $$('.moneyExpenseOnly').forEach(el=>el.hidden=isIncome);
         const lab=$('#moneyCardLabel');if(lab)lab.textContent=isIncome?'입금계좌':'결제수단';
+        fillMoneySelect($('#moneyEntrySubject'),isIncome?MONEY_INCOME_CATEGORIES:MONEY_EXPENSE_CATEGORIES,'분류 선택');
+        fillMoneySelect($('#moneyEntryCard'),MONEY_CARDS,isIncome?'계좌 선택':'카드 선택');
       }
       async function saveMoneyEntry(e){
         e.preventDefault();
