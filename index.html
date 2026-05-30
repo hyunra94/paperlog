@@ -127,7 +127,7 @@
       .day{min-height:108px;}
       #dashboard.page.on,#budget.page.on,#boss.page.on{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start;}
       #dashboard .title,#budget .title,#boss .title{grid-column:1/-1;margin-bottom:0;}
-      #dashboard .card,#budget .card,#boss .card{margin-bottom:0;}
+      #dashboard .card,#budget .card,#boss .card{margin-bottom:0;}.moneyTopBar{grid-column:1/-1;}
       #dashboard #habitBlock,#budget article:last-child,#boss article:last-child{grid-column:1/-1;}
       .moneyTabs{margin-top:12px;}
       .chips{grid-template-columns:repeat(6,minmax(0,1fr));}
@@ -153,7 +153,7 @@
 
 
   <style id="moneyLogV15Style">
-    .moneyTopBar{display:grid;grid-template-columns:40px 1fr 40px;gap:8px;align-items:center;margin:2px 0 12px}
+    .moneyTopBar{position:sticky;top:calc(var(--sticky-h) + 8px + env(safe-area-inset-top));z-index:44;display:grid;grid-template-columns:40px 1fr 40px;gap:8px;align-items:center;margin:2px 0 12px;padding:9px 10px;border:1.6px solid var(--line);border-radius:18px;background:rgba(255,250,242,.96);backdrop-filter:blur(10px);box-shadow:2px 2px 0 rgba(47,42,40,.12),0 6px 18px rgba(47,42,40,.08)}
     .moneyMonthTitle{text-align:center;font-family:'Gaegu';font-size:31px;line-height:1;font-weight:700}
     .moneyMonthBtn{height:38px;border:1.6px solid var(--line);border-radius:14px;background:var(--card);box-shadow:2px 2px 0 rgba(47,42,40,.12);font-family:'Gaegu';font-size:27px;line-height:1;display:grid;place-items:center}
     .moneySummaryGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
@@ -266,12 +266,12 @@
 
     <section id="budget" class="page">
       <div class="title"><h2>Money Log</h2><small>income DB + expense DB</small></div>
+      <div class="moneyTopBar">
+        <button class="moneyMonthBtn" id="moneyPrevMonth" type="button" aria-label="지난 달">‹</button>
+        <div class="moneyMonthTitle" id="moneyMonthTitle">2026년 5월</div>
+        <button class="moneyMonthBtn" id="moneyNextMonth" type="button" aria-label="다음 달">›</button>
+      </div>
       <article class="card dash">
-        <div class="moneyTopBar">
-          <button class="moneyMonthBtn" id="moneyPrevMonth" type="button" aria-label="지난 달">‹</button>
-          <div class="moneyMonthTitle" id="moneyMonthTitle">2026년 5월</div>
-          <button class="moneyMonthBtn" id="moneyNextMonth" type="button" aria-label="다음 달">›</button>
-        </div>
         <div class="moneySummaryGrid">
           <div class="moneySummaryBox"><span>이번 달 수입</span><strong class="income" id="moneyIncomeTotal">0</strong></div>
           <div class="moneySummaryBox"><span>이번 달 지출</span><strong class="expense" id="moneyExpenseTotal">0</strong></div>
