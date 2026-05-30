@@ -237,6 +237,20 @@
     .moneySaveActions .save,.moneySaveActions .cancel{width:100%}
     @media(max-width:360px){.calcIconImg{width:24px;height:24px}.moneySaveActions{grid-template-columns:1fr}}
 
+  
+    .statsIconImg{width:28px;height:28px;display:block;object-fit:contain;filter:drop-shadow(1px 1px 0 rgba(255,255,255,.65))}
+    .calcBtn.span2{grid-column:span 2}
+    @media (min-width:960px){
+      #budget.page.on{display:flex!important;flex-wrap:wrap;gap:14px;align-items:flex-start}
+      #budget.page.on>.title,#budget.page.on>.moneyTopBar{width:100%}
+      #budget.page.on>article:nth-of-type(1),#budget.page.on>article:nth-of-type(3){flex:0 0 calc(50% - 7px);width:calc(50% - 7px)}
+      #budget.page.on>article:nth-of-type(2){flex:0 0 calc(50% - 7px);width:calc(50% - 7px);align-self:flex-start}
+    }
+    @media (min-width:1180px){
+      #budget.page.on>article:nth-of-type(1),#budget.page.on>article:nth-of-type(3){flex-basis:calc(50% - 8px);width:calc(50% - 8px)}
+      #budget.page.on>article:nth-of-type(2){flex-basis:calc(50% - 8px);width:calc(50% - 8px)}
+    }
+
   </style>
 
 </head>
@@ -347,7 +361,7 @@
         <div class="moneyRecordHead"><div class="divTitle" style="margin:8px 0 10px;flex:1" id="moneyRecordTitle">이번 달 기록</div><button class="moneyClearFilter" id="moneyClearFilter" type="button" hidden>월 전체</button></div>
         <ul class="moneyList moneyRecords" id="moneyRecordList"></ul>
       </article>
-      <button class="moneyFab moneyStatsFab" id="openMoneyStats" type="button" aria-label="가계부 통계"><span class="moneyFabIcon">📊</span></button>
+      <button class="moneyFab moneyStatsFab" id="openMoneyStats" type="button" aria-label="가계부 통계"><img class="statsIconImg" src="./icons/stats-icon.png" alt=""></button>
       <button class="moneyFab" id="openMoneyEntry" type="button" aria-label="가계부 입력">＋</button>
     </section>
 
@@ -434,20 +448,20 @@
           <button class="calcBtn calcBackBtn" data-calc="back" type="button" aria-label="지우기">←</button>
         </div>
         <div class="calcPad" id="moneyCalcPad">
-          <button class="calcBtn danger" data-calc="clear" type="button">C</button>
+          <button class="calcBtn danger span2" data-calc="clear" type="button">C</button>
           <button class="calcBtn equal" data-calc="equals" type="button">=</button>
           <button class="calcBtn op" data-calc="÷" type="button">÷</button>
-          <button class="calcBtn" data-calc="7" type="button">7</button>
-          <button class="calcBtn" data-calc="8" type="button">8</button>
-          <button class="calcBtn" data-calc="9" type="button">9</button>
+          <button class="calcBtn" data-calc="1" type="button">1</button>
+          <button class="calcBtn" data-calc="2" type="button">2</button>
+          <button class="calcBtn" data-calc="3" type="button">3</button>
           <button class="calcBtn op" data-calc="+" type="button">+</button>
           <button class="calcBtn" data-calc="4" type="button">4</button>
           <button class="calcBtn" data-calc="5" type="button">5</button>
           <button class="calcBtn" data-calc="6" type="button">6</button>
           <button class="calcBtn op" data-calc="-" type="button">-</button>
-          <button class="calcBtn" data-calc="1" type="button">1</button>
-          <button class="calcBtn" data-calc="2" type="button">2</button>
-          <button class="calcBtn" data-calc="3" type="button">3</button>
+          <button class="calcBtn" data-calc="7" type="button">7</button>
+          <button class="calcBtn" data-calc="8" type="button">8</button>
+          <button class="calcBtn" data-calc="9" type="button">9</button>
           <button class="calcBtn op" data-calc="×" type="button">×</button>
           <button class="calcBtn" data-calc="00" type="button">00</button>
           <button class="calcBtn" data-calc="0" type="button">0</button>
