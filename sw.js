@@ -1,4 +1,4 @@
-const CACHE_NAME = "paper-log-v14";
+const CACHE_NAME = "paper-log-v15";
 
 const APP_SHELL = [
   "./",
