@@ -622,6 +622,70 @@
     @media(min-width:700px){.bossSumV47{grid-template-columns:repeat(4,minmax(0,1fr))}}
   </style>
 
+
+  <style id="bossGroupOrderV50Style">
+    #characterChips{
+      display:flex!important;
+      flex-wrap:nowrap!important;
+      gap:7px!important;
+      overflow-x:auto!important;
+      padding:2px 0 4px!important;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:none;
+    }
+    #characterChips::-webkit-scrollbar{display:none}
+    #characterChips .chip{
+      flex:0 0 auto!important;
+      min-width:auto!important;
+      padding:8px 12px!important;
+      white-space:nowrap!important;
+      font-size:20px!important;
+    }
+    #characterChips .chip.iconOnly{
+      width:44px!important;
+      min-width:44px!important;
+      height:42px!important;
+      padding:0!important;
+      display:grid!important;
+      place-items:center!important;
+      font-size:22px!important;
+    }
+    #characterChips .chip.lootChip{
+      width:42px!important;
+      min-width:42px!important;
+      height:42px!important;
+      font-size:20px!important;
+    }
+    .bossFamilyList{
+      display:grid;
+      gap:10px;
+    }
+    .bossFamilyBlock{
+      border:1.3px solid var(--line);
+      border-radius:17px;
+      padding:9px;
+      background:rgba(255,255,255,.22);
+    }
+    .bossFamilyBlockTitle{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:8px;
+      margin:0 0 7px;
+      font-family:'Gaegu';
+      font-size:22px;
+      line-height:1.05;
+    }
+    .bossFamilyItems{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:7px;
+    }
+    @media(min-width:700px){
+      .bossFamilyItems{grid-template-columns:repeat(2,minmax(0,1fr))}
+    }
+  </style>
+
 </head>
 <body>
 
@@ -1051,6 +1115,15 @@
       const eok=n=>{const v=n/100000000;return `${Number.isInteger(v)?v:v.toFixed(v<1?2:1).replace(/0$/,'').replace(/\.0$/,'')}억`};
       const isHiddenBossCharacterName=name=>{const n=String(name||'').replace(/\s/g,'');return n.includes('총하빙')||n.includes('총합')||n.includes('쌀먹')};
       const isValidNotionId=id=>/^[0-9a-f]{32}$/i.test(String(id||'').replace(/-/g,''));
+      const BOSS_CHAR_ORDER=['숍슈슈','렌슈솜','양슈슈','현라양','썬슈슈','득템'];
+      const BOSS_FAMILY_ORDER=['벨룸','파풀라투스','스우','데미안','가디언 엔젤 슬라임','윌','루시드','더스크','듄켈','진 힐라','선택받은 세렌','감시자 칼로스','최초의 대적자','카링','림보','발드릭스','검은 마법사','매그너스','피에르','반반','블러디 퀸','자쿰','시그너스','핑크빈','힐라'];
+      function bossCharRank(name){const n=String(name||'').trim();const i=BOSS_CHAR_ORDER.findIndex(x=>n.includes(x));return i===-1?999:i}
+      function orderBossChars(list){return [...list].sort((a,b)=>bossCharRank(a.name)-bossCharRank(b.name)||String(a.name||'').localeCompare(String(b.name||''),'ko'))}
+      function familyRankName(name){const n=String(name||'');const i=BOSS_FAMILY_ORDER.findIndex(x=>n.includes(x));return i===-1?999:i}
+      function bossFamilyName(record){return record.family||BOSS_FAMILY_ORDER.find(x=>String(record.name||'').includes(x))||String(record.name||'보스').replace(/^(익스트림|카오스|하드|노멀|이지)\s+/,'').trim()}
+      function bossChipLabel(c){if(c.id==='all')return '▦';if(String(c.name||'').includes('득템'))return '💍';return c.name}
+      function bossChipTitle(c){if(c.id==='all')return '전체';if(String(c.name||'').includes('득템'))return '득템';return c.name}
+
       function renderDashboard(){
         const todayKey=key(today);
         const todayScheduleList=dashboardTodaySchedules??state.schedules.filter(x=>x.date===todayKey);
@@ -1446,14 +1519,23 @@
         }).join(''):'<p class="bossEmpty">없음</p>'}</div>`
       }
       function renderBossList(records){
-        return `<div class="bossBucket">${records.length?records.map(r=>{
-          const cVal=crystalValue(r), lVal=lootValue(r), total=recordValue(r);
-          return `<div class="bossChip ${r.clear?'clear':''}"><span class="check ${r.clear?'done':''}" data-bosskey="${r.key}"></span><span class="bossChipName">${r.name}</span><select class="partyMode" data-partykey="${r.key}"><option value="solo" ${r.partyType==='solo'?'selected':''}>1인</option><option value="duo" ${r.partyType==='duo'?'selected':''}>2인</option><option value="other" ${r.partyType==='other'?'selected':''}>기타</option></select>${r.partyType==='other'?`<select class="otherParty" data-otherpartykey="${r.key}">${[3,4,5,6].map(n=>`<option value="${n}" ${Number(r.otherParty||3)===n?'selected':''}>${n}인</option>`).join('')}</select>`:''}<span class="price">${won(total)}</span><button class="bossDelete" data-deleteboss="${r.key}" type="button" aria-label="보스 삭제">×</button><div class="bossCalcLine"><span>결정석 ${eok(cVal)}</span>${lVal?`<span class="miniTag bossLootTag">득템 +${eok(lVal)}</span>`:''}</div><input class="bossMemoInput" data-bossmemo="${r.key}" value="${escapeAttr(r.memo||'')}" placeholder="득템 메모 예: 거공 50억"></div>`;
-        }).join(''):'<p class="bossEmpty">없음</p>'}</div>`;
+        const groups={};
+        records.forEach(r=>{
+          const family=bossFamilyName(r);
+          (groups[family]??=[]).push(r);
+        });
+        const entries=Object.entries(groups).sort((a,b)=>familyRankName(a[0])-familyRankName(b[0])||a[0].localeCompare(b[0],'ko'));
+        return `<div class="bossFamilyList">${entries.map(([family,items])=>{
+          const subtotal=items.reduce((a,b)=>a+recordValue(b),0);
+          return `<div class="bossFamilyBlock"><div class="bossFamilyBlockTitle"><span>${family}</span><span class="tag y">${eok(subtotal)}</span></div><div class="bossFamilyItems">${items.sort((a,b)=>Number(a.price||0)-Number(b.price||0)).map(r=>{
+            const cVal=crystalValue(r), lVal=lootValue(r), total=recordValue(r);
+            return `<div class="bossChip ${r.clear?'clear':''}"><span class="check ${r.clear?'done':''}" data-bosskey="${r.key}"></span><span class="bossChipName">${r.name}</span><select class="partyMode" data-partykey="${r.key}"><option value="solo" ${r.partyType==='solo'?'selected':''}>1인</option><option value="duo" ${r.partyType==='duo'?'selected':''}>2인</option><option value="other" ${r.partyType==='other'?'selected':''}>기타</option></select>${r.partyType==='other'?`<select class="otherParty" data-otherpartykey="${r.key}">${[3,4,5,6].map(n=>`<option value="${n}" ${Number(r.otherParty||3)===n?'selected':''}>${n}인</option>`).join('')}</select>`:''}<span class="price">${won(total)}</span><button class="bossDelete" data-deleteboss="${r.key}" type="button" aria-label="보스 삭제">×</button><div class="bossCalcLine"><span>결정석 ${eok(cVal)}</span>${lVal?`<span class="miniTag bossLootTag">득템 +${eok(lVal)}</span>`:''}</div><input class="bossMemoInput" data-bossmemo="${r.key}" value="${escapeAttr(r.memo||'')}" placeholder="득템 메모 예: 거공 50억"></div>`;
+          }).join('')}</div></div>`;
+        }).join('')}</div>`;
       }
       function renderBoss(){
         const chips=$('#characterChips');
-        chips.innerHTML=chars.filter(c=>c.id==='all'||!isHiddenBossCharacterName(c.name)).map(c=>`<button class="chip ${bossFilter===c.id?'on':''}" data-id="${c.id}">${c.name}</button>`).join('');
+        chips.innerHTML=[chars.find(c=>c.id==='all')||{id:'all',name:'전체'},...orderBossChars(chars.filter(c=>c.id!=='all'&&!isHiddenBossCharacterName(c.name)))].map(c=>`<button class="chip ${bossFilter===c.id?'on':''} ${c.id==='all'?'iconOnly':''} ${String(c.name||'').includes('득템')?'iconOnly lootChip':''}" data-id="${c.id}" title="${bossChipTitle(c)}" aria-label="${bossChipTitle(c)}">${bossChipLabel(c)}</button>`).join('');
         const list=$('#bossList'), rows=bossRecords.filter(r=>bossFilter==='all'||r.charId===bossFilter);
         const crystalTotal=rows.reduce((a,b)=>a+crystalValue(b),0);
         const lootTotal=rows.reduce((a,b)=>a+lootValue(b),0);
@@ -1475,7 +1557,7 @@
           const data=await res.json().catch(()=>({}));
           if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'보스 불러오기 실패');
           if(Array.isArray(data.characters)&&data.characters.length){
-            const mapped=data.characters.filter(c=>!isHiddenBossCharacterName(c.name)).map(c=>({id:c.id,name:c.name||'캐릭터'}));
+            const mapped=orderBossChars(data.characters.filter(c=>!isHiddenBossCharacterName(c.name)).map(c=>({id:c.id,name:c.name||'캐릭터'})));
             chars.splice(0,chars.length,{id:'all',name:'전체'},...mapped);
             if(!chars.some(c=>c.id===bossFilter))bossFilter='all';
           }
@@ -1524,7 +1606,7 @@
           await loadBossFromWorker(false);
         }
         const sel=$('#bossCharSelect');
-        const options=chars.filter(c=>c.id!=='all'&&!isHiddenBossCharacterName(c.name)&&isValidNotionId(c.id));
+        const options=orderBossChars(chars.filter(c=>c.id!=='all'&&!isHiddenBossCharacterName(c.name)&&isValidNotionId(c.id)));
         sel.innerHTML=options.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
         if(!options.length){
           alert('Notion 캐릭터 DB를 먼저 불러와야 기본 보스를 저장할 수 있어.');
@@ -1533,7 +1615,7 @@
         renderBossGrid();
         $('#bossSheet').hidden=false;
       }
-      function renderBossGrid(){const cid=$('#bossCharSelect').value||$('#bossCharSelect option')?.value||'', cur=bossSet[cid]||[];const lowFamilies=['매그너스','피에르','반반','블러디 퀸','자쿰','시그너스','핑크빈','힐라'];const familyOrder=['벨룸','파풀라투스','스우','데미안','가디언 엔젤 슬라임','윌','루시드','더스크','듄켈','진 힐라','선택받은 세렌','감시자 칼로스','최초의 대적자','카링','림보','발드릭스','검은 마법사'];const familyRank=family=>{const idx=familyOrder.indexOf(family);return idx===-1?999:idx};const grouped=bosses.reduce((acc,b)=>{(acc[b.family]??=[]).push(b);return acc},{});const diffName=b=>b.name.replace(b.family,'').trim()||b.name;const familyCard=([family,items])=>`<div class="bossFamily"><div class="bossFamilyTitle"><span>${family}</span><span class="miniTag">${items[0].cycle==='monthly'?'월간':'주간'}${items.some(x=>x.exception)?' · 예외':''}</span></div><div class="bossVariantRow">${[...items].sort((a,b)=>a.price-b.price).map(b=>`<label class="bossVariant"><input type="checkbox" value="${b.id}" data-family="${family}" ${cur.includes(b.id)?'checked':''}><span class="bossVariantDiff">${diffName(b)}</span><span class="bossVariantPrice">(${eok(b.price)})</span></label>`).join('')}</div></div>`;const entries=Object.entries(grouped).sort((a,b)=>familyRank(a[0])-familyRank(b[0]));const main=entries.filter(([family])=>!lowFamilies.includes(family)).map(familyCard).join('');const low=entries.filter(([family])=>lowFamilies.includes(family)).map(familyCard).join('');$('#bossSettingGrid').innerHTML=`${main}<button class="lowBossToggle" id="toggleLowBoss" type="button"><span>벨룸 미만 보스</span><span>${showLowBosses?'접기 ▲':'펼치기 ▼'}</span></button><div class="lowBossWrap" ${showLowBosses?'':'hidden'}>${low}</div>`;renderBossSettingSummary()}
+      function renderBossGrid(){const cid=$('#bossCharSelect').value||$('#bossCharSelect option')?.value||'', cur=bossSet[cid]||[];const lowFamilies=['매그너스','피에르','반반','블러디 퀸','자쿰','시그너스','핑크빈','힐라'];const familyRank=family=>familyRankName(family);const grouped=bosses.reduce((acc,b)=>{(acc[b.family]??=[]).push(b);return acc},{});const diffName=b=>b.name.replace(b.family,'').trim()||b.name;const familyCard=([family,items])=>`<div class="bossFamily"><div class="bossFamilyTitle"><span>${family}</span><span class="miniTag">${items[0].cycle==='monthly'?'월간':'주간'}${items.some(x=>x.exception)?' · 예외':''}</span></div><div class="bossVariantRow">${[...items].sort((a,b)=>a.price-b.price).map(b=>`<label class="bossVariant"><input type="checkbox" value="${b.id}" data-family="${family}" ${cur.includes(b.id)?'checked':''}><span class="bossVariantDiff">${diffName(b)}</span><span class="bossVariantPrice">(${eok(b.price)})</span></label>`).join('')}</div></div>`;const entries=Object.entries(grouped).sort((a,b)=>familyRank(a[0])-familyRank(b[0]));const main=entries.filter(([family])=>!lowFamilies.includes(family)).map(familyCard).join('');const low=entries.filter(([family])=>lowFamilies.includes(family)).map(familyCard).join('');$('#bossSettingGrid').innerHTML=`${main}<button class="lowBossToggle" id="toggleLowBoss" type="button"><span>벨룸 미만 보스</span><span>${showLowBosses?'접기 ▲':'펼치기 ▼'}</span></button><div class="lowBossWrap" ${showLowBosses?'':'hidden'}>${low}</div>`;renderBossSettingSummary()}
       function renderBossSettingSummary(){const box=$('#bossSettingSummary');if(!box)return;const checked=$$('#bossSettingGrid input[data-family]:checked').map(input=>bosses.find(b=>b.id===input.value)).filter(Boolean);const weeklyCount=checked.filter(b=>b.cycle==='weekly').length;const monthlyCount=checked.filter(b=>b.cycle==='monthly').length;box.innerHTML=`<div class="bossSettingSummaryHead"><span>선택한 기본 보스</span><strong>${checked.length}개</strong></div><div class="bossSettingSummaryList">${checked.length?checked.map(b=>`<span class="miniTag">${b.name}</span>`).join(''):'<span class="muted">아직 선택한 보스가 없어요.</span>'}</div><p class="sheetNote">주간 ${weeklyCount}개 / 월간 ${monthlyCount}개</p>`}
       function openSettings(){fillSettingsForm();populateProjectSelect();loadProjectsFromWorker(true);$('#settingsSheet').hidden=false}
       function closeSettings(){const s=$('#settingsSheet');if(s)s.hidden=true}
