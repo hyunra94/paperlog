@@ -1678,15 +1678,18 @@
         const duo=rows.filter(r=>r.partyType==='duo').map(r=>r.bossId).filter(isValidNotionId);
         const otherRows=rows.filter(r=>r.partyType==='other');
         const other=otherRows.map(r=>r.bossId).filter(isValidNotionId);
-        const otherParty=otherRows[0]?.otherParty||3;
-        const week=weekKey();
+        const otherParty=otherRows.length ? (Number(otherRows[0]?.otherParty)||3) : null;
+        const info=bossWeekInfo();
         const charName=chars.find(c=>c.id===charId)?.name||rows[0]?.charName||'캐릭터';
         const memoLines=rows.filter(r=>String(r.memo||'').trim()).map(r=>`${r.name}: ${String(r.memo||'').trim()}`);
         return {
           characterId:charId,
           characterName:charName,
-          weekKey:week,
-          title:`${charName} ${week}`,
+          weekKey:info.key,
+          weekLabel:info.label,
+          weekShortLabel:info.shortLabel,
+          weekStart:info.start,
+          title:`${charName}(${info.shortLabel})`,
           soloBossIds:solo,
           duoBossIds:duo,
           otherBossIds:other,
@@ -1714,7 +1717,7 @@
         try{
           if(!window.paperLog?.fetch){return}
           if(!silent){const el=$('#bossList');if(el)el.innerHTML='<p class="empty-msg">Notion 보스 데이터를 불러오는 중...</p>'}
-          const res=await window.paperLog.fetch('/api/boss');
+          const info=bossWeekInfo();const qs=new URLSearchParams({weekKey:info.key,weekLabel:info.label,weekStart:info.start});const res=await window.paperLog.fetch(`/api/boss?${qs.toString()}`);
           const data=await res.json().catch(()=>({}));
           if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'보스 불러오기 실패');
           if(Array.isArray(data.characters)&&data.characters.length){
@@ -1771,14 +1774,23 @@
         });
       }
       function setVisibleBossesClear(flag){const target=bossRecords.filter(r=>bossFilter==='all'||r.charId===bossFilter);target.forEach(r=>r.clear=flag);renderBoss()}
-      function weekKey(){
+      function bossWeekInfo(){
         // 메이플 보스 주간 기준: 목요일 리셋.
         // 목요일~다음 주 수요일까지 같은 주차로 묶는다.
         const base=new Date(today);
         const diff=(base.getDay()+3)%7; // Thu=0, Fri=1, ... Wed=6
         base.setDate(base.getDate()-diff);
-        return `${base.getFullYear()}-${String(base.getMonth()+1).padStart(2,'0')}-W${Math.ceil(base.getDate()/7)}`;
+        const weekNo=Math.ceil(base.getDate()/7);
+        const month=base.getMonth()+1;
+        const shortLabel=`${month}월 ${weekNo}주`;
+        return {
+          key:`${base.getFullYear()}-${String(month).padStart(2,'0')}-W${weekNo}`,
+          label:`${String(base.getFullYear()).slice(2)}년 ${month}월 ${weekNo}주`,
+          shortLabel,
+          start:key(base)
+        };
       }
+      function weekKey(){return bossWeekInfo().key}
       function generateBoss(){const w=weekKey(), monthKey=w.slice(0,7);Object.entries(bossSet).forEach(([cid,bids])=>{const seenFamily=new Set();let weeklyCount=0;bids.map(id=>bosses.find(b=>b.id===id)).filter(Boolean).forEach(b=>{const cycle=b.cycle||bossCycleByName(b.name);if(cycle==='weekly'){if(weeklyCount>=12)return;if(seenFamily.has(b.family))return;seenFamily.add(b.family);weeklyCount++}const period=cycle==='monthly'?monthKey:w;const key=cycle==='monthly'?`${cid}_${b.id}_${monthKey}`:`${cid}_${b.id}_${w}`;const exists=bossRecords.some(r=>r.key===key||(r.charId===cid&&r.bossId===b.id&&(r.week===period||!r.week)));if(!exists)bossRecords.push({key,recordId:'',charId:cid,bossId:b.id,name:b.name,short:b.short,family:b.family,cycle,price:b.price,week:period,partyType:'solo',otherParty:3,clear:false,exception:!!b.exception})})});renderBoss()}
       function setBossSettingNote(textValue,cls=''){
         const note=$('#bossSettingNote');
