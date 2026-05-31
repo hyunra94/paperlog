@@ -1672,27 +1672,37 @@
         editingBossLootKey='';
         $('#bossLootSheet')&&($('#bossLootSheet').hidden=true);
       }
-      async function saveBossRecordToWorker(record,{silent=false}={}){
-        if(!record||!isValidNotionId(record.charId)||!isValidNotionId(record.bossId))return false;
+      function weeklyBossPayloadForChar(charId){
+        const rows=bossRecords.filter(r=>r.charId===charId&&r.clear);
+        const solo=rows.filter(r=>r.partyType==='solo').map(r=>r.bossId).filter(isValidNotionId);
+        const duo=rows.filter(r=>r.partyType==='duo').map(r=>r.bossId).filter(isValidNotionId);
+        const otherRows=rows.filter(r=>r.partyType==='other');
+        const other=otherRows.map(r=>r.bossId).filter(isValidNotionId);
+        const otherParty=otherRows[0]?.otherParty||3;
+        const week=weekKey();
+        const charName=chars.find(c=>c.id===charId)?.name||rows[0]?.charName||'캐릭터';
+        const memoLines=rows.filter(r=>String(r.memo||'').trim()).map(r=>`${r.name}: ${String(r.memo||'').trim()}`);
+        return {
+          characterId:charId,
+          characterName:charName,
+          weekKey:week,
+          title:`${charName} ${week}`,
+          soloBossIds:solo,
+          duoBossIds:duo,
+          otherBossIds:other,
+          otherParty,
+          memo:memoLines.join('\n'),
+          records:rows.map(r=>({bossName:r.name,memo:r.memo||''}))
+        };
+      }
+      async function saveBossWeeklyRecordForChar(charId,{silent=false}={}){
+        if(!charId||!isValidNotionId(charId))return false;
         try{
-          const res=await window.paperLog.fetch('/api/boss/record',{
-            method:'POST',
-            body:JSON.stringify({
-              recordId:record.recordId||'',
-              clear:!!record.clear,
-              characterId:record.charId,
-              characterName:chars.find(c=>c.id===record.charId)?.name||record.charName||'',
-              bossId:record.bossId,
-              bossName:record.name||'',
-              partyType:record.partyType||'solo',
-              otherParty:record.otherParty||3,
-              memo:record.memo||''
-            })
-          });
+          const payload=weeklyBossPayloadForChar(charId);
+          const res=await window.paperLog.fetch('/api/boss/weekly-record',{method:'POST',body:JSON.stringify(payload)});
           const data=await res.json().catch(()=>({}));
           if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'보스 기록 저장 실패');
-          if(record.clear&&data.recordId)record.recordId=data.recordId;
-          if(!record.clear)record.recordId='';
+          bossRecords.filter(r=>r.charId===charId).forEach(r=>{r.recordId=data.recordId||''});
           return true;
         }catch(err){
           console.warn('보스 기록 저장 실패:',err);
@@ -1839,7 +1849,7 @@
         if(raw.length!==normalized.length)alert('같은 보스 계열 중복 또는 주간 12마리 초과 항목은 제외했어요.');
         const ok=await saveBossSettingForChar(charId,{close:true,silent:false});
         if(ok){await loadBossFromWorker(true);renderBoss();}
-      };$('#characterChips').onclick=e=>{const c=e.target.closest('.chip');if(c){bossFilter=c.dataset.id;renderBoss()}};$('#bossList').onclick=async e=>{const loot=e.target.closest('[data-bossloot]');if(loot){openBossLootMemo(loot.dataset.bossloot);return}const del=e.target.closest('[data-deleteboss]');if(del){const r=bossRecords.find(x=>x.key===del.dataset.deleteboss);if(r&&r.recordId){r.clear=false;await saveBossRecordToWorker(r,{silent:true})}bossRecords=bossRecords.filter(x=>x.key!==del.dataset.deleteboss);renderBoss();return}const c=e.target.closest('[data-bosskey]');if(c){const r=bossRecords.find(x=>x.key===c.dataset.bosskey);if(r){r.clear=!r.clear;renderBoss();await saveBossRecordToWorker(r)}}};$('#bossList').addEventListener('change',async e=>{const mode=e.target.closest('[data-partykey]');if(mode){const r=bossRecords.find(x=>x.key===mode.dataset.partykey);if(r){r.partyType=mode.value;if(r.partyType==='other'&&!r.otherParty)r.otherParty=3;renderBoss();if(r.clear)await saveBossRecordToWorker(r,{silent:true})}return}const other=e.target.closest('[data-otherpartykey]');if(other){const r=bossRecords.find(x=>x.key===other.dataset.otherpartykey);if(r){r.otherParty=Number(other.value)||3;renderBoss();if(r.clear)await saveBossRecordToWorker(r,{silent:true})}}});$('#bossLootMemo')&&($('#bossLootMemo').oninput=updateBossLootCalc);$('#bossLootForm')&&($('#bossLootForm').onsubmit=async e=>{e.preventDefault();const r=bossRecords.find(x=>x.key===editingBossLootKey);if(r){r.memo=$('#bossLootMemo')?.value||'';renderBoss();if(r.clear)await saveBossRecordToWorker(r,{silent:true})}closeBossLootSheet()});$('#clearBossLoot')&&($('#clearBossLoot').onclick=()=>{$('#bossLootMemo').value='';updateBossLootCalc()});$('#closeBossLoot')&&($('#closeBossLoot').onclick=closeBossLootSheet);
+      };$('#characterChips').onclick=e=>{const c=e.target.closest('.chip');if(c){bossFilter=c.dataset.id;renderBoss()}};$('#bossList').onclick=async e=>{const loot=e.target.closest('[data-bossloot]');if(loot){openBossLootMemo(loot.dataset.bossloot);return}const del=e.target.closest('[data-deleteboss]');if(del){const r=bossRecords.find(x=>x.key===del.dataset.deleteboss);const cid=r?.charId;bossRecords=bossRecords.filter(x=>x.key!==del.dataset.deleteboss);renderBoss();if(cid)await saveBossWeeklyRecordForChar(cid);return}const c=e.target.closest('[data-bosskey]');if(c){const r=bossRecords.find(x=>x.key===c.dataset.bosskey);if(r){r.clear=!r.clear;renderBoss();await saveBossWeeklyRecordForChar(r.charId)}}};$('#bossList').addEventListener('change',async e=>{const mode=e.target.closest('[data-partykey]');if(mode){const r=bossRecords.find(x=>x.key===mode.dataset.partykey);if(r){r.partyType=mode.value;if(r.partyType==='other'&&!r.otherParty)r.otherParty=3;renderBoss();if(r.clear)await saveBossWeeklyRecordForChar(r.charId)}return}const other=e.target.closest('[data-otherpartykey]');if(other){const r=bossRecords.find(x=>x.key===other.dataset.otherpartykey);if(r){r.otherParty=Number(other.value)||3;renderBoss();if(r.clear)await saveBossWeeklyRecordForChar(r.charId)}}});$('#bossLootMemo')&&($('#bossLootMemo').oninput=updateBossLootCalc);$('#bossLootForm')&&($('#bossLootForm').onsubmit=async e=>{e.preventDefault();const r=bossRecords.find(x=>x.key===editingBossLootKey);if(r){r.memo=$('#bossLootMemo')?.value||'';renderBoss();if(r.clear)await saveBossWeeklyRecordForChar(r.charId,{silent:true})}closeBossLootSheet()});$('#clearBossLoot')&&($('#clearBossLoot').onclick=()=>{$('#bossLootMemo').value='';updateBossLootCalc()});$('#closeBossLoot')&&($('#closeBossLoot').onclick=closeBossLootSheet);
       const openSettingsBtn=$('#openSettings');if(openSettingsBtn)openSettingsBtn.onclick=openSettings;const closeSettingsBtn=$('#closeSettings');if(closeSettingsBtn)closeSettingsBtn.onclick=closeSettings;const settingsForm=$('#settingsForm');if(settingsForm)settingsForm.onsubmit=saveSettingsForm;const settingLoadBtn=$('#settingLoadNotion');if(settingLoadBtn)settingLoadBtn.onclick=async()=>{await loadProjectsFromWorker(true);loadCalendarFromWorker(false)};const clearSettingsBtn=$('#clearSettings');if(clearSettingsBtn)clearSettingsBtn.onclick=()=>{clearPaperConfig();fillSettingsForm();const s=$('#settingsStatus');if(s)s.textContent='저장된 설정을 지웠어요.'};const cancelToggle=$('#showCanceledSchedules');if(cancelToggle){cancelToggle.checked=state.showCanceled;cancelToggle.onchange=()=>{state.showCanceled=cancelToggle.checked;loadCalendarFromWorker(false)}};const dateStripEl=$('#dateStrip');if(dateStripEl)dateStripEl.ondblclick=toggleWeekStrip;const stickyTopEl=$('#stickyTop');if(stickyTopEl)stickyTopEl.ondblclick=()=>{localStorage.setItem('paperWeekStripHidden','false');applyWeekStripHidden()};const currentMonthLabel=$('#stickyMonthLabel');if(currentMonthLabel)currentMonthLabel.textContent=`${today.getFullYear()}년 ${String(today.getMonth()+1).padStart(2,'0')}월`;$('#expenseDate').value=key(today);$('#incomeDate').value=key(today);$('#bossWeekTitle').textContent=weekKey();applyWeekStripHidden();dateStrip();renderCal();renderBoss();renderDashboard();restoreCalendarCache();
       const savedPage=localStorage.getItem(ACTIVE_PAGE_KEY)||'dashboard';
       page(savedPage,{scroll:false});
