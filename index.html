@@ -1771,7 +1771,14 @@
         });
       }
       function setVisibleBossesClear(flag){const target=bossRecords.filter(r=>bossFilter==='all'||r.charId===bossFilter);target.forEach(r=>r.clear=flag);renderBoss()}
-      function weekKey(){const mon=new Date(today);mon.setDate(today.getDate()-((today.getDay()+6)%7));return `${mon.getFullYear()}-${String(mon.getMonth()+1).padStart(2,'0')}-W${Math.ceil(mon.getDate()/7)}`}
+      function weekKey(){
+        // 메이플 보스 주간 기준: 목요일 리셋.
+        // 목요일~다음 주 수요일까지 같은 주차로 묶는다.
+        const base=new Date(today);
+        const diff=(base.getDay()+3)%7; // Thu=0, Fri=1, ... Wed=6
+        base.setDate(base.getDate()-diff);
+        return `${base.getFullYear()}-${String(base.getMonth()+1).padStart(2,'0')}-W${Math.ceil(base.getDate()/7)}`;
+      }
       function generateBoss(){const w=weekKey(), monthKey=w.slice(0,7);Object.entries(bossSet).forEach(([cid,bids])=>{const seenFamily=new Set();let weeklyCount=0;bids.map(id=>bosses.find(b=>b.id===id)).filter(Boolean).forEach(b=>{const cycle=b.cycle||bossCycleByName(b.name);if(cycle==='weekly'){if(weeklyCount>=12)return;if(seenFamily.has(b.family))return;seenFamily.add(b.family);weeklyCount++}const period=cycle==='monthly'?monthKey:w;const key=cycle==='monthly'?`${cid}_${b.id}_${monthKey}`:`${cid}_${b.id}_${w}`;const exists=bossRecords.some(r=>r.key===key||(r.charId===cid&&r.bossId===b.id&&(r.week===period||!r.week)));if(!exists)bossRecords.push({key,recordId:'',charId:cid,bossId:b.id,name:b.name,short:b.short,family:b.family,cycle,price:b.price,week:period,partyType:'solo',otherParty:3,clear:false,exception:!!b.exception})})});renderBoss()}
       function setBossSettingNote(textValue,cls=''){
         const note=$('#bossSettingNote');
