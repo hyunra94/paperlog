@@ -1625,7 +1625,7 @@
       function recordValue(r){return crystalValue(r)+lootValue(r)}
       function renderBossChip(r){
         const lVal=lootValue(r), total=recordValue(r);
-        return `<div class="bossChip ${r.clear?'clear':''}"><span class="check ${r.clear?'done':''}" data-bosskey="${r.key}"></span><span class="bossChipName ${lVal?'hasLoot':''}" data-bossloot="${r.key}" title="${lVal?'득템 '+eok(lVal):'득템 메모'}">${r.name}${lVal?` <small>+${eok(lVal)}</small>`:''}</span><select class="partyMode" data-partykey="${r.key}"><option value="solo" ${r.partyType==='solo'?'selected':''}>1인</option><option value="duo" ${r.partyType==='duo'?'selected':''}>2인</option><option value="other" ${r.partyType==='other'?'selected':''}>기타</option></select>${r.partyType==='other'?`<select class="otherParty" data-otherpartykey="${r.key}">${[3,4,5,6].map(n=>`<option value="${n}" ${Number(r.otherParty||3)===n?'selected':''}>${n}인</option>`).join('')}</select>`:''}<span class="price">${won(total)}</span><button class="bossDelete" data-deleteboss="${r.key}" type="button" aria-label="보스 삭제">×</button></div>`;
+        return `<div class="bossChip ${r.clear?'clear':''}"><button class="check ${r.clear?'done':''}" data-bosskey="${r.key}" type="button" aria-label="보스 격파 체크"></button><span class="bossChipName ${lVal?'hasLoot':''}" data-bossloot="${r.key}" title="${lVal?'득템 '+eok(lVal):'득템 메모'}">${r.name}${lVal?` <small>+${eok(lVal)}</small>`:''}</span><select class="partyMode" data-partykey="${r.key}"><option value="solo" ${r.partyType==='solo'?'selected':''}>1인</option><option value="duo" ${r.partyType==='duo'?'selected':''}>2인</option><option value="other" ${r.partyType==='other'?'selected':''}>기타</option></select>${r.partyType==='other'?`<select class="otherParty" data-otherpartykey="${r.key}">${[3,4,5,6].map(n=>`<option value="${n}" ${Number(r.otherParty||3)===n?'selected':''}>${n}인</option>`).join('')}</select>`:''}<span class="price">${won(total)}</span><button class="bossDelete" data-deleteboss="${r.key}" type="button" aria-label="보스 삭제">×</button></div>`;
       }
       function renderBossBucket(label,type,records){
         if(!records.length)return '';
@@ -1647,7 +1647,7 @@
         renderDashboard();
         if(!rows.length){list.innerHTML='<p class="empty-msg">아직 생성된 보스가 없어요. “Notion 보스 불러오기” 또는 “이번 주 생성”을 눌러주세요.</p>';return}
         const groups={};rows.forEach(r=>(groups[r.charId]??=[]).push(r));
-        list.innerHTML=Object.entries(groups).map(([cid,rs])=>{
+        list.innerHTML=Object.entries(groups).sort((a,b)=>bossCharRank(chars.find(c=>c.id===a[0])?.name||a[1][0]?.charName)-bossCharRank(chars.find(c=>c.id===b[0])?.name||b[1][0]?.charName)).map(([cid,rs])=>{
           const solo=rs.filter(r=>r.partyType==='solo');
           const duo=rs.filter(r=>r.partyType==='duo');
           const other=rs.filter(r=>r.partyType==='other');
@@ -1671,6 +1671,34 @@
       function closeBossLootSheet(){
         editingBossLootKey='';
         $('#bossLootSheet')&&($('#bossLootSheet').hidden=true);
+      }
+      async function saveBossRecordToWorker(record,{silent=false}={}){
+        if(!record||!isValidNotionId(record.charId)||!isValidNotionId(record.bossId))return false;
+        try{
+          const res=await window.paperLog.fetch('/api/boss/record',{
+            method:'POST',
+            body:JSON.stringify({
+              recordId:record.recordId||'',
+              clear:!!record.clear,
+              characterId:record.charId,
+              characterName:chars.find(c=>c.id===record.charId)?.name||record.charName||'',
+              bossId:record.bossId,
+              bossName:record.name||'',
+              partyType:record.partyType||'solo',
+              otherParty:record.otherParty||3,
+              memo:record.memo||''
+            })
+          });
+          const data=await res.json().catch(()=>({}));
+          if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'보스 기록 저장 실패');
+          if(record.clear&&data.recordId)record.recordId=data.recordId;
+          if(!record.clear)record.recordId='';
+          return true;
+        }catch(err){
+          console.warn('보스 기록 저장 실패:',err);
+          if(!silent)alert('보스 기록 저장 실패: '+err.message);
+          return false;
+        }
       }
       async function loadBossFromWorker(silent=false){
         try{
@@ -1701,6 +1729,7 @@
           if(Array.isArray(data.records)&&data.records.length){
             bossRecords.splice(0,bossRecords.length,...data.records.filter(r=>!isHiddenBossCharacterName(r.charName)).map(r=>({
               key:r.key,
+              recordId:r.recordId||'',
               charId:r.charId,
               bossId:r.bossId,
               name:r.name,
@@ -1733,7 +1762,7 @@
       }
       function setVisibleBossesClear(flag){const target=bossRecords.filter(r=>bossFilter==='all'||r.charId===bossFilter);target.forEach(r=>r.clear=flag);renderBoss()}
       function weekKey(){const mon=new Date(today);mon.setDate(today.getDate()-((today.getDay()+6)%7));return `${mon.getFullYear()}-${String(mon.getMonth()+1).padStart(2,'0')}-W${Math.ceil(mon.getDate()/7)}`}
-      function generateBoss(){const w=weekKey(), monthKey=w.slice(0,7);Object.entries(bossSet).forEach(([cid,bids])=>{const seenFamily=new Set();let weeklyCount=0;bids.map(id=>bosses.find(b=>b.id===id)).filter(Boolean).forEach(b=>{const cycle=b.cycle||bossCycleByName(b.name);if(cycle==='weekly'){if(weeklyCount>=12)return;if(seenFamily.has(b.family))return;seenFamily.add(b.family);weeklyCount++}const period=cycle==='monthly'?monthKey:w;const key=cycle==='monthly'?`${cid}_${b.id}_${monthKey}`:`${cid}_${b.id}_${w}`;const exists=bossRecords.some(r=>r.key===key||(r.charId===cid&&r.bossId===b.id&&(r.week===period||!r.week)));if(!exists)bossRecords.push({key,charId:cid,bossId:b.id,name:b.name,short:b.short,family:b.family,cycle,price:b.price,week:period,partyType:'solo',otherParty:3,clear:false,exception:!!b.exception})})});renderBoss()}
+      function generateBoss(){const w=weekKey(), monthKey=w.slice(0,7);Object.entries(bossSet).forEach(([cid,bids])=>{const seenFamily=new Set();let weeklyCount=0;bids.map(id=>bosses.find(b=>b.id===id)).filter(Boolean).forEach(b=>{const cycle=b.cycle||bossCycleByName(b.name);if(cycle==='weekly'){if(weeklyCount>=12)return;if(seenFamily.has(b.family))return;seenFamily.add(b.family);weeklyCount++}const period=cycle==='monthly'?monthKey:w;const key=cycle==='monthly'?`${cid}_${b.id}_${monthKey}`:`${cid}_${b.id}_${w}`;const exists=bossRecords.some(r=>r.key===key||(r.charId===cid&&r.bossId===b.id&&(r.week===period||!r.week)));if(!exists)bossRecords.push({key,recordId:'',charId:cid,bossId:b.id,name:b.name,short:b.short,family:b.family,cycle,price:b.price,week:period,partyType:'solo',otherParty:3,clear:false,exception:!!b.exception})})});renderBoss()}
       function setBossSettingNote(textValue,cls=''){
         const note=$('#bossSettingNote');
         if(!note)return;
@@ -1810,7 +1839,7 @@
         if(raw.length!==normalized.length)alert('같은 보스 계열 중복 또는 주간 12마리 초과 항목은 제외했어요.');
         const ok=await saveBossSettingForChar(charId,{close:true,silent:false});
         if(ok){await loadBossFromWorker(true);renderBoss();}
-      };$('#characterChips').onclick=e=>{const c=e.target.closest('.chip');if(c){bossFilter=c.dataset.id;renderBoss()}};$('#bossList').onclick=e=>{const loot=e.target.closest('[data-bossloot]');if(loot){openBossLootMemo(loot.dataset.bossloot);return}const del=e.target.closest('[data-deleteboss]');if(del){bossRecords=bossRecords.filter(x=>x.key!==del.dataset.deleteboss);renderBoss();return}const c=e.target.closest('[data-bosskey]');if(c){const r=bossRecords.find(x=>x.key===c.dataset.bosskey);if(r){r.clear=!r.clear;renderBoss()}}};$('#bossList').addEventListener('change',e=>{const mode=e.target.closest('[data-partykey]');if(mode){const r=bossRecords.find(x=>x.key===mode.dataset.partykey);if(r){r.partyType=mode.value;if(r.partyType==='other'&&!r.otherParty)r.otherParty=3;renderBoss()}return}const other=e.target.closest('[data-otherpartykey]');if(other){const r=bossRecords.find(x=>x.key===other.dataset.otherpartykey);if(r){r.otherParty=Number(other.value)||3;renderBoss()}}});$('#bossLootMemo')&&($('#bossLootMemo').oninput=updateBossLootCalc);$('#bossLootForm')&&($('#bossLootForm').onsubmit=e=>{e.preventDefault();const r=bossRecords.find(x=>x.key===editingBossLootKey);if(r){r.memo=$('#bossLootMemo')?.value||'';renderBoss()}closeBossLootSheet()});$('#clearBossLoot')&&($('#clearBossLoot').onclick=()=>{$('#bossLootMemo').value='';updateBossLootCalc()});$('#closeBossLoot')&&($('#closeBossLoot').onclick=closeBossLootSheet);
+      };$('#characterChips').onclick=e=>{const c=e.target.closest('.chip');if(c){bossFilter=c.dataset.id;renderBoss()}};$('#bossList').onclick=async e=>{const loot=e.target.closest('[data-bossloot]');if(loot){openBossLootMemo(loot.dataset.bossloot);return}const del=e.target.closest('[data-deleteboss]');if(del){const r=bossRecords.find(x=>x.key===del.dataset.deleteboss);if(r&&r.recordId){r.clear=false;await saveBossRecordToWorker(r,{silent:true})}bossRecords=bossRecords.filter(x=>x.key!==del.dataset.deleteboss);renderBoss();return}const c=e.target.closest('[data-bosskey]');if(c){const r=bossRecords.find(x=>x.key===c.dataset.bosskey);if(r){r.clear=!r.clear;renderBoss();await saveBossRecordToWorker(r)}}};$('#bossList').addEventListener('change',async e=>{const mode=e.target.closest('[data-partykey]');if(mode){const r=bossRecords.find(x=>x.key===mode.dataset.partykey);if(r){r.partyType=mode.value;if(r.partyType==='other'&&!r.otherParty)r.otherParty=3;renderBoss();if(r.clear)await saveBossRecordToWorker(r,{silent:true})}return}const other=e.target.closest('[data-otherpartykey]');if(other){const r=bossRecords.find(x=>x.key===other.dataset.otherpartykey);if(r){r.otherParty=Number(other.value)||3;renderBoss();if(r.clear)await saveBossRecordToWorker(r,{silent:true})}}});$('#bossLootMemo')&&($('#bossLootMemo').oninput=updateBossLootCalc);$('#bossLootForm')&&($('#bossLootForm').onsubmit=async e=>{e.preventDefault();const r=bossRecords.find(x=>x.key===editingBossLootKey);if(r){r.memo=$('#bossLootMemo')?.value||'';renderBoss();if(r.clear)await saveBossRecordToWorker(r,{silent:true})}closeBossLootSheet()});$('#clearBossLoot')&&($('#clearBossLoot').onclick=()=>{$('#bossLootMemo').value='';updateBossLootCalc()});$('#closeBossLoot')&&($('#closeBossLoot').onclick=closeBossLootSheet);
       const openSettingsBtn=$('#openSettings');if(openSettingsBtn)openSettingsBtn.onclick=openSettings;const closeSettingsBtn=$('#closeSettings');if(closeSettingsBtn)closeSettingsBtn.onclick=closeSettings;const settingsForm=$('#settingsForm');if(settingsForm)settingsForm.onsubmit=saveSettingsForm;const settingLoadBtn=$('#settingLoadNotion');if(settingLoadBtn)settingLoadBtn.onclick=async()=>{await loadProjectsFromWorker(true);loadCalendarFromWorker(false)};const clearSettingsBtn=$('#clearSettings');if(clearSettingsBtn)clearSettingsBtn.onclick=()=>{clearPaperConfig();fillSettingsForm();const s=$('#settingsStatus');if(s)s.textContent='저장된 설정을 지웠어요.'};const cancelToggle=$('#showCanceledSchedules');if(cancelToggle){cancelToggle.checked=state.showCanceled;cancelToggle.onchange=()=>{state.showCanceled=cancelToggle.checked;loadCalendarFromWorker(false)}};const dateStripEl=$('#dateStrip');if(dateStripEl)dateStripEl.ondblclick=toggleWeekStrip;const stickyTopEl=$('#stickyTop');if(stickyTopEl)stickyTopEl.ondblclick=()=>{localStorage.setItem('paperWeekStripHidden','false');applyWeekStripHidden()};const currentMonthLabel=$('#stickyMonthLabel');if(currentMonthLabel)currentMonthLabel.textContent=`${today.getFullYear()}년 ${String(today.getMonth()+1).padStart(2,'0')}월`;$('#expenseDate').value=key(today);$('#incomeDate').value=key(today);$('#bossWeekTitle').textContent=weekKey();applyWeekStripHidden();dateStrip();renderCal();renderBoss();renderDashboard();restoreCalendarCache();
       const savedPage=localStorage.getItem(ACTIVE_PAGE_KEY)||'dashboard';
       page(savedPage,{scroll:false});
