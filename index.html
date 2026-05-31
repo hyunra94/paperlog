@@ -760,6 +760,22 @@
     }
   </style>
 
+
+  <style id="bossNameLootV54">
+    .bossChipName{
+      cursor:pointer;
+      text-decoration:underline;
+      text-decoration-thickness:1px;
+      text-underline-offset:4px;
+      text-decoration-color:rgba(47,42,40,.28);
+    }
+    .bossChipName.hasLoot{
+      color:#9f4f4f;
+      background:linear-gradient(transparent 58%, rgba(250,236,236,.9) 0);
+    }
+    .bossLootBtn{display:none!important}
+  </style>
+
 </head>
 <body>
 
@@ -882,7 +898,7 @@
 
     <section id="boss" class="page">
       <div class="title"><h2>Maple Boss</h2><small>default boss setup → weekly generate</small></div>
-      <article class="card"><div class="weekCard"><div><span class="weekLabel">이번 주 기준</span><strong id="bossWeekTitle">이번 주</strong><p>캐릭터 DB의 기본 주간 보스 기준으로 생성. 가격은 생성 시점 스냅샷으로 저장.</p></div><button class="icon">⚙</button></div><div class="ruleBox"><strong>보스 생성 규칙</strong><span>같은 보스 계열은 난이도와 관계없이 주 1회만 생성</span><span>캐릭터당 주간 보스 최대 12마리</span><span>검은 마법사는 월간 보스로 월 1회만 생성</span><span>다인격은 인원수로 예상 금액을 나눠 표시</span></div><div class="bossTool"><button class="bossAction setup" id="openBossSetting">기본 보스 설정</button><button class="bossAction gen" id="generateBoss">이번 주 생성</button><button class="bossAction setup" id="loadBossNotion" type="button">Notion 보스 불러오기</button></div></article>
+      <article class="card"><div class="weekCard"><div><span class="weekLabel">이번 주 기준</span><strong id="bossWeekTitle">이번 주</strong><p>캐릭터 DB의 기본 주간 보스 기준으로 생성. 가격은 생성 시점 스냅샷으로 저장.</p></div><button class="icon">⚙</button></div><div class="bossTool"><button class="bossAction setup" id="openBossSetting">기본 보스 설정</button><button class="bossAction gen" id="generateBoss">이번 주 생성</button><button class="bossAction setup" id="loadBossNotion" type="button">Notion 보스 불러오기</button></div></article>
       <article class="card"><div class="divTitle">캐릭터 필터</div><div class="chips" id="characterChips"></div></article>
       <article class="card"><div class="divTitle">이번 주 보스 체크</div><div class="bossSum bossSumV47"><div><span>보스 수</span><strong id="bossCount">0개</strong></div><div><span>결정석</span><strong id="bossCrystalTotal">0</strong></div><div><span>득템</span><strong id="bossLootTotal">0</strong></div><div><span>총 메소</span><strong id="bossTotal">0</strong></div></div><div class="bossBulk"><button class="allOn" id="checkVisibleBosses" type="button">보이는 보스 전체 체크</button><button class="allOff" id="uncheckVisibleBosses" type="button">보이는 보스 전체 해제</button></div><div id="bossList"></div><p class="note">나중에 Worker API 연결 시 보스 체크 기록 DB에 실제 페이지 생성</p></article>
     </section>
@@ -1609,7 +1625,7 @@
       function recordValue(r){return crystalValue(r)+lootValue(r)}
       function renderBossChip(r){
         const lVal=lootValue(r), total=recordValue(r);
-        return `<div class="bossChip ${r.clear?'clear':''}"><span class="check ${r.clear?'done':''}" data-bosskey="${r.key}"></span><span class="bossChipName">${r.name}</span><select class="partyMode" data-partykey="${r.key}"><option value="solo" ${r.partyType==='solo'?'selected':''}>1인</option><option value="duo" ${r.partyType==='duo'?'selected':''}>2인</option><option value="other" ${r.partyType==='other'?'selected':''}>기타</option></select>${r.partyType==='other'?`<select class="otherParty" data-otherpartykey="${r.key}">${[3,4,5,6].map(n=>`<option value="${n}" ${Number(r.otherParty||3)===n?'selected':''}>${n}인</option>`).join('')}</select>`:''}<span class="price">${won(total)}</span><button class="bossLootBtn ${lVal?'hasLoot':''}" data-bossloot="${r.key}" type="button">${lVal?`득템 +${eok(lVal)}`:'+득템'}</button><button class="bossDelete" data-deleteboss="${r.key}" type="button" aria-label="보스 삭제">×</button></div>`;
+        return `<div class="bossChip ${r.clear?'clear':''}"><span class="check ${r.clear?'done':''}" data-bosskey="${r.key}"></span><span class="bossChipName ${lVal?'hasLoot':''}" data-bossloot="${r.key}" title="${lVal?'득템 '+eok(lVal):'득템 메모'}">${r.name}${lVal?` <small>+${eok(lVal)}</small>`:''}</span><select class="partyMode" data-partykey="${r.key}"><option value="solo" ${r.partyType==='solo'?'selected':''}>1인</option><option value="duo" ${r.partyType==='duo'?'selected':''}>2인</option><option value="other" ${r.partyType==='other'?'selected':''}>기타</option></select>${r.partyType==='other'?`<select class="otherParty" data-otherpartykey="${r.key}">${[3,4,5,6].map(n=>`<option value="${n}" ${Number(r.otherParty||3)===n?'selected':''}>${n}인</option>`).join('')}</select>`:''}<span class="price">${won(total)}</span><button class="bossDelete" data-deleteboss="${r.key}" type="button" aria-label="보스 삭제">×</button></div>`;
       }
       function renderBossBucket(label,type,records){
         if(!records.length)return '';
@@ -1617,6 +1633,7 @@
         return `<div class="bossBucket"><div class="bossBucketTitle"><span>${label}</span><span class="tag y">${records.length}개 · ${won(subtotal)}</span></div>${records.map(renderBossChip).join('')}</div>`;
       }
       function renderBoss(){
+        dedupeBossRecords();
         const chips=$('#characterChips');
         chips.innerHTML=[chars.find(c=>c.id==='all')||{id:'all',name:'전체'},...orderBossChars(chars.filter(c=>c.id!=='all'&&!isHiddenBossCharacterName(c.name)))].map(c=>`<button class="chip ${bossFilter===c.id?'on':''} ${c.id==='all'?'iconOnly':''} ${String(c.name||'').includes('득템')?'iconOnly lootChip':''}" data-id="${c.id}" title="${bossChipTitle(c)}" aria-label="${bossChipTitle(c)}">${bossChipLabel(c)}</button>`).join('');
         const list=$('#bossList'), rows=bossRecords.filter(r=>bossFilter==='all'||r.charId===bossFilter);
@@ -1704,9 +1721,19 @@
           const el=$('#bossList');if(el&&!silent)el.innerHTML=`<p class="empty-msg">보스 불러오기 실패: ${err.message}</p>`;
         }
       }
+      function dedupeBossRecords(){
+        const seen=new Set();
+        bossRecords=bossRecords.filter(r=>{
+          const period=r.week||weekKey();
+          const key=`${r.charId}_${r.bossId}_${period}`;
+          if(seen.has(key))return false;
+          seen.add(key);
+          return true;
+        });
+      }
       function setVisibleBossesClear(flag){const target=bossRecords.filter(r=>bossFilter==='all'||r.charId===bossFilter);target.forEach(r=>r.clear=flag);renderBoss()}
       function weekKey(){const mon=new Date(today);mon.setDate(today.getDate()-((today.getDay()+6)%7));return `${mon.getFullYear()}-${String(mon.getMonth()+1).padStart(2,'0')}-W${Math.ceil(mon.getDate()/7)}`}
-      function generateBoss(){const w=weekKey(), monthKey=w.slice(0,7);Object.entries(bossSet).forEach(([cid,bids])=>{const seenFamily=new Set();let weeklyCount=0;bids.map(id=>bosses.find(b=>b.id===id)).filter(Boolean).forEach(b=>{const cycle=b.cycle||bossCycleByName(b.name);if(cycle==='weekly'){if(weeklyCount>=12)return;if(seenFamily.has(b.family))return;seenFamily.add(b.family);weeklyCount++}const key=cycle==='monthly'?`${cid}_${b.id}_${monthKey}`:`${cid}_${b.id}_${w}`;if(!bossRecords.some(r=>r.key===key))bossRecords.push({key,charId:cid,bossId:b.id,name:b.name,short:b.short,family:b.family,cycle:b.cycle,price:b.price,week:cycle==='monthly'?monthKey:w,partyType:'solo',otherParty:3,clear:false,exception:!!b.exception})})});renderBoss()}
+      function generateBoss(){const w=weekKey(), monthKey=w.slice(0,7);Object.entries(bossSet).forEach(([cid,bids])=>{const seenFamily=new Set();let weeklyCount=0;bids.map(id=>bosses.find(b=>b.id===id)).filter(Boolean).forEach(b=>{const cycle=b.cycle||bossCycleByName(b.name);if(cycle==='weekly'){if(weeklyCount>=12)return;if(seenFamily.has(b.family))return;seenFamily.add(b.family);weeklyCount++}const period=cycle==='monthly'?monthKey:w;const key=cycle==='monthly'?`${cid}_${b.id}_${monthKey}`:`${cid}_${b.id}_${w}`;const exists=bossRecords.some(r=>r.key===key||(r.charId===cid&&r.bossId===b.id&&(r.week===period||!r.week)));if(!exists)bossRecords.push({key,charId:cid,bossId:b.id,name:b.name,short:b.short,family:b.family,cycle,price:b.price,week:period,partyType:'solo',otherParty:3,clear:false,exception:!!b.exception})})});renderBoss()}
       function setBossSettingNote(textValue,cls=''){
         const note=$('#bossSettingNote');
         if(!note)return;
