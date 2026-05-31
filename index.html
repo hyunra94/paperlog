@@ -341,43 +341,145 @@
     }
 
   </style>
+<style id="dailyLogInlineFixV44">
+    .dailyLogGroup{
+      margin:6px 0 12px!important;
+      padding:0!important;
+      border:0!important;
+      background:transparent!important;
+    }
+    .dailyLogHead{
+      display:flex!important;
+      align-items:center!important;
+      justify-content:flex-start!important;
+      gap:8px!important;
+      margin:2px 0 7px!important;
+      padding:0!important;
+      border:0!important;
+      background:transparent!important;
+    }
+    .dailyLogTitle{
+      display:inline-block!important;
+      font-family:'Gaegu'!important;
+      font-size:24px!important;
+      line-height:1.1!important;
+      font-weight:700!important;
+      background:linear-gradient(transparent 54%, rgba(233,184,184,.72) 0)!important;
+      padding:0 4px!important;
+    }
+    .dailyAddBtn{
+      width:30px!important;
+      height:30px!important;
+      min-width:30px!important;
+      border:1.5px solid var(--line)!important;
+      border-radius:999px!important;
+      background:var(--yellow)!important;
+      box-shadow:1.5px 1.5px 0 rgba(47,42,40,.12)!important;
+      font-family:'Gaegu'!important;
+      font-size:21px!important;
+      line-height:1!important;
+      display:inline-grid!important;
+      place-items:center!important;
+      padding:0!important;
+    }
+    .dailyLogItems{
+      display:grid!important;
+      gap:4px!important;
+      margin:0!important;
+      padding:0!important;
+      border:0!important;
+      background:transparent!important;
+    }
+    .dailyLogBox{
+      display:flex!important;
+      align-items:center!important;
+      gap:10px!important;
+      margin:0!important;
+      padding:0 4px!important;
+      border:0!important;
+      border-radius:0!important;
+      outline:0!important;
+      background:transparent!important;
+      box-shadow:none!important;
+      cursor:pointer!important;
+    }
+    .dailyLogBox:hover{
+      background:rgba(255,255,255,.28)!important;
+      border-radius:10px!important;
+    }
+    .dailyLogBox .moodIcon{
+      width:42px!important;
+      height:42px!important;
+      flex:0 0 42px!important;
+      object-fit:contain!important;
+    }
+    .dailyLogText{
+      display:inline-block!important;
+      min-width:0!important;
+      font-family:'Gowun Dodum'!important;
+      font-size:15px!important;
+      line-height:1.45!important;
+      text-decoration:underline!important;
+      text-decoration-thickness:1px!important;
+      text-underline-offset:4px!important;
+      text-decoration-color:rgba(47,42,40,.38)!important;
+      word-break:keep-all!important;
+    }
+    @media(max-width:430px){
+      .dailyLogTitle{font-size:23px!important}
+      .dailyAddBtn{width:28px!important;height:28px!important;min-width:28px!important;font-size:20px!important}
+      .dailyLogBox{gap:8px!important;padding:0 3px!important}
+      .dailyLogBox .moodIcon{width:38px!important;height:38px!important;flex-basis:38px!important}
+      .dailyLogText{font-size:14px!important}
+    }
+  </style>
 
-  <style id="calendarNumberTopFixV43">
-    /* Calendar 날짜 숫자 위 여백 강제 축소 */
+
+  <style id="calendarCompactCellsV45">
+    /* 캘린더 날짜칸 전체 높이 압축 */
+    #calendar .cal{
+      border-radius:18px!important;
+    }
+    #calendar .wd{
+      min-height:24px!important;
+      height:24px!important;
+      padding:2px 3px!important;
+      line-height:1!important;
+      display:flex!important;
+      align-items:center!important;
+      justify-content:center!important;
+    }
     #calendar .day{
       position:relative!important;
-      min-height:54px!important;
+      min-height:42px!important;
+      height:42px!important;
       padding:2px 4px!important;
       overflow:hidden!important;
       vertical-align:top!important;
     }
-    #calendar .wd{
-      min-height:26px!important;
-      padding:4px 3px!important;
-    }
     #calendar .day .num{
       position:absolute!important;
-      top:3px!important;
+      top:2px!important;
       left:5px!important;
       z-index:3!important;
       margin:0!important;
       line-height:1!important;
-      font-size:17px!important;
+      font-size:16px!important;
     }
     #calendar .day.today .num,
     #calendar .day.sel .num{
-      width:22px!important;
-      height:22px!important;
+      width:21px!important;
+      height:21px!important;
       display:grid!important;
       place-items:center!important;
-      top:2px!important;
+      top:1px!important;
       left:4px!important;
     }
     #calendar .dayMoodIcon{
-      top:3px!important;
-      right:4px!important;
-      width:18px!important;
-      height:18px!important;
+      top:2px!important;
+      right:3px!important;
+      width:16px!important;
+      height:16px!important;
     }
     #calendar .dots{
       left:6px!important;
@@ -390,41 +492,55 @@
       height:7px!important;
       flex-basis:7px!important;
     }
+
     @media (min-width:700px){
+      #calendar .wd{
+        min-height:26px!important;
+        height:26px!important;
+      }
       #calendar .day{
-        min-height:66px!important;
-        padding:3px 5px!important;
+        min-height:50px!important;
+        height:50px!important;
       }
       #calendar .day .num{
-        top:4px!important;
+        top:3px!important;
         left:6px!important;
-        font-size:18px!important;
+        font-size:17px!important;
       }
       #calendar .day.today .num,
       #calendar .day.sel .num{
-        width:23px!important;
-        height:23px!important;
-        top:3px!important;
+        width:22px!important;
+        height:22px!important;
+        top:2px!important;
         left:5px!important;
       }
       #calendar .dayMoodIcon{
-        top:4px!important;
-        right:5px!important;
-        width:22px!important;
-        height:22px!important;
-      }
-      #calendar .dots{
-        bottom:5px!important;
+        top:3px!important;
+        right:4px!important;
+        width:18px!important;
+        height:18px!important;
       }
     }
+
     @media (min-width:960px){
+      #calendar .wd{
+        min-height:28px!important;
+        height:28px!important;
+      }
       #calendar .day{
-        min-height:76px!important;
+        min-height:58px!important;
+        height:58px!important;
+      }
+      #calendar .dayMoodIcon{
+        width:20px!important;
+        height:20px!important;
       }
     }
+
     @media (min-width:1180px){
       #calendar .day{
-        min-height:82px!important;
+        min-height:62px!important;
+        height:62px!important;
       }
     }
   </style>
