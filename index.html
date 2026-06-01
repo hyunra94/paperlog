@@ -859,6 +859,36 @@
     }
   </style>
 
+
+  <style id="calendarDotBottomFixV69">
+    #calendar .day .dots{
+      position:absolute!important;
+      left:6px!important;
+      right:6px!important;
+      bottom:4px!important;
+      display:flex!important;
+      gap:3px!important;
+      flex-wrap:nowrap!important;
+      align-items:center!important;
+      justify-content:flex-start!important;
+      overflow:hidden!important;
+      z-index:4!important;
+    }
+    #calendar .day .num{
+      z-index:5!important;
+    }
+    #calendar .day.hasMoodBg::after{
+      z-index:1!important;
+    }
+    @media(max-width:430px){
+      #calendar .day .dots{
+        left:6px!important;
+        right:6px!important;
+        bottom:4px!important;
+      }
+    }
+  </style>
+
 </head>
 <body>
 
