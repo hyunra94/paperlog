@@ -947,6 +947,31 @@
     }
   </style>
 
+
+  <style id="dashboardTodoMemoV75">
+    #dashboardTodayList li{
+      grid-template-columns:auto minmax(0,1fr) auto!important;
+      align-items:start!important;
+      column-gap:8px!important;
+    }
+    #dashboardTodayList .todoContent{
+      min-width:0;
+      display:grid;
+      gap:3px;
+    }
+    #dashboardTodayList .todoMemo{
+      white-space:pre-wrap;
+      word-break:break-word;
+      overflow-wrap:anywhere;
+      color:var(--sub);
+      font-size:12px;
+      line-height:1.45;
+      border-left:2px solid rgba(207,227,199,.95);
+      padding-left:7px;
+      margin-top:1px;
+    }
+  </style>
+
 </head>
 <body>
 
@@ -1443,7 +1468,7 @@
         if(!list)return;
         const todos=(dashboardTodayTodos??(state.tasks||[]).filter(x=>x.date===todayKey)).sort((a,b)=>Number(a.done)-Number(b.done));
         if(!todos.length){list.innerHTML='<li><span class="check"></span><span>오늘 날짜의 할 일이 없어요.</span><span class="tag task">비어 있음</span></li>';return;}
-        list.innerHTML=todos.slice(0,8).map(x=>`<li class="${x.done?'todoDoneItem':''}"><button class="check ${x.done?'done':''}" data-todo-id="${x.id||''}" type="button" aria-label="할 일 체크"></button><span class="${x.done?'todoDoneText':''}">${x.title}</span><span class="tag ${x.color||'task'}">${x.subject||'할 일'}</span>${x.url?`<a class="goLink" href="${x.url}" target="_blank" rel="noopener noreferrer">↗</a>`:''}</li>`).join('');
+        list.innerHTML=todos.slice(0,8).map(x=>`<li class="${x.done?'todoDoneItem':''}"><button class="check ${x.done?'done':''}" data-todo-id="${x.id||''}" type="button" aria-label="할 일 체크"></button><div class="todoContent"><span class="${x.done?'todoDoneText':''}">${x.title}</span>${x.memo?`<div class="todoMemo">${String(x.memo).replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`:''}</div>${x.url?`<a class="goLink" href="${x.url}" target="_blank" rel="noopener noreferrer">↗</a>`:''}</li>`).join('');
       }
       async function loadDashboardTodayFromWorker(){
         try{
@@ -1454,7 +1479,7 @@
           const data=await res.json().catch(()=>({}));
           if(!res.ok||data.ok===false)return;
           dashboardTodaySchedules=(data.schedules||[]).filter(x=>x.date).map(x=>({id:x.id,url:x.url,type:'schedule',date:String(x.date).slice(0,10),time:x.time||'',title:x.title||'(제목 없음)',subject:x.category||x.subject||'일정',category:x.category||x.subject||'',color:x.color||scheduleColor(x.category||x.subject),canceled:!!x.canceled,projectIds:x.projectIds||[]}));
-          dashboardTodayTodos=(data.todos||[]).filter(x=>x.date).map(x=>({id:x.id,url:x.url,type:'todo',date:String(x.date).slice(0,10),time:x.time||'',title:x.title||'(제목 없음)',subject:x.memo||x.category||'할 일',color:x.color||'task',done:!!x.done,canceled:!!x.canceled,projectIds:x.projectIds||[]})).sort((a,b)=>Number(a.done)-Number(b.done));
+          dashboardTodayTodos=(data.todos||[]).filter(x=>x.date).map(x=>({id:x.id,url:x.url,type:'todo',date:String(x.date).slice(0,10),time:x.time||'',title:x.title||'(제목 없음)',memo:x.memo||'',subject:x.category||'할 일',color:x.color||'task',done:!!x.done,canceled:!!x.canceled,projectIds:x.projectIds||[]})).sort((a,b)=>Number(a.done)-Number(b.done));
           renderDashboard();
         }catch(err){console.warn('대시보드 오늘 할 일 갱신 실패',err)}
       }
