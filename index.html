@@ -960,7 +960,7 @@
         <div class="divTitle">오늘 요약</div>
         <div class="grid2">
           <button class="mini jump" data-target="calendar"><h3><span class="blue">캘린더</span></h3><p id="dashCalendarSummary">오늘 일정/할 일 불러오는 중</p></button>
-          <button class="mini jump" data-target="budget"><h3><span class="pink">가계부</span></h3><p id="dashMoneySummary">이번 달 수입/지출 요약</p></button>
+          <button class="mini jump" data-target="budget"><h3><span class="pink">가계부</span></h3><p id="dashMoneySummary">오늘 기준 월 가계부 불러오는 중</p></button>
           <button class="mini" data-scroll="habitBlock"><h3><span class="green">해빗</span></h3><p id="dashHabitSummary">오늘 해빗 체크 요약</p></button>
           <button class="mini jump" data-target="boss"><h3><span class="purple">보스</span></h3><p id="dashBossSummary">이번 주 보스 요약</p></button>
         </div>
@@ -1395,7 +1395,7 @@
         const bossTotal=bossRecords.length;
         const set=(id,text)=>{const el=$(id);if(el)el.innerHTML=text};
         set('#dashCalendarSummary',`오늘 일정 ${todaySchedules}개 / 할 일 ${todayTasks}개<br>누르면 캘린더로 이동`);
-        set('#dashMoneySummary',`이번 달 수입 2,500,000원<br>이번 달 지출 648,500원`);
+        // 가계부 요약은 실제 오늘 기준 월 데이터만 사용하므로 여기서 덮어쓰지 않음.
         set('#dashHabitSummary',`오늘 해빗 3개 중 2개 완료<br>대시보드에서 바로 확인`);
         set('#dashBossSummary',`이번 주 보스 ${bossTotal}개 중 ${bossDone}개 완료<br>누르면 보스 탭으로 이동`);
         renderDashboardTodayList(todayKey);
