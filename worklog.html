@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Work Log</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Gowun+Dodum&family=Patrick+Hand&display=swap" rel="stylesheet">
+  <style>
+    :root{--paper:#fdf8ef;--card:#fffdf7;--ink:#2f2a28;--sub:#776b63;--line:#8d6c9f;--grid:#dfd2c4;--blue:#b9dced;--yellow:#f5df9a;--pink:#f2c8d2;--muted:#f1eadf;--shadow:3px 3px 0 rgba(47,42,40,.12);--app-max:1120px}
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--paper);color:var(--ink);font-family:'Gowun Dodum',system-ui,sans-serif}
+    body:before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.4;background-image:radial-gradient(rgba(141,108,159,.12) 1px,transparent 1px);background-size:18px 18px}
+    button,input{font:inherit;color:inherit}button{cursor:pointer}
+    .app{width:min(100%,var(--app-max));margin:0 auto;padding:12px 12px 28px}
+    .top{position:sticky;top:0;z-index:30;background:rgba(253,248,239,.96);backdrop-filter:blur(10px);padding:10px 0 9px;border-bottom:1px solid rgba(47,42,40,.08)}
+    .topRow{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:10px}
+    h1{margin:0;font-family:'Gaegu';font-size:34px;line-height:1}.sub{margin:2px 0 0;color:var(--sub);font-size:12px}
+    .iconBtn{width:40px;height:40px;border:1.6px solid var(--line);border-radius:14px;background:var(--card);box-shadow:var(--shadow);font-family:'Gaegu';font-size:24px;line-height:1;display:grid;place-items:center}
+    .monthBar{position:sticky;top:72px;z-index:25;display:grid;grid-template-columns:42px 1fr auto 42px;gap:8px;align-items:center;margin:12px 0;padding:9px 10px;border:1.7px solid var(--line);border-radius:20px;background:rgba(255,253,247,.96);box-shadow:2px 2px 0 rgba(47,42,40,.10);backdrop-filter:blur(8px)}
+    .monthTitle{text-align:center;font-family:'Gaegu';font-size:34px;font-weight:700;line-height:1;cursor:pointer}
+    .monthBtn,.todayBtn{height:38px;border:1.5px solid var(--line);border-radius:14px;background:var(--card);box-shadow:2px 2px 0 rgba(47,42,40,.10);font-family:'Gaegu';font-size:25px;line-height:1;display:grid;place-items:center}
+    .todayBtn{font-size:18px;border-radius:999px;padding:0 10px;white-space:nowrap}.status{min-height:18px;margin:6px 4px 8px;color:var(--sub);font-size:12px}
+    .calendar{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;border:1.7px solid var(--grid);border-radius:22px;overflow:hidden;background:var(--grid);box-shadow:var(--shadow)}
+    .wd,.day{background:var(--card)}.wd{min-height:34px;display:flex;align-items:center;justify-content:center;font-family:'Patrick Hand';font-size:18px;color:#4a403a}.wd.weekend{color:#b96874}
+    .day{position:relative;min-height:128px;padding:7px 6px 8px;overflow:hidden;display:flex;flex-direction:column;gap:4px}.day.mute{background:#f4ede3;color:#aaa096}.day.today{outline:2px solid rgba(141,108,159,.7);outline-offset:-3px}
+    .num{align-self:flex-start;display:grid;place-items:center;width:24px;height:24px;border-radius:999px;font-family:'Gaegu';font-size:20px;font-weight:700;line-height:1}.today .num{background:var(--yellow);border:1px solid rgba(47,42,40,.45)}
+    .tapeList{display:grid;gap:4px;margin-top:2px;min-width:0}.tape{position:relative;min-width:0;border:1.2px solid rgba(47,42,40,.45);border-radius:10px;padding:3px 7px 4px;font-size:12px;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:1px 1px 0 rgba(47,42,40,.08)}
+    .tape.work{background:var(--blue)}.tape.etc{background:var(--yellow)}.tape.holiday{background:var(--pink)}
+    .tape.longStart{border-top-right-radius:3px;border-bottom-right-radius:3px;margin-right:-7px}.tape.longMid{border-radius:3px;margin-left:-7px;margin-right:-7px}.tape.longEnd{border-top-left-radius:3px;border-bottom-left-radius:3px;margin-left:-7px}.tape.more{background:#eee4d8;color:var(--sub);border-style:dashed}
+    .legend{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 2px 0;color:var(--sub);font-size:12px}.legend span{display:inline-flex;align-items:center;gap:5px}.legend i{width:18px;height:10px;border:1px solid rgba(47,42,40,.35);border-radius:999px;display:inline-block}.legend .work{background:var(--blue)}.legend .etc{background:var(--yellow)}.legend .holiday{background:var(--pink)}
+    .sheetBg{position:fixed;inset:0;z-index:60;display:flex;align-items:flex-end;justify-content:center;padding:12px;background:rgba(47,42,40,.22)}.sheetBg[hidden]{display:none}.sheet{width:min(100%,430px);max-height:min(86svh,680px);overflow:auto;background:var(--card);border:1.8px solid var(--line);border-radius:24px 24px 18px 18px;box-shadow:0 -12px 34px rgba(47,42,40,.18);padding:10px 14px 16px}.handle{width:48px;height:5px;border-radius:999px;background:rgba(47,42,40,.25);margin:0 auto 10px}.sheetHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.sheetHead h3{margin:0;font-family:'Gaegu';font-size:28px}.form{display:grid;gap:9px}.field{display:grid;gap:4px}.field label{font-family:'Gaegu';font-size:18px}.field input{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:12px;background:var(--card)}.save{border:1.7px solid var(--line);border-radius:14px;background:var(--yellow);padding:11px 12px;font-family:'Gaegu';font-size:22px;box-shadow:2px 2px 0 rgba(47,42,40,.16)}.cancel{border:1.7px solid var(--line);border-radius:14px;background:var(--card);padding:11px 12px;font-family:'Gaegu';font-size:22px}.note{margin:0;color:var(--sub);font-size:12px;line-height:1.55}
+    @media (min-width:900px){.app{padding-inline:18px}.day{min-height:158px;padding:8px}.tape{font-size:13px;padding-block:4px}}@media (min-width:1180px){.day{min-height:174px}}@media (max-width:560px){.app{padding-inline:9px}.monthBar{grid-template-columns:36px 1fr auto 36px;gap:6px;padding-inline:8px}.monthTitle{font-size:27px}.todayBtn{height:34px;font-size:16px;padding-inline:8px}.monthBtn{height:34px;font-size:23px}.wd{min-height:27px;font-size:15px}.day{min-height:88px;padding:4px 3px}.num{width:21px;height:21px;font-size:17px}.tape{font-size:10.5px;padding:2px 5px;border-radius:8px}.tape.longStart{margin-right:-4px}.tape.longMid{margin-inline:-4px}.tape.longEnd{margin-left:-4px}}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="top"><div class="topRow"><div><h1>Work Log</h1><p class="sub">회사 일정 전용 캘린더</p></div><div></div><button class="iconBtn" id="openSettings" type="button" aria-label="설정">☰</button></div></header>
+    <section class="monthBar"><button class="monthBtn" id="prevMonth" type="button">‹</button><div class="monthTitle" id="monthTitle">Month</div><button class="todayBtn" id="todayBtn" type="button">오늘</button><button class="monthBtn" id="nextMonth" type="button">›</button></section>
+    <p class="status" id="status">설정 후 회사 일정을 불러와 주세요.</p>
+    <main><div class="calendar" id="calendarGrid"></div><div class="legend"><span><i class="work"></i>업무일정</span><span><i class="etc"></i>기타</span><span><i class="holiday"></i>공휴일</span></div></main>
+  </div>
+  <div class="sheetBg" id="settingsSheet" hidden><section class="sheet"><div class="handle"></div><div class="sheetHead"><h3>Work Log 설정</h3><button class="iconBtn" id="closeSettings" type="button">×</button></div><form class="form" id="settingsForm"><div class="field"><label>Worker 앞부분</label><input id="workerName" autocomplete="off" placeholder="예: worklog"></div><div class="field"><label>Cloudflare ID</label><input id="workerId" autocomplete="off" placeholder="예: hyunra94"></div><div class="field"><label>WORKLOG_SECRET</label><input id="workSecret" type="password" autocomplete="current-password" placeholder="Cloudflare Worker의 WORKLOG_SECRET"></div><button class="save" type="submit">설정 저장</button><button class="cancel" id="loadNow" type="button">일정 불러오기</button><p class="note" id="settingsStatus">이 설정은 이 기기에만 저장됩니다.</p></form></section></div>
+<script>
+document.addEventListener('DOMContentLoaded',()=>{
+  const CONFIG_KEY='worklogConfig', SECRET_KEY='worklogSecret';
+  const $=s=>document.querySelector(s), wk=['mon','tue','wed','thu','fri','sat','sun'];
+  const HOLIDAYS_KR={'2026-01-01':'신정','2026-02-16':'설날 연휴','2026-02-17':'설날','2026-02-18':'설날 연휴','2026-03-01':'삼일절','2026-03-02':'삼일절 대체공휴일','2026-05-05':'어린이날','2026-05-24':'부처님오신날','2026-05-25':'부처님오신날 대체공휴일','2026-06-06':'현충일','2026-08-15':'광복절','2026-08-17':'광복절 대체공휴일','2026-09-24':'추석 연휴','2026-09-25':'추석','2026-09-26':'추석 연휴','2026-10-03':'개천절','2026-10-05':'개천절 대체공휴일','2026-10-09':'한글날','2026-12-25':'성탄절'};
+  const today=(()=>{const p=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()).split('-').map(Number);return new Date(p[0],p[1]-1,p[2])})();
+  const key=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  let view=new Date(today.getFullYear(),today.getMonth(),1), items=[], loadSeq=0;
+  function getConfig(){let base={};try{base=JSON.parse(localStorage.getItem(CONFIG_KEY)||'{}')}catch{}const secret=sessionStorage.getItem(SECRET_KEY)||localStorage.getItem(SECRET_KEY)||'';return {...base,secret}}
+  function setConfig(cfg){localStorage.setItem(CONFIG_KEY,JSON.stringify({workerName:cfg.workerName,workerId:cfg.workerId}));localStorage.setItem(SECRET_KEY,cfg.secret)}
+  function hasConfig(){const c=getConfig();return Boolean(c.workerName&&c.workerId&&c.secret)}
+  function apiBase(){const c=getConfig();if(!c.workerName||!c.workerId)throw new Error('Worker 설정이 없습니다.');return `https://${c.workerName}.${c.workerId}.workers.dev`}
+  function workFetch(path){const c=getConfig();if(!c.secret)throw new Error('WORKLOG_SECRET이 없습니다.');return fetch(`${apiBase()}${path}`,{headers:{'x-worklog-key':c.secret}})}
+  function setStatus(t){$('#status').textContent=t}
+  function monthRange(){const from=new Date(view.getFullYear(),view.getMonth(),1),to=new Date(view.getFullYear(),view.getMonth()+1,0);return{from:key(from),to:key(to)}}
+  function tapeTone(item){if(item.type==='holiday')return 'holiday';const c=String(item.category||item.subject||'');return c.includes('업무')?'work':'etc'}
+  function segmentClass(item,dateKey){if(item.type==='holiday')return 'single';const s=item.startDate||item.date,e=item.endDate||item.date;if(s===e)return 'single';if(dateKey===s)return 'longStart';if(dateKey===e)return 'longEnd';return 'longMid'}
+  function itemsForDate(k){const result=[];if(HOLIDAYS_KR[k])result.push({type:'holiday',title:HOLIDAYS_KR[k],startDate:k,endDate:k});items.forEach(x=>{if(k>=x.startDate&&k<=x.endDate)result.push(x)});return result}
+  function render(){const root=$('#calendarGrid'),title=$('#monthTitle');title.textContent=new Intl.DateTimeFormat('ko-KR',{year:'numeric',month:'long'}).format(view);root.innerHTML='';wk.forEach(d=>root.insertAdjacentHTML('beforeend',`<div class="wd ${d==='sat'||d==='sun'?'weekend':''}">${d}</div>`));const first=new Date(view.getFullYear(),view.getMonth(),1),start=new Date(first);start.setDate(first.getDate()-((first.getDay()+6)%7));let count=0;for(let i=0;i<42;i++){const d=new Date(start);d.setDate(start.getDate()+i);const k=key(d),dayItems=itemsForDate(k);if(d.getMonth()===view.getMonth())count+=dayItems.filter(x=>x.type!=='holiday').length;const tapes=dayItems.slice(0,4).map(item=>`<div class="tape ${tapeTone(item)} ${segmentClass(item,k)}" title="${item.title}">${item.title}</div>`).join('');const more=dayItems.length>4?`<div class="tape more">+${dayItems.length-4}</div>`:'';root.insertAdjacentHTML('beforeend',`<div class="day ${d.getMonth()!==view.getMonth()?'mute':''} ${k===key(today)?'today':''}"><span class="num">${d.getDate()}</span><div class="tapeList">${tapes}${more}</div></div>`)}if(!count)setStatus('표시할 회사 일정이 없어요.')}
+  async function loadWorkCalendar(silent=false){const seq=++loadSeq;try{if(!hasConfig()){setStatus('설정 메뉴에서 Work Log Worker와 WORKLOG_SECRET을 저장해 주세요.');openSettings();return}if(!silent)setStatus('회사 일정을 불러오는 중...');const r=monthRange(),qs=new URLSearchParams({from:r.from,to:r.to});const res=await workFetch(`/api/work-calendar?${qs}`);const data=await res.json().catch(()=>({}));if(seq!==loadSeq)return;if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'일정 불러오기 실패');items=(data.items||[]).map(x=>({...x,startDate:String(x.startDate||x.date).slice(0,10),endDate:String(x.endDate||x.date||x.startDate).slice(0,10)}));render();setStatus(`불러오기 완료 · 일정 ${items.length}개`)}catch(err){if(seq!==loadSeq)return;setStatus('일정 불러오기 실패: '+err.message);console.warn(err)}}
+  function moveMonth(o){view=new Date(view.getFullYear(),view.getMonth()+o,1);items=[];render();setTimeout(()=>loadWorkCalendar(true),30)}
+  function goToday(){view=new Date(today.getFullYear(),today.getMonth(),1);items=[];render();setTimeout(()=>loadWorkCalendar(true),30)}
+  function openSettings(){const c=getConfig();$('#workerName').value=c.workerName||'';$('#workerId').value=c.workerId||'';$('#workSecret').value=c.secret||'';$('#settingsSheet').hidden=false}
+  function closeSettings(){$('#settingsSheet').hidden=true}
+  $('#prevMonth').onclick=()=>moveMonth(-1);$('#nextMonth').onclick=()=>moveMonth(1);$('#todayBtn').onclick=goToday;$('#monthTitle').onclick=()=>scrollTo({top:0,behavior:'smooth'});$('#openSettings').onclick=openSettings;$('#closeSettings').onclick=closeSettings;
+  $('#settingsForm').onsubmit=e=>{e.preventDefault();const cfg={workerName:$('#workerName').value.trim(),workerId:$('#workerId').value.trim(),secret:$('#workSecret').value.trim()};const st=$('#settingsStatus');if(!cfg.workerName||!cfg.workerId||!cfg.secret){st.textContent='Worker 앞부분, Cloudflare ID, WORKLOG_SECRET을 모두 입력해 주세요.';return}setConfig(cfg);st.textContent='설정을 저장했어요.';closeSettings();loadWorkCalendar(false)};
+  $('#loadNow').onclick=()=>loadWorkCalendar(false);render();if(hasConfig())setTimeout(()=>loadWorkCalendar(true),120);else setTimeout(()=>openSettings(),250);
+});
+</script>
+</body>
+</html>
