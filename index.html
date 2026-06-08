@@ -1588,10 +1588,11 @@
           view=new Date(+p.date.slice(0,4),+p.date.slice(5,7)-1,1);
           $('#entrySheet').hidden=true;
           editingCalendarRecord=null;
+          if(p.date===key(today))dashboardTodayTodos=null;
           renderCal();
           renderDashboard();
           saveCalendarCache();
-          setTimeout(()=>loadCalendarFromWorker(true),300);
+          setTimeout(()=>{loadCalendarFromWorker(true);loadDashboardTodayFromWorker()},300);
         }catch(err){
           alert(`Notion 저장 실패: ${err.message}`);
         }
@@ -2189,7 +2190,32 @@
       function closeSettings(){const s=$('#settingsSheet');if(s)s.hidden=true}
       function fillSettingsForm(){const cfg=getPaperConfig();const workerName=$('#settingWorkerName'),workerId=$('#settingWorkerId'),secret=$('#settingSecretKey'),remember=$('#settingRememberSecret'),viewMode=$('#settingViewMode');if(workerName)workerName.value=cfg.workerName||'';if(workerId)workerId.value=cfg.workerId||'';if(secret)secret.value=cfg.secretKey||'';if(remember)remember.checked=Boolean(localStorage.getItem(PAPER_SECRET_KEY)||cfg.secretKey);if(viewMode)viewMode.value=currentViewMode}
       function saveSettingsForm(e){e.preventDefault();const cfg={workerName:$('#settingWorkerName').value.trim(),workerId:$('#settingWorkerId').value.trim(),secretKey:$('#settingSecretKey').value.trim()};const status=$('#settingsStatus');if(!cfg.workerName||!cfg.workerId||!cfg.secretKey){if(status)status.textContent='Worker 앞부분, Cloudflare ID, SECRET Key를 모두 입력해 주세요.';return}if(!/^[a-zA-Z0-9-]+$/.test(cfg.workerName)||!/^[a-zA-Z0-9-]+$/.test(cfg.workerId)){if(status)status.textContent='Worker 앞부분과 Cloudflare ID는 영문, 숫자, 하이픈만 입력해 주세요.';return}setPaperConfig(cfg,$('#settingRememberSecret')?.checked!==false);if(status)status.textContent='설정을 저장했어요. Notion을 불러옵니다.';loadCalendarFromWorker(false)}
-      async function toggleTodoCheck(todoId){const tasks=state.tasks.filter(x=>x.id===todoId);if(!tasks.length)return;const prev=!!tasks[0].done,next=!prev;tasks.forEach(t=>t.done=next);renderCal();renderDashboard();saveCalendarCache();try{const res=await window.paperLog.fetch('/api/todo/check',{method:'PATCH',body:JSON.stringify({id:todoId,done:next})});const data=await res.json().catch(()=>({}));if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'체크 저장 실패');const status=$('#syncStatus');if(status)status.textContent='체크 상태를 Notion에 반영했어요.';setTimeout(()=>loadCalendarFromWorker(true),500)}catch(err){tasks.forEach(t=>t.done=prev);renderCal();renderDashboard();saveCalendarCache();alert('Notion 체크 반영 실패: '+err.message)}}
+      async function toggleTodoCheck(todoId){
+        const tasks=state.tasks.filter(x=>x.id===todoId);
+        const dashTasks=Array.isArray(dashboardTodayTodos)?dashboardTodayTodos.filter(x=>x.id===todoId):[];
+        const allTargets=[...tasks,...dashTasks];
+        if(!allTargets.length)return;
+        const prev=!!allTargets[0].done,next=!prev;
+        allTargets.forEach(t=>t.done=next);
+        renderCal();
+        renderDashboardTodayList(key(today));
+        renderDashboard();
+        saveCalendarCache();
+        try{
+          const res=await window.paperLog.fetch('/api/todo/check',{method:'PATCH',body:JSON.stringify({id:todoId,done:next})});
+          const data=await res.json().catch(()=>({}));
+          if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'체크 저장 실패');
+          const status=$('#syncStatus');if(status)status.textContent='체크 상태를 Notion에 반영했어요.';
+          setTimeout(()=>{loadCalendarFromWorker(true);loadDashboardTodayFromWorker()},500)
+        }catch(err){
+          allTargets.forEach(t=>t.done=prev);
+          renderCal();
+          renderDashboardTodayList(key(today));
+          renderDashboard();
+          saveCalendarCache();
+          alert('Notion 체크 반영 실패: '+err.message)
+        }
+      }
       function applyWeekStripHidden(){document.body.classList.toggle('weekStripHidden',localStorage.getItem('paperWeekStripHidden')==='true')}
       function toggleWeekStrip(){const next=!(localStorage.getItem('paperWeekStripHidden')==='true');localStorage.setItem('paperWeekStripHidden',String(next));applyWeekStripHidden()}
       function normalizeBossIds(ids){const monthly=ids.filter(id=>bosses.find(b=>b.id===id)?.cycle==='monthly');const weekly=[];const fam=new Set();ids.map(id=>bosses.find(b=>b.id===id)).filter(b=>b&&b.cycle==='weekly').forEach(b=>{if(weekly.length>=12)return;if(fam.has(b.family))return;fam.add(b.family);weekly.push(b.id)});return [...monthly,...weekly]}
