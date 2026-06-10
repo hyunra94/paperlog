@@ -1096,7 +1096,7 @@
       <div class="title"><h2>Maple Boss</h2><small>default boss setup → weekly generate</small></div>
       <article class="card"><div class="weekCard"><div><span class="weekLabel">이번 주 기준</span><strong id="bossWeekTitle">이번 주</strong><p>캐릭터 DB의 기본 주간 보스 기준으로 생성. 가격은 생성 시점 스냅샷으로 저장.</p></div><button class="icon">⚙</button></div><div class="bossTool"><button class="bossAction setup" id="openBossSetting">기본 보스 설정</button><button class="bossAction gen" id="generateBoss">이번 주 생성</button><button class="bossAction setup" id="loadBossNotion" type="button">Notion 보스 불러오기</button></div></article>
       <article class="card"><div class="divTitle">캐릭터 필터</div><div class="chips" id="characterChips"></div></article>
-      <article class="card"><div class="divTitle">이번 주 보스 체크</div><div class="bossSum bossSumV47"><div><span>보스 수</span><strong id="bossCount">0개</strong></div><div><span>결정석</span><strong id="bossCrystalTotal">0</strong></div><div><span>득템</span><strong id="bossLootTotal">0</strong></div><div><span>총 메소</span><strong id="bossTotal">0</strong></div></div><div class="bossBulk"><button class="allOn" id="checkVisibleBosses" type="button">보이는 보스 전체 체크</button><button class="allOff" id="uncheckVisibleBosses" type="button">보이는 보스 전체 해제</button></div><div id="bossList"></div><p class="note">나중에 Worker API 연결 시 보스 체크 기록 DB에 실제 페이지 생성</p></article>
+      <article class="card"><div class="divTitle">이번 주 보스 체크</div><div class="bossSum bossSumV47"><div><span>보스 수</span><strong id="bossCount">0개</strong></div><div><span>결정석</span><strong id="bossCrystalTotal">0</strong></div><div><span>예정 메소</span><strong id="bossExpectedTotal">0</strong></div><div><span>총 메소</span><strong id="bossTotal">0</strong></div></div><div class="bossBulk"><button class="allOn" id="checkVisibleBosses" type="button">보이는 보스 전체 체크</button><button class="allOff" id="uncheckVisibleBosses" type="button">보이는 보스 전체 해제</button></div><div id="bossList"></div><p class="note">나중에 Worker API 연결 시 보스 체크 기록 DB에 실제 페이지 생성</p></article>
     </section>
 
     <div class="sheetBg" id="entrySheet" hidden><section class="sheet"><div class="handle"></div><div class="sheetHead entrySheetHead"><h3 id="entrySheetTitle">기록 추가</h3><div class="entrySheetHeadActions"><button class="icon entryDeleteBtn" id="deleteEntry" type="button" hidden aria-label="기록 삭제">🗑</button><button class="icon" id="closeEntry" type="button">×</button></div></div><form class="entryForm" id="entryForm"><div class="typeToggle"><label class="typeChip"><input type="checkbox" id="addSchedule"> 일정 DB</label><label class="typeChip"><input type="checkbox" id="addTodo"> 할 일 DB</label><input type="checkbox" id="addDaily" hidden></div><div class="field"><label>제목</label><input id="entryTitle" placeholder="예: 교육 운영 회의"></div><div class="row2">
@@ -1588,11 +1588,10 @@
           view=new Date(+p.date.slice(0,4),+p.date.slice(5,7)-1,1);
           $('#entrySheet').hidden=true;
           editingCalendarRecord=null;
-          if(p.date===key(today))dashboardTodayTodos=null;
           renderCal();
           renderDashboard();
           saveCalendarCache();
-          setTimeout(()=>{loadCalendarFromWorker(true);loadDashboardTodayFromWorker()},300);
+          setTimeout(()=>loadCalendarFromWorker(true),300);
         }catch(err){
           alert(`Notion 저장 실패: ${err.message}`);
         }
@@ -1913,8 +1912,9 @@
       }
       function renderBossBucket(label,type,records){
         if(!records.length)return '';
-        const subtotal=records.reduce((a,b)=>a+recordValue(b),0);
-        return `<div class="bossBucket"><div class="bossBucketTitle"><span>${label}</span><span class="tag y">${records.length}개 · ${won(subtotal)}</span></div>${records.map(renderBossChip).join('')}</div>`;
+        const checkedSubtotal=records.filter(r=>r.clear).reduce((a,b)=>a+recordValue(b),0);
+        const expectedSubtotal=records.filter(r=>!r.clear).reduce((a,b)=>a+crystalValue(b),0);
+        return `<div class="bossBucket"><div class="bossBucketTitle"><span>${label}</span><span class="tag y">${records.length}개 · 완료 ${won(checkedSubtotal)} · 예정 ${won(expectedSubtotal)}</span></div>${records.map(renderBossChip).join('')}</div>`;
       }
       function renderBoss(){
         syncBossPartyPrefs();
@@ -1922,12 +1922,15 @@
         const chips=$('#characterChips');
         chips.innerHTML=[chars.find(c=>c.id==='all')||{id:'all',name:'전체'},...orderBossChars(chars.filter(c=>c.id!=='all'&&!isHiddenBossCharacterName(c.name)))].map(c=>`<button class="chip ${bossFilter===c.id?'on':''} ${c.id==='all'?'iconOnly':''} ${String(c.name||'').includes('득템')?'iconOnly lootChip':''}" data-id="${c.id}" title="${bossChipTitle(c)}" aria-label="${bossChipTitle(c)}">${bossChipLabel(c)}</button>`).join('');
         const list=$('#bossList'), rows=bossRecords.filter(r=>bossFilter==='all'||r.charId===bossFilter);
-        const crystalTotal=rows.reduce((a,b)=>a+crystalValue(b),0);
-        const lootTotal=rows.reduce((a,b)=>a+lootValue(b),0);
-        const grandTotal=rows.reduce((a,b)=>a+recordValue(b),0);
-        $('#bossCount').textContent=rows.length+'개';
+        const checkedRows=rows.filter(r=>r.clear);
+        const expectedRows=rows.filter(r=>!r.clear);
+        const crystalTotal=checkedRows.reduce((a,b)=>a+crystalValue(b),0);
+        const expectedTotal=expectedRows.reduce((a,b)=>a+crystalValue(b),0);
+        const lootTotal=checkedRows.reduce((a,b)=>a+lootValue(b),0);
+        const grandTotal=checkedRows.reduce((a,b)=>a+recordValue(b),0);
+        $('#bossCount').textContent=`${checkedRows.length}/${rows.length}개`;
         $('#bossCrystalTotal')&&($('#bossCrystalTotal').textContent=won(crystalTotal));
-        $('#bossLootTotal')&&($('#bossLootTotal').textContent=won(lootTotal));
+        $('#bossExpectedTotal')&&($('#bossExpectedTotal').textContent=won(expectedTotal));
         $('#bossTotal').textContent=won(grandTotal);
         renderDashboard();
         if(!rows.length){list.innerHTML='<p class="empty-msg">아직 생성된 보스가 없어요. “Notion 보스 불러오기” 또는 “이번 주 생성”을 눌러주세요.</p>';return}
@@ -1936,7 +1939,9 @@
           const solo=rs.filter(r=>r.partyType==='solo');
           const duo=rs.filter(r=>r.partyType==='duo');
           const other=rs.filter(r=>r.partyType==='other');
-          return `<div class="bossCard"><div class="bossTitle"><span>${chars.find(c=>c.id===cid)?.name||rs[0]?.charName||'캐릭터'}</span><span class="tag y">총 ${won(rs.reduce((a,b)=>a+recordValue(b),0))}</span></div>${renderBossBucket('1인 파티','solo',solo)}${renderBossBucket('2인 파티','duo',duo)}${renderBossBucket('기타 인원','other',other)}</div>`;
+          const doneSum=rs.filter(r=>r.clear).reduce((a,b)=>a+recordValue(b),0);
+          const expectedSum=rs.filter(r=>!r.clear).reduce((a,b)=>a+crystalValue(b),0);
+          return `<div class="bossCard"><div class="bossTitle"><span>${chars.find(c=>c.id===cid)?.name||rs[0]?.charName||'캐릭터'}</span><span class="tag y">완료 ${won(doneSum)} · 예정 ${won(expectedSum)}</span></div>${renderBossBucket('1인 파티','solo',solo)}${renderBossBucket('2인 파티','duo',duo)}${renderBossBucket('기타 인원','other',other)}</div>`;
         }).join('');
       }
       function openBossLootMemo(keyValue){
@@ -2190,32 +2195,7 @@
       function closeSettings(){const s=$('#settingsSheet');if(s)s.hidden=true}
       function fillSettingsForm(){const cfg=getPaperConfig();const workerName=$('#settingWorkerName'),workerId=$('#settingWorkerId'),secret=$('#settingSecretKey'),remember=$('#settingRememberSecret'),viewMode=$('#settingViewMode');if(workerName)workerName.value=cfg.workerName||'';if(workerId)workerId.value=cfg.workerId||'';if(secret)secret.value=cfg.secretKey||'';if(remember)remember.checked=Boolean(localStorage.getItem(PAPER_SECRET_KEY)||cfg.secretKey);if(viewMode)viewMode.value=currentViewMode}
       function saveSettingsForm(e){e.preventDefault();const cfg={workerName:$('#settingWorkerName').value.trim(),workerId:$('#settingWorkerId').value.trim(),secretKey:$('#settingSecretKey').value.trim()};const status=$('#settingsStatus');if(!cfg.workerName||!cfg.workerId||!cfg.secretKey){if(status)status.textContent='Worker 앞부분, Cloudflare ID, SECRET Key를 모두 입력해 주세요.';return}if(!/^[a-zA-Z0-9-]+$/.test(cfg.workerName)||!/^[a-zA-Z0-9-]+$/.test(cfg.workerId)){if(status)status.textContent='Worker 앞부분과 Cloudflare ID는 영문, 숫자, 하이픈만 입력해 주세요.';return}setPaperConfig(cfg,$('#settingRememberSecret')?.checked!==false);if(status)status.textContent='설정을 저장했어요. Notion을 불러옵니다.';loadCalendarFromWorker(false)}
-      async function toggleTodoCheck(todoId){
-        const tasks=state.tasks.filter(x=>x.id===todoId);
-        const dashTasks=Array.isArray(dashboardTodayTodos)?dashboardTodayTodos.filter(x=>x.id===todoId):[];
-        const allTargets=[...tasks,...dashTasks];
-        if(!allTargets.length)return;
-        const prev=!!allTargets[0].done,next=!prev;
-        allTargets.forEach(t=>t.done=next);
-        renderCal();
-        renderDashboardTodayList(key(today));
-        renderDashboard();
-        saveCalendarCache();
-        try{
-          const res=await window.paperLog.fetch('/api/todo/check',{method:'PATCH',body:JSON.stringify({id:todoId,done:next})});
-          const data=await res.json().catch(()=>({}));
-          if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'체크 저장 실패');
-          const status=$('#syncStatus');if(status)status.textContent='체크 상태를 Notion에 반영했어요.';
-          setTimeout(()=>{loadCalendarFromWorker(true);loadDashboardTodayFromWorker()},500)
-        }catch(err){
-          allTargets.forEach(t=>t.done=prev);
-          renderCal();
-          renderDashboardTodayList(key(today));
-          renderDashboard();
-          saveCalendarCache();
-          alert('Notion 체크 반영 실패: '+err.message)
-        }
-      }
+      async function toggleTodoCheck(todoId){const tasks=state.tasks.filter(x=>x.id===todoId);if(!tasks.length)return;const prev=!!tasks[0].done,next=!prev;tasks.forEach(t=>t.done=next);renderCal();renderDashboard();saveCalendarCache();try{const res=await window.paperLog.fetch('/api/todo/check',{method:'PATCH',body:JSON.stringify({id:todoId,done:next})});const data=await res.json().catch(()=>({}));if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'체크 저장 실패');const status=$('#syncStatus');if(status)status.textContent='체크 상태를 Notion에 반영했어요.';setTimeout(()=>loadCalendarFromWorker(true),500)}catch(err){tasks.forEach(t=>t.done=prev);renderCal();renderDashboard();saveCalendarCache();alert('Notion 체크 반영 실패: '+err.message)}}
       function applyWeekStripHidden(){document.body.classList.toggle('weekStripHidden',localStorage.getItem('paperWeekStripHidden')==='true')}
       function toggleWeekStrip(){const next=!(localStorage.getItem('paperWeekStripHidden')==='true');localStorage.setItem('paperWeekStripHidden',String(next));applyWeekStripHidden()}
       function normalizeBossIds(ids){const monthly=ids.filter(id=>bosses.find(b=>b.id===id)?.cycle==='monthly');const weekly=[];const fam=new Set();ids.map(id=>bosses.find(b=>b.id===id)).filter(b=>b&&b.cycle==='weekly').forEach(b=>{if(weekly.length>=12)return;if(fam.has(b.family))return;fam.add(b.family);weekly.push(b.id)});return [...monthly,...weekly]}
