@@ -42,6 +42,7 @@
 
 
     .entryForm:not(.scheduleSel):not(.todoSel) .scheduleTodoOnly{display:none}
+    .entryForm:not(.appointmentSel) .appointmentOnly{display:none}
     .moodIcon{width:20px;height:20px;display:inline-block;object-fit:contain;vertical-align:middle}
     .dayMoodIcon{width:20px;height:20px;margin-left:3px;vertical-align:-4px}
     .dailyLogBox{display:grid;gap:6px;border:1px dashed rgba(47,42,40,.25);border-radius:14px;padding:8px;background:rgba(255,255,255,.32)}
@@ -1104,7 +1105,7 @@
       <div class="title"><h2>Maple Boss</h2><small>default boss setup → weekly generate</small></div>
       <article class="card"><div class="weekCard bossWeekNavCard"><div><span class="weekLabel">보스 주차</span><div class="bossWeekNav"><button class="weekArrow" id="bossPrevWeek" type="button" aria-label="이전 주">◀</button><strong id="bossWeekTitle">이번 주</strong><button class="weekArrow" id="bossNextWeek" type="button" aria-label="다음 주">▶</button></div><p>화살표로 주차를 이동해서 해당 주차 보스 기록을 불러옵니다.</p></div><button class="icon" id="bossTodayWeek" type="button" aria-label="오늘 주차">↺</button></div><div class="bossTool"><button class="bossAction setup" id="openBossSetting">기본 보스 설정</button><button class="bossAction gen" id="generateBoss">선택 주차 생성</button><button class="bossAction setup" id="loadBossNotion" type="button">선택 주차 불러오기</button></div></article>
       <article class="card"><div class="divTitle">캐릭터 필터</div><div class="chips" id="characterChips"></div></article>
-      <article class="card"><div class="divTitle">이번 주 보스 체크</div><div class="bossSum bossSumV47"><div><span>보스 수</span><strong id="bossCount">0개</strong></div><div><span>결정석</span><strong id="bossCrystalTotal">0</strong></div><div><span>득템</span><strong id="bossLootTotal">0</strong></div><div><span>총 메소</span><strong id="bossTotal">0</strong></div></div><div class="bossBulk"><button class="allOn" id="checkVisibleBosses" type="button">보이는 보스 전체 체크</button><button class="allOff" id="uncheckVisibleBosses" type="button">보이는 보스 전체 해제</button></div><div id="bossList"></div><p class="note">나중에 Worker API 연결 시 보스 체크 기록 DB에 실제 페이지 생성</p></article>
+      <article class="card"><div class="divTitle">이번 주 보스 체크</div><div class="bossSum bossSumV47"><div><span>보스 수</span><strong id="bossCount">0개</strong></div><div><span>예정 메소</span><strong id="bossExpectedTotal">0</strong></div><div><span>결정석</span><strong id="bossCrystalTotal">0</strong></div><div><span>합계 메소</span><strong id="bossTotal">0</strong></div></div><div class="bossBulk"><button class="allOn" id="checkVisibleBosses" type="button">보이는 보스 전체 체크</button><button class="allOff" id="uncheckVisibleBosses" type="button">보이는 보스 전체 해제</button></div><div id="bossList"></div><p class="note">나중에 Worker API 연결 시 보스 체크 기록 DB에 실제 페이지 생성</p></article>
     </section>
 
     <div class="sheetBg" id="entrySheet" hidden><section class="sheet"><div class="handle"></div><div class="sheetHead entrySheetHead"><h3 id="entrySheetTitle">기록 추가</h3><div class="entrySheetHeadActions"><button class="icon entryDeleteBtn" id="deleteEntry" type="button" hidden aria-label="기록 삭제">🗑</button><button class="icon" id="closeEntry" type="button">×</button></div></div><form class="entryForm" id="entryForm"><div class="typeToggle"><label class="typeChip"><input type="checkbox" id="addSchedule"> 일정 DB</label><label class="typeChip"><input type="checkbox" id="addTodo"> 할 일 DB</label><input type="checkbox" id="addDaily" hidden></div><div class="field"><label>제목</label><input id="entryTitle" placeholder="예: 교육 운영 회의"></div><div class="row2">
@@ -1122,6 +1123,7 @@
   <label>시간</label>
   <input id="entryTime" type="time">
 </div><div class="row2 scheduleTodoOnly"><div class="field"><label id="entrySubjectLabel">분류</label><textarea id="entrySubject" rows="2" placeholder="업무, 회의, 생활"></textarea></div><div class="field todoOnly"><label>구분</label><select id="entryDone"><option value="work">업무</option><option value="personal">개인</option></select></div></div>
+<div class="field scheduleOnly appointmentOnly"><label>약속 대상</label><input id="entryAppointmentTarget" placeholder="예: 친구, 가족, 수민"></div>
 <div class="row2 dailyOnly"><div class="field"><label>Mood</label><select id="entryMood"><option value="happy">happy · 좋음</option><option value="sad">sad · 슬픔</option><option value="angry">angry · 화남</option><option value="sleepy">sleepy · 졸림</option><option value="surprised">surprised · 놀람</option></select></div></div>
 <div class="field dailyOnly"><label>한줄 일기</label><input id="entryDailyText" placeholder="오늘을 한 줄로 남겨줘"></div>
 <div class="field scheduleTodoOnly"><label>관련 프로젝트</label><select id="entryProject"><option value="">선택 안 함</option></select></div><button class="save" id="entrySaveBtn">Notion에 추가하기</button><p class="sheetNote">할 일은 업무/개인을 고를 수 있고, 개인 선택 시 개인 프로젝트가 자동 선택돼요.</p></form></section></div>
@@ -1549,6 +1551,19 @@
       }
       async function loadProjectsFromWorker(silent=true){try{if(!hasPaperConfig())return;const res=await window.paperLog.fetch('/api/projects');const data=await res.json().catch(()=>({}));if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'프로젝트 불러오기 실패');projectOptions=data.projects||[];projectsLoadedOnce=true;populateProjectSelect();const store=getCalendarCacheStore();store.projects=projectOptions;setCalendarCacheStore(store);saveCalendarCache()}catch(err){if(!silent){const s=$('#settingsStatus');if(s)s.textContent='프로젝트 불러오기 실패: '+err.message}console.warn('프로젝트 불러오기 실패:',err)}}
       async function loadCalendarFromWorker(silent=false){const status=$('#syncStatus'), settingsStatus=$('#settingsStatus'), seq=++calendarLoadSeq, month=calendarMonthKey();try{if(!hasPaperConfig()){if(status)status.textContent='설정 메뉴에서 Worker 주소와 SECRET Key를 먼저 저장해 주세요.';openSettings();return}if(status&&!silent)status.textContent='Notion에서 일정/할 일을 불러오는 중...';if(settingsStatus)settingsStatus.textContent='Notion에서 현재 월 데이터를 불러오는 중...';if(!projectsLoadedOnce&&!projectOptions.length)loadProjectsFromWorker(true);const r=monthRange();const qs=new URLSearchParams({from:r.from,to:r.to,includeCanceled:String(state.showCanceled)});const res=await window.paperLog.fetch(`/api/calendar?${qs.toString()}`);const data=await res.json().catch(()=>({}));if(seq!==calendarLoadSeq)return;if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'Worker 응답 오류');applyCalendarData(data,month);loadDashboardTodayFromWorker();if(status)status.textContent=`Notion 불러오기 완료 · 일정 ${state.schedules.length}개 / 할 일 ${state.tasks.length}개`;if(settingsStatus)settingsStatus.textContent='불러오기 완료'}catch(err){if(seq!==calendarLoadSeq)return;if(status)status.textContent=`불러오기 실패: ${err.message}`;if(settingsStatus)settingsStatus.textContent=`불러오기 실패: ${err.message}`}}
+
+      function parseMemoTagsFromText(value){
+        return String(value||'').split(/[,,，\n]/).map(x=>x.trim()).filter(Boolean);
+      }
+      function isAppointmentCategory(value){
+        return String(value||'').trim().includes('약속');
+      }
+      function updateAppointmentTargetVisibility(){
+        const form=$('#entryForm');
+        if(!form)return;
+        const on=$('#addSchedule')?.checked&&isAppointmentCategory($('#entrySubject')?.value||'');
+        form.classList.toggle('appointmentSel',Boolean(on));
+      }
       async function saveEntry(e){
         e.preventDefault();
         const startDate=$('#entryDate').value;
@@ -1565,7 +1580,8 @@
           todoKind:$('#entryDone')?.value||'work',
           mood:$('#entryMood')?.value||'happy',
           dailyText,
-          projectPageId
+          projectPageId,
+          memoTags:isAppointmentCategory($('#entrySubject')?.value||'')?parseMemoTagsFromText($('#entryAppointmentTarget')?.value||''):[]
         };
         if(!p.date)return;
         if(!$('#addSchedule').checked&&!$('#addTodo').checked&&!$('#addDaily')?.checked){alert('일정 DB 또는 할 일 DB를 선택해줘.');return}
@@ -1578,7 +1594,7 @@
           if(editingCalendarRecord){
             const path=editingCalendarRecord.type==='schedule'?'/api/schedule':editingCalendarRecord.type==='todo'?'/api/todo':'/api/daily';
             const body=editingCalendarRecord.type==='schedule'
-              ? {id:editingCalendarRecord.id,title:p.title,date:p.date,endDate:p.endDate,time:p.time,category:p.subject||'개인일정',projectPageId:p.projectPageId}
+              ? {id:editingCalendarRecord.id,title:p.title,date:p.date,endDate:p.endDate,time:p.time,category:p.subject||'개인일정',projectPageId:p.projectPageId,memoTags:p.memoTags}
               : editingCalendarRecord.type==='todo'
                 ? {id:editingCalendarRecord.id,title:p.title,date:p.date,endDate:p.endDate,done:false,memo:p.subject||'',category:p.todoKind==='personal'?'개인':'업무',projectPageId:getTodoProjectPageId()}
                 : {id:editingCalendarRecord.id,title:dailyTitle,date:p.date,mood:p.mood,text:p.dailyText};
@@ -1587,7 +1603,7 @@
             if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'수정 실패');
             if(status)status.textContent='Notion에 기록을 수정했어요.';
           }else{
-            if($('#addSchedule').checked)await window.paperLog.fetch('/api/schedule',{method:'POST',body:JSON.stringify({title:p.title,date:p.date,endDate:p.endDate,time:p.time,category:p.subject||'개인일정',projectPageId:p.projectPageId})});
+            if($('#addSchedule').checked)await window.paperLog.fetch('/api/schedule',{method:'POST',body:JSON.stringify({title:p.title,date:p.date,endDate:p.endDate,time:p.time,category:p.subject||'개인일정',projectPageId:p.projectPageId,memoTags:p.memoTags})});
             if($('#addTodo').checked)await window.paperLog.fetch('/api/todo',{method:'POST',body:JSON.stringify({title:p.title,date:p.date,endDate:p.endDate,done:false,memo:p.subject||'',category:p.todoKind==='personal'?'개인':'업무',projectPageId:getTodoProjectPageId()})});
             if($('#addDaily')?.checked)await window.paperLog.fetch('/api/daily',{method:'POST',body:JSON.stringify({title:dailyTitle,date:p.date,mood:p.mood,text:p.dailyText})});
             if(status)status.textContent='Notion에 새 기록을 저장했어요.';
@@ -1920,9 +1936,9 @@
       }
       function renderBossBucket(label,type,records){
         if(!records.length)return '';
-        const checkedSubtotal=records.filter(r=>r.clear).reduce((a,b)=>a+crystalValue(b),0);
-        const totalSubtotal=records.reduce((a,b)=>a+crystalValue(b),0);
-        return `<div class="bossBucket"><div class="bossBucketTitle"><span>${label}</span><span class="tag y">${records.length}개 · 결정석 ${won(checkedSubtotal)} · 총 ${won(totalSubtotal)}</span></div>${records.map(renderBossChip).join('')}</div>`;
+        const checkedSubtotal=records.filter(r=>r.clear).reduce((a,b)=>a+recordValue(b),0);
+        const expectedSubtotal=records.filter(r=>!r.clear).reduce((a,b)=>a+crystalValue(b),0);
+        return `<div class="bossBucket"><div class="bossBucketTitle"><span>${label}</span><span class="tag y">${records.length}개 · 예정 ${won(expectedSubtotal)} · 합계 ${won(checkedSubtotal)}</span></div>${records.map(renderBossChip).join('')}</div>`;
       }
       function renderBoss(){
         updateBossWeekTitle();
@@ -1932,13 +1948,16 @@
         chips.innerHTML=[chars.find(c=>c.id==='all')||{id:'all',name:'전체'},...orderBossChars(chars.filter(c=>c.id!=='all'&&!isHiddenBossCharacterName(c.name)))].map(c=>`<button class="chip ${bossFilter===c.id?'on':''} ${c.id==='all'?'iconOnly':''} ${String(c.name||'').includes('득템')?'iconOnly lootChip':''}" data-id="${c.id}" title="${bossChipTitle(c)}" aria-label="${bossChipTitle(c)}">${bossChipLabel(c)}</button>`).join('');
         const list=$('#bossList'), rows=bossRecords.filter(r=>bossFilter==='all'||r.charId===bossFilter);
         const checkedRows=rows.filter(r=>r.clear);
+        const expectedRows=rows.filter(r=>!r.clear);
         const crystalTotal=checkedRows.reduce((a,b)=>a+crystalValue(b),0);
-        const lootTotal=rows.reduce((a,b)=>a+lootValue(b),0);
-        const allCrystalTotal=rows.reduce((a,b)=>a+crystalValue(b),0);
-        $('#bossCount').textContent=rows.length+'개';
+        const expectedTotal=expectedRows.reduce((a,b)=>a+crystalValue(b),0);
+        const lootTotal=checkedRows.reduce((a,b)=>a+lootValue(b),0);
+        const sumTotal=checkedRows.reduce((a,b)=>a+recordValue(b),0);
+        $('#bossCount').textContent=`${checkedRows.length}/${rows.length}개`;
+        $('#bossExpectedTotal')&&($('#bossExpectedTotal').textContent=won(expectedTotal));
         $('#bossCrystalTotal')&&($('#bossCrystalTotal').textContent=won(crystalTotal));
         $('#bossLootTotal')&&($('#bossLootTotal').textContent=won(lootTotal));
-        $('#bossTotal').textContent=won(allCrystalTotal);
+        $('#bossTotal').textContent=won(sumTotal);
         renderDashboard();
         if(!rows.length){list.innerHTML='<p class="empty-msg">아직 생성된 보스가 없어요. “Notion 보스 불러오기” 또는 “이번 주 생성”을 눌러주세요.</p>';return}
         const groups={};rows.forEach(r=>(groups[r.charId]??=[]).push(r));
@@ -1946,9 +1965,9 @@
           const solo=rs.filter(r=>r.partyType==='solo');
           const duo=rs.filter(r=>r.partyType==='duo');
           const other=rs.filter(r=>r.partyType==='other');
-          const checkedCrystal=rs.filter(r=>r.clear).reduce((a,b)=>a+crystalValue(b),0);
-          const totalCrystal=rs.reduce((a,b)=>a+crystalValue(b),0);
-          return `<div class="bossCard"><div class="bossTitle"><span>${chars.find(c=>c.id===cid)?.name||rs[0]?.charName||'캐릭터'}</span><span class="tag y">결정석 ${won(checkedCrystal)} · 총 ${won(totalCrystal)}</span></div>${renderBossBucket('1인 파티','solo',solo)}${renderBossBucket('2인 파티','duo',duo)}${renderBossBucket('기타 인원','other',other)}</div>`;
+          const checkedSum=rs.filter(r=>r.clear).reduce((a,b)=>a+recordValue(b),0);
+          const expectedSum=rs.filter(r=>!r.clear).reduce((a,b)=>a+crystalValue(b),0);
+          return `<div class="bossCard"><div class="bossTitle"><span>${chars.find(c=>c.id===cid)?.name||rs[0]?.charName||'캐릭터'}</span><span class="tag y">예정 ${won(expectedSum)} · 합계 ${won(checkedSum)}</span></div>${renderBossBucket('1인 파티','solo',solo)}${renderBossBucket('2인 파티','duo',duo)}${renderBossBucket('기타 인원','other',other)}</div>`;
         }).join('');
       }
       function openBossLootMemo(keyValue){
@@ -2093,6 +2112,11 @@
       function setVisibleBossesClear(flag){const target=bossRecords.filter(r=>bossFilter==='all'||r.charId===bossFilter);target.forEach(r=>r.clear=flag);renderBoss()}
       function bossWeekStartFromDate(dateValue){
         const base=new Date(dateValue);
+        if(Number.isNaN(base.getTime())||base.getFullYear()<2026){
+          const fallback=new Date(today);
+          fallback.setHours(0,0,0,0);
+          return bossWeekStartFromDate(fallback);
+        }
         const diff=(base.getDay()+3)%7; // Thu=0, Fri=1, ... Wed=6
         base.setDate(base.getDate()-diff);
         base.setHours(0,0,0,0);
@@ -2130,6 +2154,7 @@
         loadBossFromWorker(false);
       }
       function generateBoss(){
+        bossViewBaseDate=bossWeekStartFromDate(bossViewBaseDate);
         const w=weekKey(), monthKey=w.slice(0,7);
         dedupeBossRecords();
         Object.entries(bossSet).forEach(([cid,bids])=>{
@@ -2244,7 +2269,15 @@
         setTimeout(()=>loadCalendarFromWorker(true),60);
         document.querySelector('#calendar')?.scrollIntoView({behavior:'smooth',block:'start'});
       }
-      $('#calendarGrid').onclick=e=>{const d=e.target.closest('.day');if(d){const picked=d.dataset.date;selected=picked;renderCal();if(!isTabletLayout()){const liveDay=$(`#calendarGrid .day[data-date="${picked}"]`);showSchedulePopup(picked,liveDay)}}};$('#monthTitle')?.addEventListener('click',()=>{document.querySelector('#calendar')?.scrollIntoView({behavior:'smooth',block:'start'});});$('#prevMonth').onclick=()=>moveCalendarMonth(-1);$('#nextMonth').onclick=()=>moveCalendarMonth(1);$('#calendarTodayBtn')&&($('#calendarTodayBtn').onclick=goCalendarToday);$$('.tab[data-type]').forEach(t=>t.onclick=()=>{const type=t.dataset.type,on=Object.values(state.show).filter(Boolean).length;if(state.show[type]&&on===1)return;state.show[type]=!state.show[type];t.classList.toggle('on',state.show[type]);renderCal()});$('#openEntry').onclick=openEntry;$('#closeEntry').onclick=()=>{editingCalendarRecord=null;$('#entrySheet').hidden=true;};$('#closeDailyLog')&&( $('#closeDailyLog').onclick=closeDailySheet );$('#dailyForm')&&($('#dailyForm').onsubmit=saveDailyLog);$('#deleteDailyLog')?.addEventListener('click',deleteDailyLog);$('#deleteEntry')?.addEventListener('click',deleteCalendarEntry);$('#addSchedule').onchange=updateEntryMode;$('#addTodo').onchange=()=>{updateEntryMode();handleTodoKindChange()};$('#addDaily').onchange=updateEntryMode;$('#entryDone')&&($('#entryDone').onchange=handleTodoKindChange);$('#entryForm').onsubmit=saveEntry;$('#entrySubject')?.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.ctrlKey){e.preventDefault();const el=e.currentTarget;const start=el.selectionStart??el.value.length,end=el.selectionEnd??el.value.length;el.value=el.value.slice(0,start)+'\n'+el.value.slice(end);el.selectionStart=el.selectionEnd=start+1;}});$('#calendarDetail').addEventListener('click',e=>{if(e.target.closest('a'))return;const addDaily=e.target.closest('[data-daily-add]');if(addDaily){openDailyEntry(addDaily.dataset.dailyAdd||selected);return}const btn=e.target.closest('[data-todo-id]');if(btn&&btn.dataset.todoId){toggleTodoCheck(btn.dataset.todoId);return}const edit=e.target.closest('[data-calendar-edit]');if(edit&&edit.dataset.calendarEdit){openCalendarEdit(edit.dataset.calendarType,edit.dataset.calendarEdit);return}const open=e.target.closest('[data-open-schedule-popup]');if(open){const dayEl=$(`#calendarGrid .day[data-date="${selected}"]`);showSchedulePopup(selected,dayEl)}});const dashList=$('#dashboardTodayList');if(dashList)dashList.addEventListener('click',e=>{const btn=e.target.closest('[data-todo-id]');if(btn&&btn.dataset.todoId)toggleTodoCheck(btn.dataset.todoId)});const schedulePopupBg=$('#schedulePopupBg');if(schedulePopupBg)schedulePopupBg.addEventListener('click',e=>{if(e.target===schedulePopupBg)hideSchedulePopup()});const schedulePopupClose=$('#schedulePopupClose');if(schedulePopupClose)schedulePopupClose.onclick=hideSchedulePopup;const schedulePopupContent=$('#schedulePopupContent');if(schedulePopupContent)schedulePopupContent.addEventListener('click',e=>{if(e.target.closest('a'))return;const edit=e.target.closest('[data-calendar-edit]');if(edit&&edit.dataset.calendarEdit)openCalendarEdit(edit.dataset.calendarType,edit.dataset.calendarEdit)});document.addEventListener('click',e=>{const bg=$('#schedulePopupBg');if(!bg||bg.hidden||isTabletLayout())return;if(e.target.closest('#schedulePopup')||e.target.closest('.day')||e.target.closest('[data-open-schedule-popup]'))return;hideSchedulePopup()});$$('.moneyTab').forEach(t=>t.onclick=()=>{$$('.moneyTab').forEach(x=>x.classList.toggle('on',x===t));$('#expenseForm').classList.toggle('on',t.dataset.type==='expense');$('#incomeForm').classList.toggle('on',t.dataset.type==='income')});$('#generateBoss').onclick=generateBoss;$('#loadBossNotion')&&($('#loadBossNotion').onclick=()=>loadBossFromWorker(false));$('#bossPrevWeek')&&($('#bossPrevWeek').onclick=()=>moveBossWeek(-1));$('#bossNextWeek')&&($('#bossNextWeek').onclick=()=>moveBossWeek(1));$('#bossTodayWeek')&&($('#bossTodayWeek').onclick=resetBossWeekToToday);$('#checkVisibleBosses').onclick=()=>setVisibleBossesClear(true);$('#uncheckVisibleBosses').onclick=()=>setVisibleBossesClear(false);$('#openBossSetting').onclick=()=>openBossSheet();$('#closeBoss').onclick=()=>{preserveBossGridSelection();saveBossSettingForChar(bossSettingActiveCharId,{silent:true});$('#bossSheet').hidden=true;};$('#cancelBoss').onclick=()=>{preserveBossGridSelection();saveBossSettingForChar(bossSettingActiveCharId,{silent:true});$('#bossSheet').hidden=true;};$('#bossRuleHelp')&&($('#bossRuleHelp').onclick=()=>{$('#bossRuleBox').hidden=!$('#bossRuleBox').hidden});$('#bossCharSelect').onchange=()=>{preserveBossGridSelection();const prev=bossSettingActiveCharId;if(prev&&isValidNotionId(prev))saveBossSettingForChar(prev,{silent:true});bossSettingActiveCharId=$('#bossCharSelect').value;renderBossGrid();setBossSettingNote('선택하면 자동으로 저장됩니다.');};$('#bossSettingGrid').addEventListener('click',e=>{const toggle=e.target.closest('#toggleLowBoss');if(!toggle)return;preserveBossGridSelection();showLowBosses=!showLowBosses;renderBossGrid()});$('#bossSettingGrid').addEventListener('change',e=>{const input=e.target.closest('input[type="checkbox"][data-family]');if(!input)return;if(input.checked){const family=input.dataset.family;$$('#bossSettingGrid input[data-family]').forEach(other=>{if(other!==input&&other.dataset.family===family)other.checked=false})}preserveBossGridSelection();renderBossSettingSummary();queueBossSettingAutoSave()});$('#saveBoss').onclick=async()=>{
+      $('#calendarGrid').onclick=e=>{const d=e.target.closest('.day');if(d){const picked=d.dataset.date;selected=picked;renderCal();if(!isTabletLayout()){const liveDay=$(`#calendarGrid .day[data-date="${picked}"]`);showSchedulePopup(picked,liveDay)}}};$('#monthTitle')?.addEventListener('click',()=>{document.querySelector('#calendar')?.scrollIntoView({behavior:'smooth',block:'start'});});$('#prevMonth').onclick=()=>moveCalendarMonth(-1);$('#nextMonth').onclick=()=>moveCalendarMonth(1);$('#calendarTodayBtn')&&($('#calendarTodayBtn').onclick=goCalendarToday);$$('.tab[data-type]').forEach(t=>t.onclick=()=>{const type=t.dataset.type,on=Object.values(state.show).filter(Boolean).length;if(state.show[type]&&on===1)return;state.show[type]=!state.show[type];t.classList.toggle('on',state.show[type]);renderCal()});$('#openEntry').onclick=openEntry;$('#closeEntry').onclick=()=>{editingCalendarRecord=null;$('#entrySheet').hidden=true;};$('#closeDailyLog')&&( $('#closeDailyLog').onclick=closeDailySheet );$('#dailyForm')&&($('#dailyForm').onsubmit=saveDailyLog);$('#deleteDailyLog')?.addEventListener('click',deleteDailyLog);$('#deleteEntry')?.addEventListener('click',deleteCalendarEntry);$('#addSchedule').onchange=updateEntryMode;$('#addTodo').onchange=()=>{updateEntryMode();handleTodoKindChange()};$('#addDaily').onchange=updateEntryMode;$('#entryDone')&&($('#entryDone').onchange=handleTodoKindChange);
+      ['addSchedule','entrySubject'].forEach(id=>{
+        const el=$('#'+id);
+        if(el){
+          el.addEventListener('input',updateAppointmentTargetVisibility);
+          el.addEventListener('change',updateAppointmentTargetVisibility);
+        }
+      });
+$('#entryForm').onsubmit=saveEntry;$('#entrySubject')?.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.ctrlKey){e.preventDefault();const el=e.currentTarget;const start=el.selectionStart??el.value.length,end=el.selectionEnd??el.value.length;el.value=el.value.slice(0,start)+'\n'+el.value.slice(end);el.selectionStart=el.selectionEnd=start+1;}});$('#calendarDetail').addEventListener('click',e=>{if(e.target.closest('a'))return;const addDaily=e.target.closest('[data-daily-add]');if(addDaily){openDailyEntry(addDaily.dataset.dailyAdd||selected);return}const btn=e.target.closest('[data-todo-id]');if(btn&&btn.dataset.todoId){toggleTodoCheck(btn.dataset.todoId);return}const edit=e.target.closest('[data-calendar-edit]');if(edit&&edit.dataset.calendarEdit){openCalendarEdit(edit.dataset.calendarType,edit.dataset.calendarEdit);return}const open=e.target.closest('[data-open-schedule-popup]');if(open){const dayEl=$(`#calendarGrid .day[data-date="${selected}"]`);showSchedulePopup(selected,dayEl)}});const dashList=$('#dashboardTodayList');if(dashList)dashList.addEventListener('click',e=>{const btn=e.target.closest('[data-todo-id]');if(btn&&btn.dataset.todoId)toggleTodoCheck(btn.dataset.todoId)});const schedulePopupBg=$('#schedulePopupBg');if(schedulePopupBg)schedulePopupBg.addEventListener('click',e=>{if(e.target===schedulePopupBg)hideSchedulePopup()});const schedulePopupClose=$('#schedulePopupClose');if(schedulePopupClose)schedulePopupClose.onclick=hideSchedulePopup;const schedulePopupContent=$('#schedulePopupContent');if(schedulePopupContent)schedulePopupContent.addEventListener('click',e=>{if(e.target.closest('a'))return;const edit=e.target.closest('[data-calendar-edit]');if(edit&&edit.dataset.calendarEdit)openCalendarEdit(edit.dataset.calendarType,edit.dataset.calendarEdit)});document.addEventListener('click',e=>{const bg=$('#schedulePopupBg');if(!bg||bg.hidden||isTabletLayout())return;if(e.target.closest('#schedulePopup')||e.target.closest('.day')||e.target.closest('[data-open-schedule-popup]'))return;hideSchedulePopup()});$$('.moneyTab').forEach(t=>t.onclick=()=>{$$('.moneyTab').forEach(x=>x.classList.toggle('on',x===t));$('#expenseForm').classList.toggle('on',t.dataset.type==='expense');$('#incomeForm').classList.toggle('on',t.dataset.type==='income')});$('#generateBoss').onclick=generateBoss;$('#loadBossNotion')&&($('#loadBossNotion').onclick=()=>loadBossFromWorker(false));$('#bossPrevWeek')&&($('#bossPrevWeek').onclick=()=>moveBossWeek(-1));$('#bossNextWeek')&&($('#bossNextWeek').onclick=()=>moveBossWeek(1));$('#bossTodayWeek')&&($('#bossTodayWeek').onclick=resetBossWeekToToday);$('#checkVisibleBosses').onclick=()=>setVisibleBossesClear(true);$('#uncheckVisibleBosses').onclick=()=>setVisibleBossesClear(false);$('#openBossSetting').onclick=()=>openBossSheet();$('#closeBoss').onclick=()=>{preserveBossGridSelection();saveBossSettingForChar(bossSettingActiveCharId,{silent:true});$('#bossSheet').hidden=true;};$('#cancelBoss').onclick=()=>{preserveBossGridSelection();saveBossSettingForChar(bossSettingActiveCharId,{silent:true});$('#bossSheet').hidden=true;};$('#bossRuleHelp')&&($('#bossRuleHelp').onclick=()=>{$('#bossRuleBox').hidden=!$('#bossRuleBox').hidden});$('#bossCharSelect').onchange=()=>{preserveBossGridSelection();const prev=bossSettingActiveCharId;if(prev&&isValidNotionId(prev))saveBossSettingForChar(prev,{silent:true});bossSettingActiveCharId=$('#bossCharSelect').value;renderBossGrid();setBossSettingNote('선택하면 자동으로 저장됩니다.');};$('#bossSettingGrid').addEventListener('click',e=>{const toggle=e.target.closest('#toggleLowBoss');if(!toggle)return;preserveBossGridSelection();showLowBosses=!showLowBosses;renderBossGrid()});$('#bossSettingGrid').addEventListener('change',e=>{const input=e.target.closest('input[type="checkbox"][data-family]');if(!input)return;if(input.checked){const family=input.dataset.family;$$('#bossSettingGrid input[data-family]').forEach(other=>{if(other!==input&&other.dataset.family===family)other.checked=false})}preserveBossGridSelection();renderBossSettingSummary();queueBossSettingAutoSave()});$('#saveBoss').onclick=async()=>{
         preserveBossGridSelection();
         const charId=bossSettingActiveCharId||$('#bossCharSelect').value;
         const raw=$$('#bossSettingGrid input:checked').map(x=>x.value);
