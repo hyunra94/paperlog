@@ -1910,7 +1910,7 @@
             matched=true;
           }
           if(!matched){
-            const raw=[...line.replace(/,/g,'').matchAll(/(?:^|\s)([0-9]{5,})(?=\s|$)/g)];
+            const raw=[...line.replace(/,/g,'').matchAll(/([0-9]{5,})/g)];
             if(raw.length)total+=Number(raw[raw.length-1][1]||0);
           }
         }
