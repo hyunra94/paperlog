@@ -2016,8 +2016,53 @@
           return false;
         }
       }
+
+
+      function normalizeBossMemoKeyFront(value){
+        return String(value||'').replace(/^(익스트림|카오스|하드|노멀|이지)\s+/g,'').replace(/\s+/g,'').trim();
+      }
+      function bossRecordFallbackKeys(r){
+        const period=bossPeriodKey(r);
+        const charId=String(r.charId||'');
+        const bossId=String(r.bossId||'');
+        const name=String(r.name||'').trim();
+        const family=String(r.family||bossFamilyName(r)).trim();
+        return [
+          `${charId}|id|${bossId}|${period}`,
+          `${charId}|name|${name}|${period}`,
+          `${charId}|nameNorm|${normalizeBossMemoKeyFront(name)}|${period}`,
+          `${charId}|family|${family}|${period}`,
+          `${charId}|familyNorm|${normalizeBossMemoKeyFront(family)}|${period}`
+        ].filter(x=>!x.includes('||'));
+      }
+      function snapshotBossRecordStates(records=bossRecords){
+        const map=new Map();
+        records.forEach(r=>{
+          if(!r)return;
+          const keep=Boolean(r.clear||r.recordId||String(r.memo||'').trim());
+          if(!keep)return;
+          bossRecordFallbackKeys(r).forEach(k=>{
+            if(!map.has(k))map.set(k,{clear:r.clear,recordId:r.recordId||'',memo:r.memo||'',partyType:r.partyType||'solo',otherParty:r.otherParty||3});
+          });
+        });
+        return map;
+      }
+      function restoreBossRecordStates(records,stateMap){
+        if(!stateMap||!stateMap.size)return records;
+        records.forEach(r=>{
+          const saved=bossRecordFallbackKeys(r).map(k=>stateMap.get(k)).find(Boolean);
+          if(!saved)return;
+          r.clear=r.clear||saved.clear;
+          r.recordId=r.recordId||saved.recordId||'';
+          r.memo=r.memo||saved.memo||'';
+          r.partyType=saved.partyType||r.partyType||'solo';
+          r.otherParty=saved.otherParty||r.otherParty||3;
+        });
+        return records;
+      }
       async function loadBossFromWorker(silent=false){
         try{
+          const bossStateSnapshot=snapshotBossRecordStates();
           if(!window.paperLog?.fetch){return}
           if(!silent){const el=$('#bossList');if(el)el.innerHTML='<p class="empty-msg">Notion 보스 데이터를 불러오는 중...</p>'}
           const info=bossWeekInfo();const qs=new URLSearchParams({weekKey:info.key,weekLabel:info.label,weekStart:info.start});const res=await window.paperLog.fetch(`/api/boss?${qs.toString()}`);
@@ -2059,6 +2104,8 @@
               memo:r.memo||'',
               charName:r.charName||''
             })));
+            restoreBossRecordStates(bossRecords,bossStateSnapshot);
+            dedupeBossRecords();
           }
           renderBoss();
         }catch(err){
@@ -2179,6 +2226,7 @@
       }
       async function saveBossSettingForChar(charId,{close=false,silent=false}={}){
         if(!charId||!isValidNotionId(charId))return false;
+        const bossStateSnapshot=snapshotBossRecordStates();
         const charName=chars.find(c=>c.id===charId)?.name||'';
         if(isHiddenBossCharacterName(charName))return false;
         const bossIds=(bossSet[charId]||[]).filter(isValidNotionId);
@@ -2188,6 +2236,9 @@
           const data=await res.json().catch(()=>({}));
           if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'기본 보스 저장 실패');
           if(!silent)setBossSettingNote('저장 완료 · 선택하면 자동으로 저장됩니다.', 'saved');
+          restoreBossRecordStates(bossRecords,bossStateSnapshot);
+          dedupeBossRecords();
+          renderBoss();
           if(close)$('#bossSheet').hidden=true;
           return true;
         }catch(err){
