@@ -981,17 +981,20 @@
     .bossWeekNavCard .icon{font-size:22px}
   </style>
 
-  <style id="bossUXV90">
+  <style id="bossV92Fix">
     #characterChips{
       display:flex!important;
       flex-wrap:wrap!important;
       overflow:visible!important;
       gap:6px!important;
       padding:2px 0!important;
+      scrollbar-width:auto!important;
     }
     #characterChips .chip{
       flex:0 0 auto!important;
       min-width:auto!important;
+      width:auto!important;
+      height:auto!important;
       max-width:none!important;
       padding:8px 11px!important;
       overflow:visible!important;
@@ -999,52 +1002,47 @@
       white-space:nowrap!important;
     }
     .bossBulk{display:none!important}
-    .bossCardMemo{
-      margin:4px 0 10px;
-      border:1.2px dashed rgba(159,79,79,.42);
-      border-radius:14px;
-      background:rgba(250,236,236,.48);
-      padding:7px 9px;
-      color:#8a5656;
-      font-size:12px;
-      line-height:1.45;
-      white-space:pre-wrap;
-      word-break:break-word;
+    .bossBucketTitle .tag.y{display:none!important}
+    .bossLootLine{
+      grid-column:1/-1;
+      display:grid;
+      grid-template-columns:1fr auto;
+      gap:8px;
+      align-items:center;
+      margin:-3px 0 5px 48px;
+      padding:5px 8px;
+      border-left:3px solid rgba(203,130,142,.72);
+      background:rgba(250,236,236,.58);
+      color:#9f4f4f;
+      border-radius:9px;
+      font-size:13px;
+      line-height:1.35;
+      cursor:pointer;
+    }
+    .bossLootLine .lootText{
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+    .bossLootLine .lootMoney{
+      font-family:'Gaegu';
+      font-weight:700;
+      white-space:nowrap;
     }
     .bossChipName.hasLoot{
       color:inherit!important;
       background:none!important;
     }
     .bossChipName small{display:none!important}
-    .bossMoneyBrief,.bossChip .price{
+    .bossSum .bossMoneyBrief{
       cursor:pointer;
       text-decoration:underline;
       text-underline-offset:3px;
-      text-decoration-color:rgba(47,42,40,.25);
+      font-family:'Gaegu';
+      font-size:clamp(20px,5vw,28px);
+      font-weight:700;
     }
   </style>
-
-  <style id="bossMemoMoneyFixV91">
-    .bossMoneyBrief,
-    .bossChip .price{
-      font-size:clamp(18px,4.7vw,25px)!important;
-      font-family:'Gaegu'!important;
-      font-weight:700!important;
-      letter-spacing:.01em;
-      white-space:nowrap;
-    }
-    .bossBucketTitle .bossMoneyBrief,
-    .bossTitle .bossMoneyBrief,
-    .bossSum .bossMoneyBrief{
-      font-size:clamp(15px,3.7vw,20px)!important;
-    }
-    .bossCardMemo{
-      max-height:132px;
-      overflow:auto;
-      font-size:clamp(14px,3.7vw,17px)!important;
-    }
-  </style>
-
 
 
 </head>
@@ -1514,33 +1512,6 @@
       const eok=n=>{const v=n/100000000;return `${Number.isInteger(v)?v:v.toFixed(v<1?2:1).replace(/0$/,'').replace(/\.0$/,'')}억`};
       const briefMoney=n=>`${Math.round(Number(n||0)/100000000)}억`;
       function moneyDetail(label,value){alert(`${label}\n${won(Number(value||0))} 메소\n(${eok(Number(value||0))})`)}
-      function escapeRegExp(v){return String(v||'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
-      function appendBossMemoLine(current,bossName,text){
-        const clean=String(text||'').trim();
-        if(!clean)return String(current||'').trim();
-        const line=`${bossName}: ${clean}`;
-        const cur=String(current||'').trim();
-        return cur?`${cur}\n${line}`:line;
-      }
-      function uniqueMemoLines(text){
-        const seen=new Set();
-        return String(text||'').split(/\n+/).map(x=>x.trim()).filter(Boolean).filter(line=>{
-          const key=line.replace(/\s+/g,' ');
-          if(seen.has(key))return false;
-          seen.add(key);
-          return true;
-        });
-      }
-      function mergedCharMemo(rows){
-        const seen=new Set(), out=[];
-        (rows||[]).forEach(r=>{
-          uniqueMemoLines(r.memo||r.lootMemo||'').forEach(line=>{
-            const key=line.replace(/\s+/g,' ');
-            if(!seen.has(key)){seen.add(key);out.push(line)}
-          });
-        });
-        return out.join('\n');
-      }
       const isHiddenBossCharacterName=name=>{const n=String(name||'').replace(/\s/g,'');return n.includes('총하빙')||n.includes('총합')||n.includes('쌀먹')};
       const isValidNotionId=id=>/^[0-9a-f]{32}$/i.test(String(id||'').replace(/-/g,''));
       const BOSS_CHAR_ORDER=['숍슈슈','렌슈솜','양슈슈','현라양','썬슈슈','득템'];
@@ -2017,14 +1988,13 @@
       function lootValue(r){return parseBossLoot(r.memo||r.lootMemo||'')}
       function recordValue(r){return crystalValue(r)+lootValue(r)}
       function renderBossChip(r){
-        const cVal=crystalValue(r), lVal=lootValue(r), total=recordValue(r);
-        return `<div class="bossChip ${r.clear?'clear':''}"><button class="check ${r.clear?'done':''}" data-bosskey="${r.key}" type="button" aria-label="보스 격파 체크"></button><span class="bossChipName ${lVal?'hasLoot':''}" data-bossloot="${r.key}" title="득템 메모">${r.name}</span><select class="partyMode" data-partykey="${r.key}"><option value="solo" ${r.partyType==='solo'?'selected':''}>1인</option><option value="duo" ${r.partyType==='duo'?'selected':''}>2인</option><option value="other" ${r.partyType==='other'?'selected':''}>기타</option></select>${r.partyType==='other'?`<select class="otherParty" data-otherpartykey="${r.key}">${[3,4,5,6].map(n=>`<option value="${n}" ${Number(r.otherParty||3)===n?'selected':''}>${n}인</option>`).join('')}</select>`:''}<span class="price bossMoneyBrief" data-moneylabel="${escapeAttr(r.name+' 합계')}" data-moneyvalue="${total}" title="클릭하면 상세 금액">${briefMoney(total)}</span><button class="bossDelete" data-deleteboss="${r.key}" type="button" aria-label="보스 삭제">×</button></div>`;
+        const lVal=lootValue(r), total=recordValue(r);
+        const lootLine=lVal?`<div class="bossLootLine" data-bossloot="${r.key}" title="득템 메모 보기"><span class="lootText">🎁 ${escapeHTML(r.memo||r.lootMemo||'득템 메모')}</span><span class="lootMoney">${won(lVal)}</span></div>`:'';
+        return `<div class="bossChip ${r.clear?'clear':''}"><button class="check ${r.clear?'done':''}" data-bosskey="${r.key}" type="button" aria-label="보스 격파 체크"></button><span class="bossChipName ${lVal?'hasLoot':''}" data-bossloot="${r.key}" title="${lVal?'득템 메모 보기':'득템 메모'}">${r.name}</span><select class="partyMode" data-partykey="${r.key}"><option value="solo" ${r.partyType==='solo'?'selected':''}>1인</option><option value="duo" ${r.partyType==='duo'?'selected':''}>2인</option><option value="other" ${r.partyType==='other'?'selected':''}>기타</option></select>${r.partyType==='other'?`<select class="otherParty" data-otherpartykey="${r.key}">${[3,4,5,6].map(n=>`<option value="${n}" ${Number(r.otherParty||3)===n?'selected':''}>${n}인</option>`).join('')}</select>`:''}<span class="price">${won(total)}</span><button class="bossDelete" data-deleteboss="${r.key}" type="button" aria-label="보스 삭제">×</button>${lootLine}</div>`;
       }
       function renderBossBucket(label,type,records){
         if(!records.length)return '';
-        const checkedSubtotal=records.filter(r=>r.clear).reduce((a,b)=>a+crystalValue(b),0);
-        const expectedSubtotal=records.reduce((a,b)=>a+crystalValue(b),0);
-        return `<div class="bossBucket"><div class="bossBucketTitle"><span>${label}</span><span class="tag y"><span>${records.length}개</span> · <span class="bossMoneyBrief" data-moneylabel="${label+' 예정 메소'}" data-moneyvalue="${expectedSubtotal}">예정 ${briefMoney(expectedSubtotal)}</span> · <span class="bossMoneyBrief" data-moneylabel="${label+' 결정석'}" data-moneyvalue="${checkedSubtotal}">결정석 ${briefMoney(checkedSubtotal)}</span></span></div>${records.map(renderBossChip).join('')}</div>`;
+        return `<div class="bossBucket"><div class="bossBucketTitle"><span>${label}</span></div>${records.map(renderBossChip).join('')}</div>`;
       }
       function renderBoss(){
         updateBossWeekTitle();
@@ -2050,17 +2020,15 @@
           const other=rs.filter(r=>r.partyType==='other');
           const checkedSum=rs.filter(r=>r.clear).reduce((a,b)=>a+crystalValue(b),0);
           const expectedSum=rs.filter(r=>!r.clear).reduce((a,b)=>a+crystalValue(b),0);
-          const memoText=mergedCharMemo(rs);
-          const memoBlock=memoText?`<div class="bossCardMemo">${escapeHTML(memoText)}</div>`:'';
-          return `<div class="bossCard"><div class="bossTitle"><span>${chars.find(c=>c.id===cid)?.name||rs[0]?.charName||'캐릭터'}</span><span class="tag y"><span class="bossMoneyBrief" data-moneylabel="${(chars.find(c=>c.id===cid)?.name||rs[0]?.charName||'캐릭터')+' 예정 메소'}" data-moneyvalue="${expectedSum}">예정 ${briefMoney(expectedSum)}</span> · <span class="bossMoneyBrief" data-moneylabel="${(chars.find(c=>c.id===cid)?.name||rs[0]?.charName||'캐릭터')+' 결정석'}" data-moneyvalue="${checkedSum}">결정석 ${briefMoney(checkedSum)}</span></span></div>${memoBlock}${renderBossBucket('1인 파티','solo',solo)}${renderBossBucket('2인 파티','duo',duo)}${renderBossBucket('기타 인원','other',other)}</div>`;
+          return `<div class="bossCard"><div class="bossTitle"><span>${chars.find(c=>c.id===cid)?.name||rs[0]?.charName||'캐릭터'}</span><span class="tag y">예정 ${won(expectedSum)} · 결정석 ${won(checkedSum)}</span></div>${renderBossBucket('1인 파티','solo',solo)}${renderBossBucket('2인 파티','duo',duo)}${renderBossBucket('기타 인원','other',other)}</div>`;
         }).join('');
       }
       function openBossLootMemo(keyValue){
         const r=bossRecords.find(x=>x.key===keyValue);
         if(!r)return;
         editingBossLootKey=keyValue;
-        $('#bossLootTitle')&&($('#bossLootTitle').textContent=`${r.name} 득템 추가`);
-        $('#bossLootMemo')&&($('#bossLootMemo').value='');
+        $('#bossLootTitle')&&($('#bossLootTitle').textContent=`${r.name} 득템 메모`);
+        $('#bossLootMemo')&&($('#bossLootMemo').value=r.memo||'');
         updateBossLootCalc();
         $('#bossLootSheet')&&($('#bossLootSheet').hidden=false);
       }
@@ -2082,7 +2050,7 @@
         const otherParty=otherRows.length ? (Number(otherRows[0]?.otherParty)||3) : null;
         const info=bossWeekInfo();
         const charName=chars.find(c=>c.id===charId)?.name||rows[0]?.charName||'캐릭터';
-        const charMemo=mergedCharMemo(bossRecords.filter(r=>r.charId===charId));
+        const memoLines=rows.filter(r=>String(r.memo||'').trim()).map(r=>`${r.name}: ${String(r.memo||'').trim()}`);
         return {
           characterId:charId,
           characterName:charName,
@@ -2095,11 +2063,8 @@
           duoBossIds:duo,
           otherBossIds:other,
           otherParty,
-          memo:charMemo,
-          records:uniqueMemoLines(charMemo).map(line=>{
-            const parts=line.split(/[:：]/);
-            return parts.length>1?{bossName:parts.shift().trim(),memo:parts.join(':').trim()}:{bossName:'메모',memo:line};
-          })
+          memo:memoLines.join('\n'),
+          records:rows.map(r=>({bossName:r.name,memo:r.memo||''}))
         };
       }
       async function saveBossWeeklyRecordForChar(charId,{silent=false}={}){
@@ -2415,7 +2380,7 @@
         if(raw.length!==normalized.length)alert('같은 보스 계열 중복 또는 주간 12마리 초과 항목은 제외했어요.');
         const ok=await saveBossSettingForChar(charId,{close:true,silent:false});
         if(ok){await loadBossFromWorker(true);renderBoss();}
-      };$('#characterChips').onclick=e=>{const c=e.target.closest('.chip');if(c){bossFilter=c.dataset.id;renderBoss()}};$('#bossList').onclick=async e=>{const money=e.target.closest('[data-moneyvalue]');if(money){moneyDetail(money.dataset.moneylabel||'금액',money.dataset.moneyvalue||0);return}const loot=e.target.closest('[data-bossloot]');if(loot){openBossLootMemo(loot.dataset.bossloot);return}const del=e.target.closest('[data-deleteboss]');if(del){const r=bossRecords.find(x=>x.key===del.dataset.deleteboss);const cid=r?.charId;bossRecords=bossRecords.filter(x=>x.key!==del.dataset.deleteboss);renderBoss();if(cid)await saveBossWeeklyRecordForChar(cid);return}const c=e.target.closest('[data-bosskey]');if(c){const r=bossRecords.find(x=>x.key===c.dataset.bosskey);if(r){r.clear=!r.clear;renderBoss();await saveBossWeeklyRecordForChar(r.charId)}}};$('#bossList').addEventListener('change',async e=>{const mode=e.target.closest('[data-partykey]');if(mode){const r=bossRecords.find(x=>x.key===mode.dataset.partykey);if(r){r.partyType=mode.value;if(r.partyType==='other'&&!r.otherParty)r.otherParty=3;saveBossPartyPref(r);renderBoss();if(r.clear)await saveBossWeeklyRecordForChar(r.charId)}return}const other=e.target.closest('[data-otherpartykey]');if(other){const r=bossRecords.find(x=>x.key===other.dataset.otherpartykey);if(r){r.otherParty=Number(other.value)||3;saveBossPartyPref(r);renderBoss();if(r.clear)await saveBossWeeklyRecordForChar(r.charId)}}});$('#bossLootMemo')&&($('#bossLootMemo').oninput=updateBossLootCalc);$('#bossLootForm')&&($('#bossLootForm').onsubmit=async e=>{e.preventDefault();const r=bossRecords.find(x=>x.key===editingBossLootKey);const input=$('#bossLootMemo')?.value||'';if(r&&String(input).trim()){const rows=bossRecords.filter(x=>x.charId===r.charId);const current=mergedCharMemo(rows);const next=appendBossMemoLine(current,r.name,input);rows.forEach(x=>{x.memo=next});renderBoss();await saveBossWeeklyRecordForChar(r.charId,{silent:true})}closeBossLootSheet()});$('#clearBossLoot')&&($('#clearBossLoot').onclick=()=>{$('#bossLootMemo').value='';updateBossLootCalc()});$('#closeBossLoot')&&($('#closeBossLoot').onclick=closeBossLootSheet);
+      };$('#characterChips').onclick=e=>{const c=e.target.closest('.chip');if(c){bossFilter=c.dataset.id;renderBoss()}};$('#bossList').onclick=async e=>{const money=e.target.closest('[data-moneyvalue]');if(money){moneyDetail(money.dataset.moneylabel||'금액',money.dataset.moneyvalue||0);return}const loot=e.target.closest('[data-bossloot]');if(loot){openBossLootMemo(loot.dataset.bossloot);return}const del=e.target.closest('[data-deleteboss]');if(del){const r=bossRecords.find(x=>x.key===del.dataset.deleteboss);const cid=r?.charId;bossRecords=bossRecords.filter(x=>x.key!==del.dataset.deleteboss);renderBoss();if(cid)await saveBossWeeklyRecordForChar(cid);return}const c=e.target.closest('[data-bosskey]');if(c){const r=bossRecords.find(x=>x.key===c.dataset.bosskey);if(r){r.clear=!r.clear;renderBoss();await saveBossWeeklyRecordForChar(r.charId)}}};$('#bossList').addEventListener('change',async e=>{const mode=e.target.closest('[data-partykey]');if(mode){const r=bossRecords.find(x=>x.key===mode.dataset.partykey);if(r){r.partyType=mode.value;if(r.partyType==='other'&&!r.otherParty)r.otherParty=3;saveBossPartyPref(r);renderBoss();if(r.clear)await saveBossWeeklyRecordForChar(r.charId)}return}const other=e.target.closest('[data-otherpartykey]');if(other){const r=bossRecords.find(x=>x.key===other.dataset.otherpartykey);if(r){r.otherParty=Number(other.value)||3;saveBossPartyPref(r);renderBoss();if(r.clear)await saveBossWeeklyRecordForChar(r.charId)}}});$('#bossLootMemo')&&($('#bossLootMemo').oninput=updateBossLootCalc);$('#bossLootForm')&&($('#bossLootForm').onsubmit=async e=>{e.preventDefault();const r=bossRecords.find(x=>x.key===editingBossLootKey);if(r){r.memo=$('#bossLootMemo')?.value||'';renderBoss();if(r.clear)await saveBossWeeklyRecordForChar(r.charId,{silent:true})}closeBossLootSheet()});$('#clearBossLoot')&&($('#clearBossLoot').onclick=()=>{$('#bossLootMemo').value='';updateBossLootCalc()});$('#closeBossLoot')&&($('#closeBossLoot').onclick=closeBossLootSheet);
       const openSettingsBtn=$('#openSettings');if(openSettingsBtn)openSettingsBtn.onclick=openSettings;const closeSettingsBtn=$('#closeSettings');if(closeSettingsBtn)closeSettingsBtn.onclick=closeSettings;const settingsForm=$('#settingsForm');if(settingsForm)settingsForm.onsubmit=saveSettingsForm;const viewModeSelect=$('#settingViewMode');if(viewModeSelect)viewModeSelect.onchange=()=>setViewMode(viewModeSelect.value);const settingLoadBtn=$('#settingLoadNotion');if(settingLoadBtn)settingLoadBtn.onclick=async()=>{await loadProjectsFromWorker(true);loadCalendarFromWorker(false)};const clearSettingsBtn=$('#clearSettings');if(clearSettingsBtn)clearSettingsBtn.onclick=()=>{clearPaperConfig();fillSettingsForm();const s=$('#settingsStatus');if(s)s.textContent='저장된 설정을 지웠어요.'};const cancelToggle=$('#showCanceledSchedules');if(cancelToggle){cancelToggle.checked=state.showCanceled;cancelToggle.onchange=()=>{state.showCanceled=cancelToggle.checked;loadCalendarFromWorker(false)}};const dateStripEl=$('#dateStrip');if(dateStripEl)dateStripEl.ondblclick=toggleWeekStrip;const stickyTopEl=$('#stickyTop');if(stickyTopEl)stickyTopEl.ondblclick=()=>{localStorage.setItem('paperWeekStripHidden','false');applyWeekStripHidden()};const currentMonthLabel=$('#stickyMonthLabel');if(currentMonthLabel)currentMonthLabel.textContent=`${today.getFullYear()}년 ${String(today.getMonth()+1).padStart(2,'0')}월`;$('#expenseDate').value=key(today);$('#incomeDate').value=key(today);$('#bossWeekTitle').textContent=weekKey();applyWeekStripHidden();dateStrip();      ['addSchedule','entrySubject'].forEach(id=>{const el=$('#'+id);if(el){el.addEventListener('input',updateAppointmentTargetVisibility);el.addEventListener('change',updateAppointmentTargetVisibility);}});
 renderCal();renderBoss();renderDashboard();restoreCalendarCache();applyViewMode(currentViewMode);
       const savedPage=localStorage.getItem(ACTIVE_PAGE_KEY)||'dashboard';
