@@ -981,6 +981,50 @@
     .bossWeekNavCard .icon{font-size:22px}
   </style>
 
+  <style id="bossUXV90">
+    #characterChips{
+      display:flex!important;
+      flex-wrap:wrap!important;
+      overflow:visible!important;
+      gap:6px!important;
+      padding:2px 0!important;
+    }
+    #characterChips .chip{
+      flex:0 0 auto!important;
+      min-width:auto!important;
+      max-width:none!important;
+      padding:8px 11px!important;
+      overflow:visible!important;
+      text-overflow:clip!important;
+      white-space:nowrap!important;
+    }
+    .bossBulk{display:none!important}
+    .bossCardMemo{
+      margin:4px 0 10px;
+      border:1.2px dashed rgba(159,79,79,.42);
+      border-radius:14px;
+      background:rgba(250,236,236,.48);
+      padding:7px 9px;
+      color:#8a5656;
+      font-size:12px;
+      line-height:1.45;
+      white-space:pre-wrap;
+      word-break:break-word;
+    }
+    .bossChipName.hasLoot{
+      color:inherit!important;
+      background:none!important;
+    }
+    .bossChipName small{display:none!important}
+    .bossMoneyBrief,.bossChip .price{
+      cursor:pointer;
+      text-decoration:underline;
+      text-underline-offset:3px;
+      text-decoration-color:rgba(47,42,40,.25);
+    }
+  </style>
+
+
 </head>
 <body>
 
@@ -1105,7 +1149,7 @@
       <div class="title"><h2>Maple Boss</h2><small>default boss setup → weekly generate</small></div>
       <article class="card"><div class="weekCard bossWeekNavCard"><div><span class="weekLabel">보스 주차</span><div class="bossWeekNav"><button class="weekArrow" id="bossPrevWeek" type="button" aria-label="이전 주">◀</button><strong id="bossWeekTitle">이번 주</strong><button class="weekArrow" id="bossNextWeek" type="button" aria-label="다음 주">▶</button></div><p>화살표로 주차를 이동해서 해당 주차 보스 기록을 불러옵니다.</p></div><button class="icon" id="bossTodayWeek" type="button" aria-label="오늘 주차">↺</button></div><div class="bossTool"><button class="bossAction setup" id="openBossSetting">기본 보스 설정</button><button class="bossAction gen" id="generateBoss">선택 주차 생성</button><button class="bossAction setup" id="loadBossNotion" type="button">선택 주차 불러오기</button></div></article>
       <article class="card"><div class="divTitle">캐릭터 필터</div><div class="chips" id="characterChips"></div></article>
-      <article class="card"><div class="divTitle">이번 주 보스 체크</div><div class="bossSum bossSumV47"><div><span>보스 수</span><strong id="bossCount">0개</strong></div><div><span>예정 메소</span><strong id="bossExpectedTotal">0</strong></div><div><span>득템</span><strong id="bossLootTotal">0</strong></div><div><span>결정석</span><strong id="bossCrystalTotal">0</strong></div></div><div class="bossBulk"><button class="allOn" id="checkVisibleBosses" type="button">보이는 보스 전체 체크</button><button class="allOff" id="uncheckVisibleBosses" type="button">보이는 보스 전체 해제</button></div><div id="bossList"></div><p class="note">나중에 Worker API 연결 시 보스 체크 기록 DB에 실제 페이지 생성</p></article>
+      <article class="card"><div class="divTitle">이번 주 보스 체크</div><div class="bossSum bossSumV47"><div><span>보스 수</span><strong id="bossCount">0개</strong></div><div><span>예정 메소</span><strong id="bossExpectedTotal">0</strong></div><div><span>득템</span><strong id="bossLootTotal">0</strong></div><div><span>결정석</span><strong id="bossCrystalTotal">0</strong></div></div><div id="bossList"></div><p class="note">나중에 Worker API 연결 시 보스 체크 기록 DB에 실제 페이지 생성</p></article>
     </section>
 
     <div class="sheetBg" id="entrySheet" hidden><section class="sheet"><div class="handle"></div><div class="sheetHead entrySheetHead"><h3 id="entrySheetTitle">기록 추가</h3><div class="entrySheetHeadActions"><button class="icon entryDeleteBtn" id="deleteEntry" type="button" hidden aria-label="기록 삭제">🗑</button><button class="icon" id="closeEntry" type="button">×</button></div></div><form class="entryForm" id="entryForm"><div class="typeToggle"><label class="typeChip"><input type="checkbox" id="addSchedule"> 일정 DB</label><label class="typeChip"><input type="checkbox" id="addTodo"> 할 일 DB</label><input type="checkbox" id="addDaily" hidden></div><div class="field"><label>제목</label><input id="entryTitle" placeholder="예: 교육 운영 회의"></div><div class="row2">
@@ -1446,6 +1490,16 @@
       const bossSet={c1:['b10','b06','b27','b29','b36'],c2:['b10','b27','b36'],c3:['b10','b18','b23','b25'],c4:['b27','b29','b31','b33'],c5:[]}; let bossFilter='all', bossRecords=[], showLowBosses=false, bossSettingActiveCharId='', bossAutoSaveTimer=null, editingBossLootKey='', bossViewBaseDate=new Date(today);
       const won=n=>new Intl.NumberFormat('ko-KR').format(n);
       const eok=n=>{const v=n/100000000;return `${Number.isInteger(v)?v:v.toFixed(v<1?2:1).replace(/0$/,'').replace(/\.0$/,'')}억`};
+      const briefMoney=n=>`${Math.round(Number(n||0)/100000000)}억`;
+      function moneyDetail(label,value){alert(`${label}\n${won(Number(value||0))} 메소\n(${eok(Number(value||0))})`)}
+      function escapeRegExp(v){return String(v||'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
+      function appendBossMemoLine(current,bossName,text){
+        const clean=String(text||'').trim();
+        if(!clean)return String(current||'').trim();
+        const line=`${bossName}: ${clean}`;
+        const cur=String(current||'').trim();
+        return cur?`${cur}\n${line}`:line;
+      }
       const isHiddenBossCharacterName=name=>{const n=String(name||'').replace(/\s/g,'');return n.includes('총하빙')||n.includes('총합')||n.includes('쌀먹')};
       const isValidNotionId=id=>/^[0-9a-f]{32}$/i.test(String(id||'').replace(/-/g,''));
       const BOSS_CHAR_ORDER=['숍슈슈','렌슈솜','양슈슈','현라양','썬슈슈','득템'];
@@ -1917,18 +1971,19 @@
         return total;
       }
       function escapeAttr(v){return String(v||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+      function escapeHTML(v){return String(v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
       function crystalValue(r){return Math.floor(Number(r.price||0)/bossDivisor(r))}
       function lootValue(r){return parseBossLoot(r.memo||r.lootMemo||'')}
       function recordValue(r){return crystalValue(r)+lootValue(r)}
       function renderBossChip(r){
-        const lVal=lootValue(r), total=recordValue(r);
-        return `<div class="bossChip ${r.clear?'clear':''}"><button class="check ${r.clear?'done':''}" data-bosskey="${r.key}" type="button" aria-label="보스 격파 체크"></button><span class="bossChipName ${lVal?'hasLoot':''}" data-bossloot="${r.key}" title="${lVal?'득템 '+eok(lVal):'득템 메모'}">${r.name}${lVal?` <small>+${eok(lVal)}</small>`:''}</span><select class="partyMode" data-partykey="${r.key}"><option value="solo" ${r.partyType==='solo'?'selected':''}>1인</option><option value="duo" ${r.partyType==='duo'?'selected':''}>2인</option><option value="other" ${r.partyType==='other'?'selected':''}>기타</option></select>${r.partyType==='other'?`<select class="otherParty" data-otherpartykey="${r.key}">${[3,4,5,6].map(n=>`<option value="${n}" ${Number(r.otherParty||3)===n?'selected':''}>${n}인</option>`).join('')}</select>`:''}<span class="price">${won(total)}</span><button class="bossDelete" data-deleteboss="${r.key}" type="button" aria-label="보스 삭제">×</button></div>`;
+        const cVal=crystalValue(r), lVal=lootValue(r), total=recordValue(r);
+        return `<div class="bossChip ${r.clear?'clear':''}"><button class="check ${r.clear?'done':''}" data-bosskey="${r.key}" type="button" aria-label="보스 격파 체크"></button><span class="bossChipName ${lVal?'hasLoot':''}" data-bossloot="${r.key}" title="득템 메모">${r.name}</span><select class="partyMode" data-partykey="${r.key}"><option value="solo" ${r.partyType==='solo'?'selected':''}>1인</option><option value="duo" ${r.partyType==='duo'?'selected':''}>2인</option><option value="other" ${r.partyType==='other'?'selected':''}>기타</option></select>${r.partyType==='other'?`<select class="otherParty" data-otherpartykey="${r.key}">${[3,4,5,6].map(n=>`<option value="${n}" ${Number(r.otherParty||3)===n?'selected':''}>${n}인</option>`).join('')}</select>`:''}<span class="price bossMoneyBrief" data-moneylabel="${escapeAttr(r.name+' 합계')}" data-moneyvalue="${total}" title="클릭하면 상세 금액">${briefMoney(total)}</span><button class="bossDelete" data-deleteboss="${r.key}" type="button" aria-label="보스 삭제">×</button></div>`;
       }
       function renderBossBucket(label,type,records){
         if(!records.length)return '';
         const checkedSubtotal=records.filter(r=>r.clear).reduce((a,b)=>a+crystalValue(b),0);
         const expectedSubtotal=records.reduce((a,b)=>a+crystalValue(b),0);
-        return `<div class="bossBucket"><div class="bossBucketTitle"><span>${label}</span><span class="tag y">${records.length}개 · 예정 ${won(expectedSubtotal)} · 결정석 ${won(checkedSubtotal)}</span></div>${records.map(renderBossChip).join('')}</div>`;
+        return `<div class="bossBucket"><div class="bossBucketTitle"><span>${label}</span><span class="tag y"><span>${records.length}개</span> · <span class="bossMoneyBrief" data-moneylabel="${label+' 예정 메소'}" data-moneyvalue="${expectedSubtotal}">예정 ${briefMoney(expectedSubtotal)}</span> · <span class="bossMoneyBrief" data-moneylabel="${label+' 결정석'}" data-moneyvalue="${checkedSubtotal}">결정석 ${briefMoney(checkedSubtotal)}</span></span></div>${records.map(renderBossChip).join('')}</div>`;
       }
       function renderBoss(){
         updateBossWeekTitle();
@@ -1942,9 +1997,9 @@
         const expectedTotal=rows.reduce((a,b)=>a+crystalValue(b),0);
         const lootTotal=checkedRows.reduce((a,b)=>a+lootValue(b),0);
         $('#bossCount').textContent=`${checkedRows.length}/${rows.length}개`;
-        $('#bossExpectedTotal')&&($('#bossExpectedTotal').textContent=won(expectedTotal));
-        $('#bossLootTotal')&&($('#bossLootTotal').textContent=won(lootTotal));
-        $('#bossCrystalTotal')&&($('#bossCrystalTotal').textContent=won(crystalTotal));
+        $('#bossExpectedTotal')&&($('#bossExpectedTotal').innerHTML=`<span class="bossMoneyBrief" data-moneylabel="예정 메소" data-moneyvalue="${expectedTotal}">${briefMoney(expectedTotal)}</span>`);
+        $('#bossLootTotal')&&($('#bossLootTotal').innerHTML=`<span class="bossMoneyBrief" data-moneylabel="득템" data-moneyvalue="${lootTotal}">${briefMoney(lootTotal)}</span>`);
+        $('#bossCrystalTotal')&&($('#bossCrystalTotal').innerHTML=`<span class="bossMoneyBrief" data-moneylabel="결정석" data-moneyvalue="${crystalTotal}">${briefMoney(crystalTotal)}</span>`);
         renderDashboard();
         if(!rows.length){list.innerHTML='<p class="empty-msg">아직 생성된 보스가 없어요. “Notion 보스 불러오기” 또는 “이번 주 생성”을 눌러주세요.</p>';return}
         const groups={};rows.forEach(r=>(groups[r.charId]??=[]).push(r));
@@ -1953,16 +2008,18 @@
           const duo=rs.filter(r=>r.partyType==='duo');
           const other=rs.filter(r=>r.partyType==='other');
           const checkedSum=rs.filter(r=>r.clear).reduce((a,b)=>a+crystalValue(b),0);
-          const expectedSum=rs.reduce((a,b)=>a+crystalValue(b),0);
-          return `<div class="bossCard"><div class="bossTitle"><span>${chars.find(c=>c.id===cid)?.name||rs[0]?.charName||'캐릭터'}</span><span class="tag y">예정 ${won(expectedSum)} · 결정석 ${won(checkedSum)}</span></div>${renderBossBucket('1인 파티','solo',solo)}${renderBossBucket('2인 파티','duo',duo)}${renderBossBucket('기타 인원','other',other)}</div>`;
+          const expectedSum=rs.filter(r=>!r.clear).reduce((a,b)=>a+crystalValue(b),0);
+          const memoText=rs.filter(r=>String(r.memo||'').trim()).map(r=>`${r.name}: ${String(r.memo||'').trim()}`).join('\n');
+          const memoBlock=memoText?`<div class="bossCardMemo">${escapeHTML(memoText)}</div>`:'';
+          return `<div class="bossCard"><div class="bossTitle"><span>${chars.find(c=>c.id===cid)?.name||rs[0]?.charName||'캐릭터'}</span><span class="tag y"><span class="bossMoneyBrief" data-moneylabel="${(chars.find(c=>c.id===cid)?.name||rs[0]?.charName||'캐릭터')+' 예정 메소'}" data-moneyvalue="${expectedSum}">예정 ${briefMoney(expectedSum)}</span> · <span class="bossMoneyBrief" data-moneylabel="${(chars.find(c=>c.id===cid)?.name||rs[0]?.charName||'캐릭터')+' 결정석'}" data-moneyvalue="${checkedSum}">결정석 ${briefMoney(checkedSum)}</span></span></div>${memoBlock}${renderBossBucket('1인 파티','solo',solo)}${renderBossBucket('2인 파티','duo',duo)}${renderBossBucket('기타 인원','other',other)}</div>`;
         }).join('');
       }
       function openBossLootMemo(keyValue){
         const r=bossRecords.find(x=>x.key===keyValue);
         if(!r)return;
         editingBossLootKey=keyValue;
-        $('#bossLootTitle')&&($('#bossLootTitle').textContent=`${r.name} 득템 메모`);
-        $('#bossLootMemo')&&($('#bossLootMemo').value=r.memo||'');
+        $('#bossLootTitle')&&($('#bossLootTitle').textContent=`${r.name} 득템 추가`);
+        $('#bossLootMemo')&&($('#bossLootMemo').value='');
         updateBossLootCalc();
         $('#bossLootSheet')&&($('#bossLootSheet').hidden=false);
       }
@@ -2305,7 +2362,7 @@
         setTimeout(()=>loadCalendarFromWorker(true),60);
         document.querySelector('#calendar')?.scrollIntoView({behavior:'smooth',block:'start'});
       }
-      $('#calendarGrid').onclick=e=>{const d=e.target.closest('.day');if(d){const picked=d.dataset.date;selected=picked;renderCal();if(!isTabletLayout()){const liveDay=$(`#calendarGrid .day[data-date="${picked}"]`);showSchedulePopup(picked,liveDay)}}};$('#monthTitle')?.addEventListener('click',()=>{document.querySelector('#calendar')?.scrollIntoView({behavior:'smooth',block:'start'});});$('#prevMonth').onclick=()=>moveCalendarMonth(-1);$('#nextMonth').onclick=()=>moveCalendarMonth(1);$('#calendarTodayBtn')&&($('#calendarTodayBtn').onclick=goCalendarToday);$$('.tab[data-type]').forEach(t=>t.onclick=()=>{const type=t.dataset.type,on=Object.values(state.show).filter(Boolean).length;if(state.show[type]&&on===1)return;state.show[type]=!state.show[type];t.classList.toggle('on',state.show[type]);renderCal()});$('#openEntry').onclick=openEntry;$('#closeEntry').onclick=()=>{editingCalendarRecord=null;$('#entrySheet').hidden=true;};$('#closeDailyLog')&&( $('#closeDailyLog').onclick=closeDailySheet );$('#dailyForm')&&($('#dailyForm').onsubmit=saveDailyLog);$('#deleteDailyLog')?.addEventListener('click',deleteDailyLog);$('#deleteEntry')?.addEventListener('click',deleteCalendarEntry);$('#addSchedule').onchange=updateEntryMode;$('#addTodo').onchange=()=>{updateEntryMode();handleTodoKindChange()};$('#addDaily').onchange=updateEntryMode;$('#entryDone')&&($('#entryDone').onchange=handleTodoKindChange);$('#entryForm').onsubmit=saveEntry;$('#entrySubject')?.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.ctrlKey){e.preventDefault();const el=e.currentTarget;const start=el.selectionStart??el.value.length,end=el.selectionEnd??el.value.length;el.value=el.value.slice(0,start)+'\n'+el.value.slice(end);el.selectionStart=el.selectionEnd=start+1;}});$('#calendarDetail').addEventListener('click',e=>{if(e.target.closest('a'))return;const addDaily=e.target.closest('[data-daily-add]');if(addDaily){openDailyEntry(addDaily.dataset.dailyAdd||selected);return}const btn=e.target.closest('[data-todo-id]');if(btn&&btn.dataset.todoId){toggleTodoCheck(btn.dataset.todoId);return}const edit=e.target.closest('[data-calendar-edit]');if(edit&&edit.dataset.calendarEdit){openCalendarEdit(edit.dataset.calendarType,edit.dataset.calendarEdit);return}const open=e.target.closest('[data-open-schedule-popup]');if(open){const dayEl=$(`#calendarGrid .day[data-date="${selected}"]`);showSchedulePopup(selected,dayEl)}});const dashList=$('#dashboardTodayList');if(dashList)dashList.addEventListener('click',e=>{const btn=e.target.closest('[data-todo-id]');if(btn&&btn.dataset.todoId)toggleTodoCheck(btn.dataset.todoId)});const schedulePopupBg=$('#schedulePopupBg');if(schedulePopupBg)schedulePopupBg.addEventListener('click',e=>{if(e.target===schedulePopupBg)hideSchedulePopup()});const schedulePopupClose=$('#schedulePopupClose');if(schedulePopupClose)schedulePopupClose.onclick=hideSchedulePopup;const schedulePopupContent=$('#schedulePopupContent');if(schedulePopupContent)schedulePopupContent.addEventListener('click',e=>{if(e.target.closest('a'))return;const edit=e.target.closest('[data-calendar-edit]');if(edit&&edit.dataset.calendarEdit)openCalendarEdit(edit.dataset.calendarType,edit.dataset.calendarEdit)});document.addEventListener('click',e=>{const bg=$('#schedulePopupBg');if(!bg||bg.hidden||isTabletLayout())return;if(e.target.closest('#schedulePopup')||e.target.closest('.day')||e.target.closest('[data-open-schedule-popup]'))return;hideSchedulePopup()});$$('.moneyTab').forEach(t=>t.onclick=()=>{$$('.moneyTab').forEach(x=>x.classList.toggle('on',x===t));$('#expenseForm').classList.toggle('on',t.dataset.type==='expense');$('#incomeForm').classList.toggle('on',t.dataset.type==='income')});$('#generateBoss').onclick=generateBoss;$('#loadBossNotion')&&($('#loadBossNotion').onclick=()=>loadBossFromWorker(false));$('#bossPrevWeek')&&($('#bossPrevWeek').onclick=()=>moveBossWeek(-1));$('#bossNextWeek')&&($('#bossNextWeek').onclick=()=>moveBossWeek(1));$('#bossTodayWeek')&&($('#bossTodayWeek').onclick=resetBossWeekToToday);$('#checkVisibleBosses').onclick=()=>setVisibleBossesClear(true);$('#uncheckVisibleBosses').onclick=()=>setVisibleBossesClear(false);$('#openBossSetting').onclick=()=>openBossSheet();$('#closeBoss').onclick=()=>{preserveBossGridSelection();saveBossSettingForChar(bossSettingActiveCharId,{silent:true});$('#bossSheet').hidden=true;};$('#cancelBoss').onclick=()=>{preserveBossGridSelection();saveBossSettingForChar(bossSettingActiveCharId,{silent:true});$('#bossSheet').hidden=true;};$('#bossRuleHelp')&&($('#bossRuleHelp').onclick=()=>{$('#bossRuleBox').hidden=!$('#bossRuleBox').hidden});$('#bossCharSelect').onchange=()=>{preserveBossGridSelection();const prev=bossSettingActiveCharId;if(prev&&isValidNotionId(prev))saveBossSettingForChar(prev,{silent:true});bossSettingActiveCharId=$('#bossCharSelect').value;renderBossGrid();setBossSettingNote('선택하면 자동으로 저장됩니다.');};$('#bossSettingGrid').addEventListener('click',e=>{const toggle=e.target.closest('#toggleLowBoss');if(!toggle)return;preserveBossGridSelection();showLowBosses=!showLowBosses;renderBossGrid()});$('#bossSettingGrid').addEventListener('change',e=>{const input=e.target.closest('input[type="checkbox"][data-family]');if(!input)return;if(input.checked){const family=input.dataset.family;$$('#bossSettingGrid input[data-family]').forEach(other=>{if(other!==input&&other.dataset.family===family)other.checked=false})}preserveBossGridSelection();renderBossSettingSummary();queueBossSettingAutoSave()});$('#saveBoss').onclick=async()=>{
+      $('#calendarGrid').onclick=e=>{const d=e.target.closest('.day');if(d){const picked=d.dataset.date;selected=picked;renderCal();if(!isTabletLayout()){const liveDay=$(`#calendarGrid .day[data-date="${picked}"]`);showSchedulePopup(picked,liveDay)}}};$('#monthTitle')?.addEventListener('click',()=>{document.querySelector('#calendar')?.scrollIntoView({behavior:'smooth',block:'start'});});$('#prevMonth').onclick=()=>moveCalendarMonth(-1);$('#nextMonth').onclick=()=>moveCalendarMonth(1);$('#calendarTodayBtn')&&($('#calendarTodayBtn').onclick=goCalendarToday);$$('.tab[data-type]').forEach(t=>t.onclick=()=>{const type=t.dataset.type,on=Object.values(state.show).filter(Boolean).length;if(state.show[type]&&on===1)return;state.show[type]=!state.show[type];t.classList.toggle('on',state.show[type]);renderCal()});$('#openEntry').onclick=openEntry;$('#closeEntry').onclick=()=>{editingCalendarRecord=null;$('#entrySheet').hidden=true;};$('#closeDailyLog')&&( $('#closeDailyLog').onclick=closeDailySheet );$('#dailyForm')&&($('#dailyForm').onsubmit=saveDailyLog);$('#deleteDailyLog')?.addEventListener('click',deleteDailyLog);$('#deleteEntry')?.addEventListener('click',deleteCalendarEntry);$('#addSchedule').onchange=updateEntryMode;$('#addTodo').onchange=()=>{updateEntryMode();handleTodoKindChange()};$('#addDaily').onchange=updateEntryMode;$('#entryDone')&&($('#entryDone').onchange=handleTodoKindChange);$('#entryForm').onsubmit=saveEntry;$('#entrySubject')?.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.ctrlKey){e.preventDefault();const el=e.currentTarget;const start=el.selectionStart??el.value.length,end=el.selectionEnd??el.value.length;el.value=el.value.slice(0,start)+'\n'+el.value.slice(end);el.selectionStart=el.selectionEnd=start+1;}});$('#calendarDetail').addEventListener('click',e=>{if(e.target.closest('a'))return;const addDaily=e.target.closest('[data-daily-add]');if(addDaily){openDailyEntry(addDaily.dataset.dailyAdd||selected);return}const btn=e.target.closest('[data-todo-id]');if(btn&&btn.dataset.todoId){toggleTodoCheck(btn.dataset.todoId);return}const edit=e.target.closest('[data-calendar-edit]');if(edit&&edit.dataset.calendarEdit){openCalendarEdit(edit.dataset.calendarType,edit.dataset.calendarEdit);return}const open=e.target.closest('[data-open-schedule-popup]');if(open){const dayEl=$(`#calendarGrid .day[data-date="${selected}"]`);showSchedulePopup(selected,dayEl)}});const dashList=$('#dashboardTodayList');if(dashList)dashList.addEventListener('click',e=>{const btn=e.target.closest('[data-todo-id]');if(btn&&btn.dataset.todoId)toggleTodoCheck(btn.dataset.todoId)});const schedulePopupBg=$('#schedulePopupBg');if(schedulePopupBg)schedulePopupBg.addEventListener('click',e=>{if(e.target===schedulePopupBg)hideSchedulePopup()});const schedulePopupClose=$('#schedulePopupClose');if(schedulePopupClose)schedulePopupClose.onclick=hideSchedulePopup;const schedulePopupContent=$('#schedulePopupContent');if(schedulePopupContent)schedulePopupContent.addEventListener('click',e=>{if(e.target.closest('a'))return;const edit=e.target.closest('[data-calendar-edit]');if(edit&&edit.dataset.calendarEdit)openCalendarEdit(edit.dataset.calendarType,edit.dataset.calendarEdit)});document.addEventListener('click',e=>{const bg=$('#schedulePopupBg');if(!bg||bg.hidden||isTabletLayout())return;if(e.target.closest('#schedulePopup')||e.target.closest('.day')||e.target.closest('[data-open-schedule-popup]'))return;hideSchedulePopup()});$$('.moneyTab').forEach(t=>t.onclick=()=>{$$('.moneyTab').forEach(x=>x.classList.toggle('on',x===t));$('#expenseForm').classList.toggle('on',t.dataset.type==='expense');$('#incomeForm').classList.toggle('on',t.dataset.type==='income')});$('#generateBoss').onclick=generateBoss;$('#loadBossNotion')&&($('#loadBossNotion').onclick=()=>loadBossFromWorker(false));$('#bossPrevWeek')&&($('#bossPrevWeek').onclick=()=>moveBossWeek(-1));$('#bossNextWeek')&&($('#bossNextWeek').onclick=()=>moveBossWeek(1));$('#bossTodayWeek')&&($('#bossTodayWeek').onclick=resetBossWeekToToday);$('#openBossSetting').onclick=()=>openBossSheet();$('#closeBoss').onclick=()=>{preserveBossGridSelection();saveBossSettingForChar(bossSettingActiveCharId,{silent:true});$('#bossSheet').hidden=true;};$('#cancelBoss').onclick=()=>{preserveBossGridSelection();saveBossSettingForChar(bossSettingActiveCharId,{silent:true});$('#bossSheet').hidden=true;};$('#bossRuleHelp')&&($('#bossRuleHelp').onclick=()=>{$('#bossRuleBox').hidden=!$('#bossRuleBox').hidden});$('#bossCharSelect').onchange=()=>{preserveBossGridSelection();const prev=bossSettingActiveCharId;if(prev&&isValidNotionId(prev))saveBossSettingForChar(prev,{silent:true});bossSettingActiveCharId=$('#bossCharSelect').value;renderBossGrid();setBossSettingNote('선택하면 자동으로 저장됩니다.');};$('#bossSettingGrid').addEventListener('click',e=>{const toggle=e.target.closest('#toggleLowBoss');if(!toggle)return;preserveBossGridSelection();showLowBosses=!showLowBosses;renderBossGrid()});$('#bossSettingGrid').addEventListener('change',e=>{const input=e.target.closest('input[type="checkbox"][data-family]');if(!input)return;if(input.checked){const family=input.dataset.family;$$('#bossSettingGrid input[data-family]').forEach(other=>{if(other!==input&&other.dataset.family===family)other.checked=false})}preserveBossGridSelection();renderBossSettingSummary();queueBossSettingAutoSave()});$('#saveBoss').onclick=async()=>{
         preserveBossGridSelection();
         const charId=bossSettingActiveCharId||$('#bossCharSelect').value;
         const raw=$$('#bossSettingGrid input:checked').map(x=>x.value);
@@ -2314,7 +2371,7 @@
         if(raw.length!==normalized.length)alert('같은 보스 계열 중복 또는 주간 12마리 초과 항목은 제외했어요.');
         const ok=await saveBossSettingForChar(charId,{close:true,silent:false});
         if(ok){await loadBossFromWorker(true);renderBoss();}
-      };$('#characterChips').onclick=e=>{const c=e.target.closest('.chip');if(c){bossFilter=c.dataset.id;renderBoss()}};$('#bossList').onclick=async e=>{const loot=e.target.closest('[data-bossloot]');if(loot){openBossLootMemo(loot.dataset.bossloot);return}const del=e.target.closest('[data-deleteboss]');if(del){const r=bossRecords.find(x=>x.key===del.dataset.deleteboss);const cid=r?.charId;bossRecords=bossRecords.filter(x=>x.key!==del.dataset.deleteboss);renderBoss();if(cid)await saveBossWeeklyRecordForChar(cid);return}const c=e.target.closest('[data-bosskey]');if(c){const r=bossRecords.find(x=>x.key===c.dataset.bosskey);if(r){r.clear=!r.clear;renderBoss();await saveBossWeeklyRecordForChar(r.charId)}}};$('#bossList').addEventListener('change',async e=>{const mode=e.target.closest('[data-partykey]');if(mode){const r=bossRecords.find(x=>x.key===mode.dataset.partykey);if(r){r.partyType=mode.value;if(r.partyType==='other'&&!r.otherParty)r.otherParty=3;saveBossPartyPref(r);renderBoss();if(r.clear)await saveBossWeeklyRecordForChar(r.charId)}return}const other=e.target.closest('[data-otherpartykey]');if(other){const r=bossRecords.find(x=>x.key===other.dataset.otherpartykey);if(r){r.otherParty=Number(other.value)||3;saveBossPartyPref(r);renderBoss();if(r.clear)await saveBossWeeklyRecordForChar(r.charId)}}});$('#bossLootMemo')&&($('#bossLootMemo').oninput=updateBossLootCalc);$('#bossLootForm')&&($('#bossLootForm').onsubmit=async e=>{e.preventDefault();const r=bossRecords.find(x=>x.key===editingBossLootKey);if(r){r.memo=$('#bossLootMemo')?.value||'';renderBoss();if(r.clear)await saveBossWeeklyRecordForChar(r.charId,{silent:true})}closeBossLootSheet()});$('#clearBossLoot')&&($('#clearBossLoot').onclick=()=>{$('#bossLootMemo').value='';updateBossLootCalc()});$('#closeBossLoot')&&($('#closeBossLoot').onclick=closeBossLootSheet);
+      };$('#characterChips').onclick=e=>{const c=e.target.closest('.chip');if(c){bossFilter=c.dataset.id;renderBoss()}};$('#bossList').onclick=async e=>{const money=e.target.closest('[data-moneyvalue]');if(money){moneyDetail(money.dataset.moneylabel||'금액',money.dataset.moneyvalue||0);return}const loot=e.target.closest('[data-bossloot]');if(loot){openBossLootMemo(loot.dataset.bossloot);return}const del=e.target.closest('[data-deleteboss]');if(del){const r=bossRecords.find(x=>x.key===del.dataset.deleteboss);const cid=r?.charId;bossRecords=bossRecords.filter(x=>x.key!==del.dataset.deleteboss);renderBoss();if(cid)await saveBossWeeklyRecordForChar(cid);return}const c=e.target.closest('[data-bosskey]');if(c){const r=bossRecords.find(x=>x.key===c.dataset.bosskey);if(r){r.clear=!r.clear;renderBoss();await saveBossWeeklyRecordForChar(r.charId)}}};$('#bossList').addEventListener('change',async e=>{const mode=e.target.closest('[data-partykey]');if(mode){const r=bossRecords.find(x=>x.key===mode.dataset.partykey);if(r){r.partyType=mode.value;if(r.partyType==='other'&&!r.otherParty)r.otherParty=3;saveBossPartyPref(r);renderBoss();if(r.clear)await saveBossWeeklyRecordForChar(r.charId)}return}const other=e.target.closest('[data-otherpartykey]');if(other){const r=bossRecords.find(x=>x.key===other.dataset.otherpartykey);if(r){r.otherParty=Number(other.value)||3;saveBossPartyPref(r);renderBoss();if(r.clear)await saveBossWeeklyRecordForChar(r.charId)}}});$('#bossLootMemo')&&($('#bossLootMemo').oninput=updateBossLootCalc);$('#bossLootForm')&&($('#bossLootForm').onsubmit=async e=>{e.preventDefault();const r=bossRecords.find(x=>x.key===editingBossLootKey);const input=$('#bossLootMemo')?.value||'';if(r&&String(input).trim()){const rows=bossRecords.filter(x=>x.charId===r.charId);const current=rows.find(x=>String(x.memo||'').trim())?.memo||'';const next=appendBossMemoLine(current,r.name,input);rows.forEach(x=>{x.memo=next});renderBoss();await saveBossWeeklyRecordForChar(r.charId,{silent:true})}closeBossLootSheet()});$('#clearBossLoot')&&($('#clearBossLoot').onclick=()=>{$('#bossLootMemo').value='';updateBossLootCalc()});$('#closeBossLoot')&&($('#closeBossLoot').onclick=closeBossLootSheet);
       const openSettingsBtn=$('#openSettings');if(openSettingsBtn)openSettingsBtn.onclick=openSettings;const closeSettingsBtn=$('#closeSettings');if(closeSettingsBtn)closeSettingsBtn.onclick=closeSettings;const settingsForm=$('#settingsForm');if(settingsForm)settingsForm.onsubmit=saveSettingsForm;const viewModeSelect=$('#settingViewMode');if(viewModeSelect)viewModeSelect.onchange=()=>setViewMode(viewModeSelect.value);const settingLoadBtn=$('#settingLoadNotion');if(settingLoadBtn)settingLoadBtn.onclick=async()=>{await loadProjectsFromWorker(true);loadCalendarFromWorker(false)};const clearSettingsBtn=$('#clearSettings');if(clearSettingsBtn)clearSettingsBtn.onclick=()=>{clearPaperConfig();fillSettingsForm();const s=$('#settingsStatus');if(s)s.textContent='저장된 설정을 지웠어요.'};const cancelToggle=$('#showCanceledSchedules');if(cancelToggle){cancelToggle.checked=state.showCanceled;cancelToggle.onchange=()=>{state.showCanceled=cancelToggle.checked;loadCalendarFromWorker(false)}};const dateStripEl=$('#dateStrip');if(dateStripEl)dateStripEl.ondblclick=toggleWeekStrip;const stickyTopEl=$('#stickyTop');if(stickyTopEl)stickyTopEl.ondblclick=()=>{localStorage.setItem('paperWeekStripHidden','false');applyWeekStripHidden()};const currentMonthLabel=$('#stickyMonthLabel');if(currentMonthLabel)currentMonthLabel.textContent=`${today.getFullYear()}년 ${String(today.getMonth()+1).padStart(2,'0')}월`;$('#expenseDate').value=key(today);$('#incomeDate').value=key(today);$('#bossWeekTitle').textContent=weekKey();applyWeekStripHidden();dateStrip();      ['addSchedule','entrySubject'].forEach(id=>{const el=$('#'+id);if(el){el.addEventListener('input',updateAppointmentTargetVisibility);el.addEventListener('change',updateAppointmentTargetVisibility);}});
 renderCal();renderBoss();renderDashboard();restoreCalendarCache();applyViewMode(currentViewMode);
       const savedPage=localStorage.getItem(ACTIVE_PAGE_KEY)||'dashboard';
