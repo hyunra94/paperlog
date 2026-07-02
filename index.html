@@ -258,7 +258,7 @@
     .moneyRecordHead{display:flex;align-items:center;justify-content:space-between;gap:8px}.moneyRecordTotals{margin:-2px 2px 8px;text-align:right;color:var(--sub);font-size:11px;line-height:1.35}.moneyClearFilter{border:1.2px solid var(--line);border-radius:999px;background:var(--card);font-size:12px;padding:4px 8px;box-shadow:1.5px 1.5px 0 rgba(47,42,40,.08)}
     .moneyRecords li{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--grid);font-size:14px}.moneyRecords li:last-child{border-bottom:0}.moneyRecords small{display:block;color:var(--sub);font-size:11px;line-height:1.45;margin-top:2px}.moneyRecords .amount{font-family:'Gaegu';font-size:21px;font-weight:700;white-space:nowrap}.moneyRecords .wasteTag{display:inline-flex;margin-left:4px;border:1px solid rgba(47,42,40,.45);border-radius:999px;padding:0 5px;background:#f6e7a6;color:#806b2f;font-size:10px}
     .moneyEmpty{margin:0;color:var(--sub);font-family:'Gaegu';font-size:18px;line-height:1.4}.moneyFab{position:fixed;right:calc(18px + env(safe-area-inset-right));bottom:calc(var(--nav) + 26px + env(safe-area-inset-bottom));z-index:46;width:56px;height:56px;border:1.9px solid var(--line);border-radius:999px;background:var(--yellow);box-shadow:4px 4px 0 rgba(47,42,40,.16),0 10px 28px rgba(47,42,40,.14);font-family:'Gaegu';font-size:34px;line-height:1;display:grid;place-items:center}
-    #budget:not(.on) .moneyFab{display:none}.moneyTypeTabs{display:grid;grid-template-columns:1fr 1fr;gap:8px}.moneyTypeBtn{border:1.5px solid var(--line);border-radius:999px;background:var(--card);padding:9px 10px;font-family:'Gaegu';font-size:20px;box-shadow:2px 2px 0 rgba(47,42,40,.12)}.moneyTypeBtn.on[data-money-type="expense"]{background:var(--pink)}.moneyTypeBtn.on[data-money-type="income"]{background:var(--blue)}.moneyExpenseOnly[hidden],.moneyIncomeOnly[hidden]{display:none!important}
+    #budget:not(.on) .moneyFab{display:none}.moneyTypeTabs{display:grid;grid-template-columns:1fr 1fr;gap:8px}.moneyTypeBtn{border:1.5px solid var(--line);border-radius:999px;background:var(--card);padding:9px 10px;font-family:'Gaegu';font-size:20px;box-shadow:2px 2px 0 rgba(47,42,40,.12)}.moneyTypeBtn.on[data-money-type="expense"]{background:var(--pink)}.moneyTypeBtn.on[data-money-type="income"]{background:var(--blue)}.moneyExpenseOnly[hidden],.moneyIncomeOnly[hidden]{display:none!important}.moneyRecordFilterBtn.on[data-filter-type="all"]{background:var(--yellow)}.moneyRecordFilterBtn.on[data-filter-type="income"]{background:var(--blue)}.moneyRecordFilterBtn.on[data-filter-type="expense"]{background:var(--pink)}
 
 
     .moneySheetHeadActions{display:flex;gap:8px;align-items:center}
@@ -297,6 +297,21 @@
     .moneyChartTrack{height:13px;border:1px solid rgba(47,42,40,.45);border-radius:999px;background:#fffaf2;overflow:hidden}
     .moneyChartFill{height:100%;border-radius:999px;background:var(--pink)}
     .moneyChartFill.income{background:var(--blue)}
+    .moneyDonutSvg{width:100%;max-width:220px;display:block;margin:0 auto 14px}
+    .moneyStatsLegend{display:grid;gap:4px}
+    .moneyStatsLegendRow{display:grid;grid-template-columns:14px 1fr auto auto;gap:6px;align-items:center;font-size:13px;padding:5px 0;border-bottom:1px solid var(--grid)}
+    .moneyStatsLegendRow:last-child{border-bottom:0}
+    .moneyStatsLegendDot{width:14px;height:14px;border-radius:4px;border:1px solid rgba(47,42,40,.3)}
+    .moneyStatsLegendCat{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .moneyStatsLegendPct{font-family:'Gaegu';font-size:15px;color:var(--sub)}
+    .moneyStatsAccordion{display:block!important;cursor:pointer}
+    .moneyStatsRowHead{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center}
+    .moneyStatsToggle{font-size:16px;color:var(--sub);line-height:1;user-select:none}
+    .moneyStatsDetailList{margin-top:8px}
+    .moneyStatsDetailList[hidden]{display:none!important}
+    .moneyStatsDetailRow{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--grid);font-size:13px}
+    .moneyStatsDetailRow:last-child{border-bottom:0}
+    .moneyStatsDetailDate{font-family:'Gaegu';font-size:15px;color:var(--sub);white-space:nowrap}
     .moneyFabIcon{font-size:27px;line-height:1;filter:drop-shadow(1px 1px 0 rgba(255,255,255,.65))}
     .moneyStatsFab{background:#d9ebf5}
     .moneyCalcOpenBtn{min-width:46px;width:46px;padding:0;border-radius:15px;background:#f6e7a6;font-size:22px;display:grid;place-items:center}
@@ -1264,6 +1279,11 @@
       </article>
       <article class="card">
         <div class="moneyRecordHead"><div class="divTitle" style="margin:8px 0 6px;flex:1" id="moneyRecordTitle">이번 달 기록</div><button class="moneyClearFilter" id="moneyClearFilter" type="button" hidden>월 전체</button></div>
+        <div class="moneyTypeTabs" id="moneyRecordFilterTabs" style="grid-template-columns:repeat(3,1fr);margin:0 0 8px">
+          <button class="moneyTypeBtn moneyRecordFilterBtn on" data-filter-type="all" type="button">전체</button>
+          <button class="moneyTypeBtn moneyRecordFilterBtn" data-filter-type="income" type="button">수입</button>
+          <button class="moneyTypeBtn moneyRecordFilterBtn" data-filter-type="expense" type="button">지출</button>
+        </div>
         <p class="moneyRecordTotals" id="moneyRecordTotals" hidden></p>
         <ul class="moneyList moneyRecords" id="moneyRecordList"></ul>
       </article>
@@ -1621,12 +1641,20 @@
       const isHiddenBossCharacterName=name=>{const n=String(name||'').replace(/\s/g,'');return n.includes('총하빙')||n.includes('총합')||n.includes('쌀먹')};
       const isValidNotionId=id=>/^[0-9a-f]{32}$/i.test(String(id||'').replace(/-/g,''));
       const BOSS_CHAR_ORDER=['숍슈슈','렌슈솜','양슈슈','현라양','썬슈슈','득템'];
-      const BOSS_FAMILY_ORDER=['벨룸','파풀라투스','스우','데미안','가디언 엔젤 슬라임','윌','루시드','더스크','듄켈','진 힐라','선택받은 세렌','감시자 칼로스','최초의 대적자','카링','림보','발드릭스','검은 마법사','매그너스','피에르','반반','블러디 퀸','자쿰','시그너스','핑크빈','힐라'];
+      const BOSS_FAMILY_ORDER=['벨룸','파풀라투스','스우','데미안','가디언 엔젤 슬라임','윌','루시드','더스크','듄켈','진 힐라','선택받은 세렌','감시자 칼로스','최초의 대적자','카링','찬란한 흉성','림보','발드릭스','유피테르','검은 마법사','매그너스','피에르','반반','블러디 퀸','자쿰','시그너스','핑크빈','힐라'];
       function bossCharRank(name){const n=String(name||'').trim();const i=BOSS_CHAR_ORDER.findIndex(x=>n.includes(x));return i===-1?999:i}
       function orderBossChars(list){return [...list].sort((a,b)=>bossCharRank(a.name)-bossCharRank(b.name)||String(a.name||'').localeCompare(String(b.name||''),'ko'))}
-      function familyRankName(name){const n=String(name||'');const i=BOSS_FAMILY_ORDER.findIndex(x=>n.includes(x));return i===-1?999:i}
-      function bossFamilyName(record){return record.family||BOSS_FAMILY_ORDER.find(x=>String(record.name||'').includes(x))||String(record.name||'보스').replace(/^(익스트림|카오스|하드|노멀|이지)\s+/,'').trim()}
+      function normalizeBossFamilyText(name){
+        const n=String(name||'');
+        if(n.includes('유피테르'))return '유피테르';
+        if(n.includes('찬란한 흉성')||n.includes('찬란한흉성'))return '찬란한 흉성';
+        if(n.includes('카링'))return '카링';
+        return BOSS_FAMILY_ORDER.find(x=>n.includes(x))||n.replace(/^(익스트림|카오스|하드|노멀|이지)\s+/,'').trim();
+      }
+      function familyRankName(name){const n=normalizeBossFamilyText(name);const i=BOSS_FAMILY_ORDER.findIndex(x=>n.includes(x));return i===-1?999:i}
+      function bossFamilyName(record){return normalizeBossFamilyText(record.family||record.name||'보스')||'보스'}
       function bossCycleByName(name){return String(name||'').includes('검은 마법사')?'monthly':'weekly'}
+      function bossDifficultyRank(name){const n=String(name||'');if(n.includes('노멀')||n.includes('노말'))return 0;if(n.includes('이지'))return 1;if(n.includes('카오스'))return 2;if(n.includes('하드'))return 3;if(n.includes('익스트림'))return 4;return 9}
       function bossChipLabel(c){if(c.id==='all')return '▦';if(String(c.name||'').includes('득템'))return '💍';return c.name}
       function bossChipTitle(c){if(c.id==='all')return '전체';if(String(c.name||'').includes('득템'))return '득템';return c.name}
 
@@ -2283,7 +2311,7 @@
             if(!chars.some(c=>c.id===bossFilter))bossFilter='all';
           }
           if(Array.isArray(data.crystals)&&data.crystals.length){
-            bosses.splice(0,bosses.length,...data.crystals.map(c=>({id:c.id,name:c.name,family:c.family||bossFamilyName(c),cycle:c.cycle||bossCycleByName(c.name),price:Number(c.price||0),source:'notion'})));
+            bosses.splice(0,bosses.length,...data.crystals.filter(c=>!String(c.name||'').includes('키링')&&!String(c.family||'').includes('키링')).map(c=>({id:c.id,name:c.name,family:bossFamilyName(c)||c.family||'보스',cycle:c.cycle||bossCycleByName(c.name),price:Number(c.price||0),source:'notion'})));
           }
           Object.keys(bossSet).forEach(k=>delete bossSet[k]);
           if(Array.isArray(data.setups)){
@@ -2493,7 +2521,7 @@
         const checked=$$('#bossSettingGrid input[type="checkbox"][data-family]:checked').map(x=>x.value);
         if($('#bossSettingGrid input[type="checkbox"][data-family]')) bossSet[charId]=checked;
       }
-      function renderBossGrid(){const cid=bossSettingActiveCharId||$('#bossCharSelect').value||$('#bossCharSelect option')?.value||'', cur=bossSet[cid]||[];const lowFamilies=['매그너스','피에르','반반','블러디 퀸','자쿰','시그너스','핑크빈','힐라'];const familyRank=family=>familyRankName(family);const grouped=bosses.reduce((acc,b)=>{(acc[b.family]??=[]).push(b);return acc},{});const diffName=b=>b.name.replace(b.family,'').trim()||b.name;const familyCard=([family,items])=>`<div class="bossFamily"><div class="bossFamilyTitle"><span>${family}</span><span class="miniTag">${items[0].cycle==='monthly'?'월간':'주간'}${items.some(x=>x.exception)?' · 예외':''}</span></div><div class="bossVariantRow">${[...items].sort((a,b)=>a.price-b.price).map(b=>`<label class="bossVariant"><input type="checkbox" value="${b.id}" data-family="${family}" ${cur.includes(b.id)?'checked':''}><span class="bossVariantDiff">${diffName(b)}</span><span class="bossVariantPrice">(${eok(b.price)})</span></label>`).join('')}</div></div>`;const entries=Object.entries(grouped).sort((a,b)=>familyRank(a[0])-familyRank(b[0]));const main=entries.filter(([family])=>!lowFamilies.includes(family)).map(familyCard).join('');const low=entries.filter(([family])=>lowFamilies.includes(family)).map(familyCard).join('');$('#bossSettingGrid').innerHTML=`${main}<button class="lowBossToggle" id="toggleLowBoss" type="button"><span>벨룸 미만 보스</span><span>${showLowBosses?'접기 ▲':'펼치기 ▼'}</span></button><div class="lowBossWrap" ${showLowBosses?'':'hidden'}>${low}</div>`;renderBossSettingSummary()}
+      function renderBossGrid(){const cid=bossSettingActiveCharId||$('#bossCharSelect').value||$('#bossCharSelect option')?.value||'', cur=bossSet[cid]||[];const lowFamilies=['매그너스','피에르','반반','블러디 퀸','자쿰','시그너스','핑크빈','힐라'];const familyRank=family=>familyRankName(family);const grouped=bosses.reduce((acc,b)=>{(acc[b.family]??=[]).push(b);return acc},{});const diffName=b=>b.name.replace(b.family,'').trim()||b.name;const familyCard=([family,items])=>`<div class="bossFamily"><div class="bossFamilyTitle"><span>${family}</span><span class="miniTag">${items[0].cycle==='monthly'?'월간':'주간'}${items.some(x=>x.exception)?' · 예외':''}</span></div><div class="bossVariantRow">${[...items].sort((a,b)=>bossDifficultyRank(a.name)-bossDifficultyRank(b.name)||a.price-b.price).map(b=>`<label class="bossVariant"><input type="checkbox" value="${b.id}" data-family="${family}" ${cur.includes(b.id)?'checked':''}><span class="bossVariantDiff">${diffName(b)}</span><span class="bossVariantPrice">(${eok(b.price)})</span></label>`).join('')}</div></div>`;const entries=Object.entries(grouped).sort((a,b)=>familyRank(a[0])-familyRank(b[0]));const main=entries.filter(([family])=>!lowFamilies.includes(family)).map(familyCard).join('');const low=entries.filter(([family])=>lowFamilies.includes(family)).map(familyCard).join('');$('#bossSettingGrid').innerHTML=`${main}<button class="lowBossToggle" id="toggleLowBoss" type="button"><span>벨룸 미만 보스</span><span>${showLowBosses?'접기 ▲':'펼치기 ▼'}</span></button><div class="lowBossWrap" ${showLowBosses?'':'hidden'}>${low}</div>`;renderBossSettingSummary()}
       function renderBossSettingSummary(){const box=$('#bossSettingSummary');if(!box)return;const checked=$$('#bossSettingGrid input[data-family]:checked').map(input=>bosses.find(b=>b.id===input.value)).filter(Boolean);const weeklyCount=checked.filter(b=>b.cycle==='weekly').length;const monthlyCount=checked.filter(b=>b.cycle==='monthly').length;box.innerHTML=`<div class="bossSettingSummaryHead"><span>선택한 기본 보스</span><strong>${checked.length}개</strong></div><div class="bossSettingSummaryList">${checked.length?checked.map(b=>`<span class="miniTag">${b.name}</span>`).join(''):'<span class="muted">아직 선택한 보스가 없어요.</span>'}</div><p class="sheetNote">주간 ${weeklyCount}개 / 월간 ${monthlyCount}개</p>`}
       function openSettings(){fillSettingsForm();populateProjectSelect();loadProjectsFromWorker(true);$('#settingsSheet').hidden=false}
       function closeSettings(){const s=$('#settingsSheet');if(s)s.hidden=true}
@@ -2551,6 +2579,7 @@ renderCal();renderBoss();renderDashboard();restoreCalendarCache();applyViewMode(
       let moneyView=new Date(today.getFullYear(),today.getMonth(),1);
       let selectedMoneyDate='';
       let moneyRecords=[];
+      let moneyRecordTypeFilter='all';
       let moneyDays={};
       let currentMoneyType='expense';
       let editingMoneyRecord=null;
@@ -2723,7 +2752,9 @@ renderCal();renderBoss();renderDashboard();restoreCalendarCache();applyViewMode(
 
       function renderMoneyRecords(monthly){
         const list=$('#moneyRecordList'), head=$('#moneyRecordTitle'), clear=$('#moneyClearFilter'), totalsEl=$('#moneyRecordTotals');if(!list)return;
-        const filtered=selectedMoneyDate?monthly.filter(r=>r.date===selectedMoneyDate):monthly;
+        let filtered=selectedMoneyDate?monthly.filter(r=>r.date===selectedMoneyDate):monthly;
+        if(moneyRecordTypeFilter!=='all')filtered=filtered.filter(r=>r.type===moneyRecordTypeFilter);
+        $$('.moneyRecordFilterBtn').forEach(b=>b.classList.toggle('on',b.dataset.filterType===moneyRecordTypeFilter));
         const sorted=[...filtered].sort((a,b)=>(b.date||'').localeCompare(a.date||'')||String(b.id||'').localeCompare(String(a.id||'')));
         if(head)head.textContent=selectedMoneyDate?`${selectedMoneyDate} 기록`:`${moneyTitle()} 기록`;
         if(clear)clear.hidden=!selectedMoneyDate;
@@ -2769,14 +2800,86 @@ renderCal();renderBoss();renderDashboard();restoreCalendarCache();applyViewMode(
         const list=$('#moneyStatsList');if(!list)return;
         list.classList.toggle('chartMode',moneyStatsChartMode);
         if(!rows.length){list.innerHTML='<p class="moneyStatsEmpty">표시할 통계가 없어요.</p>';return}
+        const amtClass=type==='income'?'income':'expense';
+        const amtSign=type==='income'?'+':'-';
+        const COLORS=['#e7c3c8','#b9dced','#f4d98b','#bfd8b8','#c9b8e8','#e8c4a4','#b8d8d0','#dcc4b8','#c4d0e8','#e0d4a8'];
         if(moneyStatsChartMode){
-          const max=Math.max(...rows.map(r=>r.total),1);
-          list.innerHTML=rows.map(row=>{const pct=Math.max(4,Math.round(row.total/max*100));return `<div class="moneyChartRow"><div class="moneyChartTop"><span>${row.category}</span><strong class="amount ${type==='income'?'income':'expense'}">${type==='income'?'+':'-'}${won(row.total)}</strong></div><div class="moneyChartTrack"><div class="moneyChartFill ${type==='income'?'income':'expense'}" style="width:${pct}%"></div></div><div class="moneyChartMeta">${row.count}건${row.waste?' · Waste '+won(row.waste)+'원':''}</div></div>`}).join('');
+          // SVG 도넛 차트
+          const cx=100,cy=100,R=82,r=48;
+          let paths='';let ang=-Math.PI/2;
+          rows.forEach((row,i)=>{
+            const pct=total>0?row.total/total:0;
+            const sweep=pct*2*Math.PI;
+            const color=COLORS[i%COLORS.length];
+            if(pct>=0.9999){
+              paths+=`<circle data-slice-idx="${i}" cx="${cx}" cy="${cy}" r="${(R+r)/2}" fill="none" stroke="${color}" stroke-width="${R-r}" style="cursor:pointer;transition:opacity .15s"/>`;
+            }else{
+              const x1=cx+R*Math.cos(ang),y1=cy+R*Math.sin(ang);
+              const x2=cx+R*Math.cos(ang+sweep),y2=cy+R*Math.sin(ang+sweep);
+              const x3=cx+r*Math.cos(ang+sweep),y3=cy+r*Math.sin(ang+sweep);
+              const x4=cx+r*Math.cos(ang),y4=cy+r*Math.sin(ang);
+              const lg=sweep>Math.PI?1:0;
+              paths+=`<path data-slice-idx="${i}" d="M${x1.toFixed(1)},${y1.toFixed(1)} A${R},${R},0,${lg},1,${x2.toFixed(1)},${y2.toFixed(1)} L${x3.toFixed(1)},${y3.toFixed(1)} A${r},${r},0,${lg},0,${x4.toFixed(1)},${y4.toFixed(1)} Z" fill="${color}" stroke="#fffdf7" stroke-width="2" style="cursor:pointer;transition:opacity .15s"/>`;
+            }
+            ang+=sweep;
+          });
+          const legend=rows.map((row,i)=>`<div class="moneyStatsLegendRow" data-legend-idx="${i}" style="cursor:pointer"><span class="moneyStatsLegendDot" style="background:${COLORS[i%COLORS.length]}"></span><span class="moneyStatsLegendCat">${row.category}</span><span class="moneyStatsLegendPct">${total>0?Math.round(row.total/total*100):0}%</span><span class="amount ${amtClass}">${amtSign}${won(row.total)}</span></div>`).join('');
+          list.innerHTML=`<svg viewBox="0 0 200 200" class="moneyDonutSvg">
+            ${paths}
+            <text class="donutCenterCat" x="100" y="91" text-anchor="middle" font-family="'Gowun Dodum',sans-serif" font-size="11" fill="#786f65"></text>
+            <text class="donutCenterAmt" x="100" y="108" text-anchor="middle" font-family="'Gaegu',sans-serif" font-size="19" fill="#2f2a28"></text>
+            <text class="donutCenterPct" x="100" y="124" text-anchor="middle" font-family="'Gaegu',sans-serif" font-size="14" fill="#786f65"></text>
+          </svg><div class="moneyStatsLegend">${legend}</div>`;
+          // 도넛 중앙 툴팁 인터랙션
+          const svg=list.querySelector('.moneyDonutSvg');
+          if(svg){
+            const catEl=svg.querySelector('.donutCenterCat');
+            const amtEl=svg.querySelector('.donutCenterAmt');
+            const pctEl=svg.querySelector('.donutCenterPct');
+            const slices=svg.querySelectorAll('[data-slice-idx]');
+            let activeIdx=-1;
+            const showInfo=(idx)=>{
+              activeIdx=idx;
+              const row=rows[idx];if(!row)return;
+              if(catEl)catEl.textContent=row.category;
+              if(amtEl){amtEl.textContent=amtSign+won(row.total);amtEl.setAttribute('fill',type==='income'?'#4f7c4f':'#8a4b4b');}
+              if(pctEl)pctEl.textContent=total>0?Math.round(row.total/total*100)+'%':'0%';
+              slices.forEach((s,j)=>s.style.opacity=Number(s.dataset.sliceIdx)===idx?'1':'0.45');
+              list.querySelectorAll('[data-legend-idx]').forEach(l=>l.style.opacity=Number(l.dataset.legendIdx)===idx?'1':'0.45');
+            };
+            const clearInfo=()=>{
+              activeIdx=-1;
+              if(catEl)catEl.textContent='';if(amtEl)amtEl.textContent='';if(pctEl)pctEl.textContent='';
+              slices.forEach(s=>s.style.opacity='1');
+              list.querySelectorAll('[data-legend-idx]').forEach(l=>l.style.opacity='1');
+            };
+            slices.forEach(s=>{
+              const idx=Number(s.dataset.sliceIdx);
+              s.addEventListener('mouseenter',()=>showInfo(idx));
+              s.addEventListener('mouseleave',()=>{if(activeIdx===idx)clearInfo()});
+              s.addEventListener('click',()=>activeIdx===idx?clearInfo():showInfo(idx));
+              s.addEventListener('touchstart',e=>{e.preventDefault();activeIdx===idx?clearInfo():showInfo(idx)},{passive:false});
+            });
+            list.querySelectorAll('[data-legend-idx]').forEach(l=>{
+              const idx=Number(l.dataset.legendIdx);
+              l.addEventListener('mouseenter',()=>showInfo(idx));
+              l.addEventListener('mouseleave',()=>{if(activeIdx===idx)clearInfo()});
+              l.addEventListener('click',()=>activeIdx===idx?clearInfo():showInfo(idx));
+            });
+          }
           return;
         }
-        list.innerHTML=rows.map(row=>`<div class="moneyStatsRow"><span><strong>${row.category}</strong><small>${row.count}건${row.waste?' · Waste '+won(row.waste)+'원':''}</small></span><span class="amount ${type==='income'?'income':'expense'}">${type==='income'?'+':'-'}${won(row.total)}</span></div>`).join('');
+        // 리스트 모드: 카테고리 클릭 시 상세 기록 아코디언
+        list.innerHTML=rows.map((row,i)=>`<div class="moneyStatsRow moneyStatsAccordion"><div class="moneyStatsRowHead"><span><strong>${row.category}</strong><small>${row.count}건${row.waste?' · Waste '+won(row.waste)+'원':''}</small></span><span class="amount ${amtClass} moneyStatsRowAmt">${amtSign}${won(row.total)}</span><span class="moneyStatsToggle">▾</span></div><div class="moneyStatsDetailList" hidden>${row.records.sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(rec=>`<div class="moneyStatsDetailRow"><span class="moneyStatsDetailDate">${rec.date||''}</span><span>${rec.title||'(제목 없음)'}</span><span class="amount ${amtClass}">${amtSign}${won(Number(rec.amount||0))}</span></div>`).join('')}</div></div>`).join('');
+        list.querySelectorAll('.moneyStatsAccordion').forEach(row=>{
+          row.querySelector('.moneyStatsRowHead').addEventListener('click',()=>{
+            const detail=row.querySelector('.moneyStatsDetailList');
+            const toggle=row.querySelector('.moneyStatsToggle');
+            if(detail){detail.hidden=!detail.hidden;if(toggle)toggle.textContent=detail.hidden?'▾':'▴';}
+          });
+        });
       }
-      function openMoneyStats(){moneyStatsChartMode=true;const sheet=$('#moneyStatsSheet');if(sheet)sheet.hidden=false;renderMoneyStats(currentMoneyStatsType)}
+      function openMoneyStats(){moneyStatsChartMode=false;const sheet=$('#moneyStatsSheet');if(sheet)sheet.hidden=false;renderMoneyStats(currentMoneyStatsType)}
       function closeMoneyStats(){const sheet=$('#moneyStatsSheet');if(sheet)sheet.hidden=true}
 
       async function loadMoneyFromWorker(silent=false){
@@ -2999,6 +3102,7 @@ renderCal();renderBoss();renderDashboard();restoreCalendarCache();applyViewMode(
       $('#closeMoneyStats')?.addEventListener('click',closeMoneyStats);
       $$('.moneyStatsTypeBtn').forEach(btn=>btn.addEventListener('click',()=>renderMoneyStats(btn.dataset.statsType)));
       $('#moneyStatsChartBtn')?.addEventListener('click',()=>{moneyStatsChartMode=!moneyStatsChartMode;renderMoneyStats(currentMoneyStatsType)});
+      $$('.moneyRecordFilterBtn').forEach(btn=>btn.addEventListener('click',()=>{moneyRecordTypeFilter=btn.dataset.filterType;renderMoneyRecords(moneyRecords.filter(r=>sameMonth(r.date)))}));
       $('#moneyMonthTitle')?.addEventListener('click',()=>{document.querySelector('#budget')?.scrollIntoView({behavior:'smooth',block:'start'});});
       $('#closeMoneyEntry')?.addEventListener('click',closeMoneySheet);
       $('#deleteMoneyEntry')?.addEventListener('click',deleteMoneyEntry);
