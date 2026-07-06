@@ -1659,19 +1659,23 @@
       const isValidNotionId=id=>/^[0-9a-f]{32}$/i.test(String(id||'').replace(/-/g,''));
       const BOSS_CHAR_ORDER=['숍슈슈','렌슈솜','양슈슈','현라양','썬슈슈','득템'];
       let bossCardOpenCharId='', lowEditFamily='';
-      const LOW_BOSS_FAMILIES_KEY='paperlog_low_boss_families_v1';
-      const LOW_BOSS_IDS_KEY='paperlog_low_boss_ids_v2';
+      const LOW_BOSS_IDS_KEY='paperlog_low_boss_ids_v3';
       const DEFAULT_LOW_FAMILIES=['매그너스','피에르','반반','블러디 퀸','자쿰','시그너스','핑크빈','힐라'];
-      function getLowBossIdsSet(){
+      function getLowBossIdsSet(charId){
         try{
-          const v=localStorage.getItem(LOW_BOSS_IDS_KEY);
-          if(v!==null)return new Set(JSON.parse(v));
-          // migrate from old family-based storage or use defaults
-          const oldFamilies=(()=>{try{const f=localStorage.getItem(LOW_BOSS_FAMILIES_KEY);return f?new Set(JSON.parse(f)):new Set(DEFAULT_LOW_FAMILIES)}catch{return new Set(DEFAULT_LOW_FAMILIES)}})();
-          return new Set(bosses.filter(b=>oldFamilies.has(b.family)).map(b=>b.id));
+          const all=JSON.parse(localStorage.getItem(LOW_BOSS_IDS_KEY)||'{}');
+          if(all[charId])return new Set(all[charId]);
+          // 처음 접근 시 기본값: DEFAULT_LOW_FAMILIES 기반으로 자동 설정
+          return new Set(bosses.filter(b=>DEFAULT_LOW_FAMILIES.includes(b.family)).map(b=>b.id));
         }catch{return new Set(bosses.filter(b=>DEFAULT_LOW_FAMILIES.includes(b.family)).map(b=>b.id))}
       }
-      function saveLowBossIdsSet(set){try{localStorage.setItem(LOW_BOSS_IDS_KEY,JSON.stringify([...set]))}catch(e){console.warn('미사용 보스 저장 실패',e)}}
+      function saveLowBossIdsSet(charId,set){
+        try{
+          const all=JSON.parse(localStorage.getItem(LOW_BOSS_IDS_KEY)||'{}');
+          all[charId]=[...set];
+          localStorage.setItem(LOW_BOSS_IDS_KEY,JSON.stringify(all));
+        }catch(e){console.warn('미사용 보스 저장 실패',e)}
+      }
       const BOSS_FAMILY_ORDER=['벨룸','파풀라투스','스우','데미안','가디언 엔젤 슬라임','윌','루시드','더스크','듄켈','진 힐라','선택받은 세렌','감시자 칼로스','최초의 대적자','카링','찬란한 흉성','림보','발드릭스','유피테르','검은 마법사','매그너스','피에르','반반','블러디 퀸','자쿰','시그너스','핑크빈','힐라'];
       function bossCharRank(name){const n=String(name||'').trim();const i=BOSS_CHAR_ORDER.findIndex(x=>n.includes(x));return i===-1?999:i}
       function orderBossChars(list){return [...list].sort((a,b)=>bossCharRank(a.name)-bossCharRank(b.name)||String(a.name||'').localeCompare(String(b.name||''),'ko'))}
@@ -2576,7 +2580,7 @@
       }
       function renderBossGrid(){
         const cid=bossSettingActiveCharId||$('#bossCharSelect').value||$('#bossCharSelect option')?.value||'',cur=bossSet[cid]||[];
-        const lowIdsSet=getLowBossIdsSet();
+        const lowIdsSet=getLowBossIdsSet(cid);
         const familyRank=family=>familyRankName(family);
         const grouped=bosses.reduce((acc,b)=>{(acc[b.family]??=[]).push(b);return acc},{});
         const diffName=b=>b.name.replace(b.family,'').trim()||b.name;
@@ -2642,9 +2646,10 @@
         document.querySelector('#calendar')?.scrollIntoView({behavior:'smooth',block:'start'});
       }
       $('#calendarGrid').onclick=e=>{const d=e.target.closest('.day');if(d){const picked=d.dataset.date;selected=picked;renderCal();if(!isTabletLayout()){const liveDay=$(`#calendarGrid .day[data-date="${picked}"]`);showSchedulePopup(picked,liveDay)}}};$('#monthTitle')?.addEventListener('click',()=>{document.querySelector('#calendar')?.scrollIntoView({behavior:'smooth',block:'start'});});$('#prevMonth').onclick=()=>moveCalendarMonth(-1);$('#nextMonth').onclick=()=>moveCalendarMonth(1);$('#calendarTodayBtn')&&($('#calendarTodayBtn').onclick=goCalendarToday);$$('.tab[data-type]').forEach(t=>t.onclick=()=>{const type=t.dataset.type,on=Object.values(state.show).filter(Boolean).length;if(state.show[type]&&on===1)return;state.show[type]=!state.show[type];t.classList.toggle('on',state.show[type]);renderCal()});$('#openEntry').onclick=openEntry;$('#closeEntry').onclick=()=>{editingCalendarRecord=null;$('#entrySheet').hidden=true;};const entrySheetBg=$('#entrySheet');if(entrySheetBg)entrySheetBg.addEventListener('click',e=>{if(e.target===entrySheetBg){editingCalendarRecord=null;entrySheetBg.hidden=true;}});$('#closeDailyLog')&&( $('#closeDailyLog').onclick=closeDailySheet );$('#dailyForm')&&($('#dailyForm').onsubmit=saveDailyLog);$('#deleteDailyLog')?.addEventListener('click',deleteDailyLog);$('#deleteEntry')?.addEventListener('click',deleteCalendarEntry);$('#addSchedule').onchange=updateEntryMode;$('#addTodo').onchange=()=>{updateEntryMode();handleTodoKindChange()};$('#addDaily').onchange=updateEntryMode;$('#entryDone')&&($('#entryDone').onchange=handleTodoKindChange);$('#entryForm').onsubmit=saveEntry;$('#entrySubject')?.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.ctrlKey){e.preventDefault();const el=e.currentTarget;const start=el.selectionStart??el.value.length,end=el.selectionEnd??el.value.length;el.value=el.value.slice(0,start)+'\n'+el.value.slice(end);el.selectionStart=el.selectionEnd=start+1;}});$('#calendarDetail').addEventListener('click',e=>{if(e.target.closest('a'))return;const addDaily=e.target.closest('[data-daily-add]');if(addDaily){openDailyEntry(addDaily.dataset.dailyAdd||selected);return}const btn=e.target.closest('[data-todo-id]');if(btn&&btn.dataset.todoId){toggleTodoCheck(btn.dataset.todoId);return}const edit=e.target.closest('[data-calendar-edit]');if(edit&&edit.dataset.calendarEdit){openCalendarEdit(edit.dataset.calendarType,edit.dataset.calendarEdit);return}const open=e.target.closest('[data-open-schedule-popup]');if(open){const dayEl=$(`#calendarGrid .day[data-date="${selected}"]`);showSchedulePopup(selected,dayEl)}});const dashList=$('#dashboardTodayList');if(dashList)dashList.addEventListener('click',e=>{const btn=e.target.closest('[data-todo-id]');if(btn&&btn.dataset.todoId)toggleTodoCheck(btn.dataset.todoId)});const schedulePopupBg=$('#schedulePopupBg');if(schedulePopupBg)schedulePopupBg.addEventListener('click',e=>{if(e.target===schedulePopupBg)hideSchedulePopup()});const schedulePopupClose=$('#schedulePopupClose');if(schedulePopupClose)schedulePopupClose.onclick=hideSchedulePopup;const schedulePopupContent=$('#schedulePopupContent');if(schedulePopupContent)schedulePopupContent.addEventListener('click',e=>{if(e.target.closest('a'))return;const edit=e.target.closest('[data-calendar-edit]');if(edit&&edit.dataset.calendarEdit)openCalendarEdit(edit.dataset.calendarType,edit.dataset.calendarEdit)});document.addEventListener('click',e=>{const bg=$('#schedulePopupBg');if(!bg||bg.hidden||isTabletLayout())return;if(e.target.closest('#schedulePopup')||e.target.closest('.day')||e.target.closest('[data-open-schedule-popup]'))return;hideSchedulePopup()});$$('.moneyTab').forEach(t=>t.onclick=()=>{$$('.moneyTab').forEach(x=>x.classList.toggle('on',x===t));$('#expenseForm').classList.toggle('on',t.dataset.type==='expense');$('#incomeForm').classList.toggle('on',t.dataset.type==='income')});$('#generateBoss').onclick=generateBoss;$('#loadBossNotion')&&($('#loadBossNotion').onclick=()=>loadBossFromWorker(false));$('#bossPrevWeek')&&($('#bossPrevWeek').onclick=()=>moveBossWeek(-1));$('#bossNextWeek')&&($('#bossNextWeek').onclick=()=>moveBossWeek(1));$('#bossTodayWeek')&&($('#bossTodayWeek').onclick=resetBossWeekToToday);const closeBossSheet=()=>{preserveBossGridSelection();saveBossSettingForChar(bossSettingActiveCharId,{silent:true});lowEditFamily='';$('#bossSheet').hidden=true;};$('#closeBoss').onclick=closeBossSheet;$('#cancelBoss').onclick=closeBossSheet;const bossSheetBg=$('#bossSheet');if(bossSheetBg)bossSheetBg.addEventListener('click',e=>{if(e.target===bossSheetBg)closeBossSheet()});$('#bossRuleHelp')&&($('#bossRuleHelp').onclick=()=>{$('#bossRuleBox').hidden=!$('#bossRuleBox').hidden});$('#bossCharSelect').onchange=()=>{preserveBossGridSelection();const prev=bossSettingActiveCharId;if(prev&&isValidNotionId(prev))saveBossSettingForChar(prev,{silent:true});bossSettingActiveCharId=$('#bossCharSelect').value;renderBossGrid();setBossSettingNote('선택하면 자동으로 저장됩니다.');};$('#bossSettingGrid').addEventListener('click',e=>{
+        const currentCid=bossSettingActiveCharId||$('#bossCharSelect')?.value||'';
         // per-variant toggle
         const varLow=e.target.closest('.bossVariantLowBtn');
-        if(varLow){e.preventDefault();e.stopPropagation();preserveBossGridSelection();const bid=varLow.dataset.bossId;const set=getLowBossIdsSet();if(set.has(bid))set.delete(bid);else{set.add(bid);showLowBosses=true;}saveLowBossIdsSet(set);renderBossGrid();return;}
+        if(varLow){e.preventDefault();e.stopPropagation();preserveBossGridSelection();const bid=varLow.dataset.bossId;const set=getLowBossIdsSet(currentCid);if(set.has(bid))set.delete(bid);else{set.add(bid);showLowBosses=true;}saveLowBossIdsSet(currentCid,set);renderBossGrid();return;}
         // family-level toggle
         const famLow=e.target.closest('.bossFamilyLowToggle');
         if(famLow){
@@ -2653,24 +2658,19 @@
           const allLow=famLow.dataset.allLow==='true';
           const isEditing=famLow.dataset.editing==='true';
           const familyBossIds=bosses.filter(b=>b.family===family).map(b=>b.id);
-          const set=getLowBossIdsSet();
+          const set=getLowBossIdsSet(currentCid);
           if(allLow){
-            // 미사용 섹션의 "사용" → 해당 패밀리의 low 항목 전부 복귀
             familyBossIds.forEach(id=>set.delete(id));
             lowEditFamily='';
-            saveLowBossIdsSet(set);
+            saveLowBossIdsSet(currentCid,set);
           } else if(isEditing){
-            // 편집 모드 닫기
             lowEditFamily='';
           } else {
-            // 메인 섹션의 "미사용" → active 난이도 수 확인
             const activeIds=familyBossIds.filter(id=>!set.has(id));
             if(activeIds.length<=1){
-              // active 난이도가 1개 → 바로 미사용 처리
               activeIds.forEach(id=>{set.add(id);showLowBosses=true;});
-              saveLowBossIdsSet(set);
+              saveLowBossIdsSet(currentCid,set);
             } else {
-              // 여러 개 → 편집 모드 열기
               lowEditFamily=family;
             }
           }
