@@ -2209,13 +2209,15 @@
         const chips=$('#characterChips');
         chips.innerHTML=[chars.find(c=>c.id==='all')||{id:'all',name:'전체'},...orderBossChars(chars.filter(c=>c.id!=='all'&&!isHiddenBossCharacterName(c.name)&&!String(c.name||'').includes('득템')))].map(c=>`<button class="chip ${bossFilter===c.id?'on':''} ${c.id==='all'?'iconOnly':''}" data-id="${c.id}" title="${bossChipTitle(c)}" aria-label="${bossChipTitle(c)}">${bossChipLabel(c)}</button>`).join('');
         const isLootChar=cid=>String(chars.find(c=>c.id===cid)?.name||'').includes('득템');
+        const noCrystal=r=>String(r.name||'').includes('메이린')||String(r.family||'').includes('메이린');
         const list=$('#bossList'), rows=bossRecords.filter(r=>!isLootChar(r.charId)&&(bossFilter==='all'||r.charId===bossFilter));
-        const checkedRows=rows.filter(r=>r.clear);
+        const crystalRows=rows.filter(r=>!noCrystal(r));
+        const checkedRows=crystalRows.filter(r=>r.clear);
         const crystalTotal=checkedRows.reduce((a,b)=>a+crystalValue(b),0);
         const expectedTotal=rows.reduce((a,b)=>a+crystalValue(b),0);
         const visibleCharIds=[...new Set(rows.map(r=>r.charId))];
         const lootTotal=visibleCharIds.reduce((a,cid)=>a+charLootValue(cid),0);
-        $('#bossCount').textContent=`${checkedRows.length}/${rows.length}개`;
+        $('#bossCount').textContent=`${checkedRows.length}/${crystalRows.length}개`;
         $('#bossExpectedTotal')&&($('#bossExpectedTotal').innerHTML=`<span class="bossMoneyBrief" data-moneylabel="예정 메소" data-moneyvalue="${expectedTotal}">${briefMoney(expectedTotal)}</span>`);
         $('#bossLootTotal')&&($('#bossLootTotal').innerHTML=`<span class="bossMoneyBrief" data-moneylabel="득템" data-moneyvalue="${lootTotal}">${briefMoney(lootTotal)}</span>`);
         $('#bossCrystalTotal')&&($('#bossCrystalTotal').innerHTML=`<span class="bossMoneyBrief" data-moneylabel="결정석" data-moneyvalue="${crystalTotal}">${briefMoney(crystalTotal)}</span>`);
@@ -2226,7 +2228,7 @@
           const solo=rs.filter(r=>r.partyType==='solo');
           const duo=rs.filter(r=>r.partyType==='duo');
           const other=rs.filter(r=>r.partyType==='other');
-          const checkedSum=rs.filter(r=>r.clear).reduce((a,b)=>a+crystalValue(b),0);
+          const checkedSum=rs.filter(r=>r.clear&&!noCrystal(r)).reduce((a,b)=>a+crystalValue(b),0);
           const expectedSum=rs.filter(r=>!r.clear).reduce((a,b)=>a+crystalValue(b),0);
           const charName=chars.find(c=>c.id===cid)?.name||rs[0]?.charName||'캐릭터';
           const menuBtnStyle='width:24px;height:24px;border:1.2px solid rgba(47,42,40,.2);border-radius:50%;background:rgba(255,253,247,.9);display:inline-grid;place-items:center;box-shadow:1px 1px 0 rgba(47,42,40,.08);flex:0 0 24px;color:#9b9189;transition:opacity .15s;';
@@ -2583,7 +2585,7 @@
         const lowIdsSet=getLowBossIdsSet(cid);
         const familyRank=family=>familyRankName(family);
         const grouped=bosses.reduce((acc,b)=>{(acc[b.family]??=[]).push(b);return acc},{});
-        const diffName=b=>b.name.replace(b.family,'').trim()||b.name;
+        const diffName=b=>{const n=(b.name.replace(b.family,'').trim()||b.name);return n.length>4?n.slice(0,4)+'…':n;};
         const sortItems=items=>[...items].sort((a,b)=>a.price-b.price);
         // 메인 섹션 카드: active(비-low) 난이도만 표시, 편집모드 시 난이도별 미사용 버튼 노출
         const mainCard=([family,items])=>{
@@ -2595,7 +2597,7 @@
           const toggleLabel=isEditing?'닫기':'미사용';
           const toggleBg=isEditing?'rgba(47,42,40,.18)':'rgba(47,42,40,.07)';
           const toggleColor=isEditing?'var(--ink)':'var(--sub)';
-          const toggleBtn=`<button class="bossFamilyLowToggle" data-family="${family}" data-all-low="false" data-editing="${isEditing}" type="button" style="margin-left:auto;border:1.2px solid rgba(47,42,40,.28);border-radius:999px;padding:1px 7px;font-family:'Gaegu';font-size:13px;background:${toggleBg};color:${toggleColor};cursor:pointer;">${toggleLabel}${hasLow&&!isEditing?` <span style="font-size:11px;opacity:.7;">(${sorted.filter(b=>lowIdsSet.has(b.id)).length})</span>`:''}</button>`;
+          const toggleBtn=`<button class="bossFamilyLowToggle" data-family="${family}" data-all-low="false" data-editing="${isEditing}" type="button" style="margin-left:auto;border:1.2px solid rgba(47,42,40,.28);border-radius:999px;padding:1px 7px;font-family:'Gaegu';font-size:13px;background:${toggleBg};color:${toggleColor};cursor:pointer;">${toggleLabel}</button>`;
           const variantHTML=activeItems.map(b=>{
             const lowBtn=isEditing?`<button class="bossVariantLowBtn" data-boss-id="${b.id}" type="button">미사용</button>`:'';
             return `<label class="bossVariant"><input type="checkbox" value="${b.id}" data-family="${family}" ${cur.includes(b.id)?'checked':''}><span class="bossVariantDiff">${diffName(b)}</span><span class="bossVariantPrice">(${eok(b.price)})</span>${lowBtn}</label>`;
