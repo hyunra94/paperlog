@@ -1655,7 +1655,7 @@
       const eok=n=>{const v=n/100000000;return `${Number.isInteger(v)?v:v.toFixed(v<1?2:1).replace(/0$/,'').replace(/\.0$/,'')}억`};
       const briefMoney=n=>`${Math.round(Number(n||0)/100000000)}억`;
       function moneyDetail(label,value){alert(`${label}\n${won(Number(value||0))} 메소\n(${eok(Number(value||0))})`)}
-      const isHiddenBossCharacterName=name=>{const n=String(name||'').replace(/\s/g,'');return n.includes('총하빙')||n.includes('총합')||n.includes('쌀먹')};
+      const isHiddenBossCharacterName=name=>{const n=String(name||'').replace(/\s/g,'');return n.includes('총하빙')||n.includes('총합')||n.includes('쌀먹')||n==='캐릭터'||n==='';};
       const isValidNotionId=id=>/^[0-9a-f]{32}$/i.test(String(id||'').replace(/-/g,''));
       const BOSS_CHAR_ORDER=['숍슈슈','렌슈솜','양슈슈','현라양','썬슈슈','득템'];
       let bossCardOpenCharId='', lowEditFamily='';
