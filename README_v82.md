@@ -1,0 +1,1 @@
+Paper Log v82: v81 relation remap issue fixed. Existing weekly records keep existing crystal relation IDs; new/unrecorded bosses use active apply-date based crystal rows. Base date before 2026 is corrected to 2026-06-18.

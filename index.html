@@ -1331,7 +1331,7 @@
   <input id="entryTime" type="time">
 </div><div class="row2 scheduleTodoOnly"><div class="field"><label id="entrySubjectLabel">분류</label><textarea id="entrySubject" rows="2" placeholder="업무, 회의, 생활"></textarea></div><div class="field todoOnly"><label>구분</label><select id="entryDone"><option value="work">업무</option><option value="personal">개인</option></select></div></div>
 <div class="field scheduleOnly appointmentOnly"><label>약속 대상</label><input id="entryAppointmentTarget" placeholder="예: 친구, 가족, 수민"></div>
-<div class="row2 dailyOnly"><div class="field"><label>Mood</label><select id="entryMood"><option value="happy">happy · 좋음</option><option value="sad">sad · 슬픔</option><option value="angry">angry · 화남</option><option value="sleepy">sleepy · 졸림</option><option value="surprised">surprised · 놀람</option></select></div></div>
+<div class="row2 dailyOnly"><div class="field"><label>Mood</label><select id="entryMood"><option value="happy">happy · 좋음</option><option value="sad">sad · 슬픔</option><option value="angry">angry · 화남</option><option value="sleepy">sleepy · 졸림</option><option value="surprised">surprised · 놀람</option><option value="excited">excited · 신남</option><option value="calm">calm · 편안</option><option value="anxious">anxious · 불안</option><option value="lonely">lonely · 외로움</option><option value="love">love · 설렘</option><option value="sick">sick · 아픔</option></select></div></div>
 <div class="field dailyOnly"><label>한줄 일기</label><input id="entryDailyText" placeholder="오늘을 한 줄로 남겨줘"></div>
 <div class="field scheduleTodoOnly"><label>관련 프로젝트</label><select id="entryProject"><option value="">선택 안 함</option></select></div><button class="save" id="entrySaveBtn">Notion에 추가하기</button><p class="sheetNote">할 일은 업무/개인을 고를 수 있고, 개인 선택 시 개인 프로젝트가 자동 선택돼요.</p></form></section></div>
 
@@ -1358,6 +1358,12 @@
               <option value="angry">angry · 화남</option>
               <option value="sleepy">sleepy · 졸림</option>
               <option value="surprised">surprised · 놀람</option>
+              <option value="excited">excited · 신남</option>
+              <option value="calm">calm · 편안</option>
+              <option value="anxious">anxious · 불안</option>
+              <option value="lonely">lonely · 외로움</option>
+              <option value="love">love · 설렘</option>
+              <option value="sick">sick · 아픔</option>
             </select>
           </div>
           <div class="field">
@@ -1740,8 +1746,8 @@
         if(id==='boss')setTimeout(()=>loadBossFromWorker(true),220);
       }
       function dateStrip(){const root=$('#dateStrip');root.innerHTML='';const mon=new Date(today);mon.setDate(today.getDate()-((today.getDay()+6)%7));for(let i=0;i<7;i++){const d=new Date(mon);d.setDate(mon.getDate()+i);root.insertAdjacentHTML('beforeend',`<div class="pill ${key(d)===key(today)?'on':''} ${isWeekend(d)?'weekend':''} ${isHoliday(d)?'holiday':''}" title="${HOLIDAYS_KR[key(d)]||''}"><strong>${d.getDate()}</strong><span>${wk[d.getDay()]}</span></div>`)}}
-      const MOOD_LABELS={happy:'좋음',sad:'슬픔',angry:'화남',sleepy:'졸림',surprised:'놀람'};
-      function moodKey(v){const raw=String(v||'').trim();const map={'좋음':'happy','기쁨':'happy','행복':'happy','슬픔':'sad','우울':'sad','화남':'angry','짜증':'angry','졸림':'sleepy','피곤':'sleepy','놀람':'surprised','신남':'surprised'};return map[raw]||raw||''}
+      const MOOD_LABELS={happy:'좋음',sad:'슬픔',angry:'화남',sleepy:'졸림',surprised:'놀람',excited:'신남',calm:'편안',anxious:'불안',lonely:'외로움',love:'설렘',sick:'아픔'};
+      function moodKey(v){const raw=String(v||'').trim();const map={'좋음':'happy','기쁨':'happy','행복':'happy','슬픔':'sad','우울':'sad','화남':'angry','짜증':'angry','졸림':'sleepy','피곤':'sleepy','놀람':'surprised','깜짝':'surprised','신남':'excited','설렘':'love','두근':'excited','편안':'calm','평온':'calm','잔잔':'calm','불안':'anxious','긴장':'anxious','외로움':'lonely','쓸쓸':'lonely','사랑':'love','아픔':'sick','아파':'sick','아픈':'sick'};return map[raw]||raw||''}
       function moodIconHTML(mood,cls=''){const m=moodKey(mood);return m?`<img class="moodIcon ${cls}" src="./icons/mood-${m}.png" alt="${MOOD_LABELS[m]||m}">`:''}
       function moodBgAttr(mood){const m=moodKey(mood);return m?` style="--mood-bg:url('./icons/mood-${m}.png')"`:''}
 
@@ -2954,9 +2960,53 @@
       // 편집 시트용 헬퍼
       const PENCIL_SVG=`<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#9b9189" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>`;
 
+      function isValidNotionAnnivId(id){return typeof id==='string'&&/^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i.test(id)}
+      function annivApiBody(a){
+        if(a.type==='dday')return{name:a.name,type:'dday',startDate:a.startDate,milestones:a.milestones};
+        return{name:a.name,type:'date',date:a.date,repeat:a.repeat!==false};
+      }
+      async function loadAnniversariesFromWorker(){
+        if(!window.paperLog?.fetch)return;
+        try{
+          const res=await window.paperLog.fetch('/api/anniversary');
+          const data=await res.json().catch(()=>({}));
+          if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'기념일 조회 실패');
+          const serverList=data.anniversaries||[];
+          const unsynced=getAnniversaries().filter(a=>!isValidNotionAnnivId(a.id));
+          saveAnniversaries([...serverList,...unsynced]);
+          renderAnniversaries();
+        }catch(err){console.warn('기념일 동기화 실패:',err)}
+      }
+      async function syncAnniversariesToWorker(newList){
+        const before=getAnniversaries();
+        const beforeIds=new Set(before.filter(a=>isValidNotionAnnivId(a.id)).map(a=>a.id));
+        const afterIds=new Set(newList.filter(a=>isValidNotionAnnivId(a.id)).map(a=>a.id));
+        const toDelete=before.filter(a=>isValidNotionAnnivId(a.id)&&!afterIds.has(a.id));
+        for(const a of toDelete){
+          await window.paperLog.fetch('/api/anniversary',{method:'DELETE',body:JSON.stringify({id:a.id})});
+        }
+        const finalList=[];
+        for(const a of newList){
+          if(!isValidNotionAnnivId(a.id)){
+            const res=await window.paperLog.fetch('/api/anniversary',{method:'POST',body:JSON.stringify(annivApiBody(a))});
+            const data=await res.json().catch(()=>({}));
+            if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'기념일 저장 실패');
+            finalList.push({...a,id:data.page?.id||a.id});
+          }else if(beforeIds.has(a.id)){
+            const res=await window.paperLog.fetch('/api/anniversary',{method:'PATCH',body:JSON.stringify({id:a.id,...annivApiBody(a)})});
+            const data=await res.json().catch(()=>({}));
+            if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'기념일 수정 실패');
+            finalList.push(a);
+          }else{
+            finalList.push(a);
+          }
+        }
+        return finalList;
+      }
+
       function annivEditRowHTML(a){
         const isNew=!a.id;
-        const id=a.id||('a'+Date.now()+Math.random());
+        const id=a.id||('new-'+Date.now()+Math.random().toString(36).slice(2));
         if(a.type==='dday'){
           const stones=a.milestones||[100,200,300,500,1000,2000];
           const chips=ANNIV_MSTONE_PRESETS.map(n=>`<button type="button" class="annivMstone${stones.includes(n)?' annivMstoneOn':''}" data-n="${n}" style="border:1.4px solid var(--line);border-radius:999px;padding:4px 8px;font-family:'Gaegu';font-size:15px;background:${stones.includes(n)?'var(--pink)':'var(--card)'};box-shadow:1px 1px 0 rgba(47,42,40,.08);">${n}일</button>`).join('');
@@ -3010,7 +3060,7 @@
           editList.insertAdjacentHTML('beforeend',annivEditRowHTML({type:'dday',milestones:[100,200,300,500,1000,2000]}));
           editList.lastElementChild.querySelector('.annivNameInput')?.focus();
         };
-        sheet.querySelector('#saveAnnivEdit').onclick=()=>{
+        sheet.querySelector('#saveAnnivEdit').onclick=async()=>{
           const rows=[...sheet.querySelectorAll('.annivEditRow')];
           const newList=rows.map(r=>{
             const id=r.dataset.id;
@@ -3031,7 +3081,20 @@
               return{id,name,type:'date',date,repeat};
             }
           }).filter(Boolean);
-          saveAnniversaries(newList);
+          const saveBtn=sheet.querySelector('#saveAnnivEdit');
+          if(window.paperLog?.fetch){
+            saveBtn.disabled=true;saveBtn.textContent='저장 중...';
+            try{
+              const finalList=await syncAnniversariesToWorker(newList);
+              saveAnniversaries(finalList);
+            }catch(err){
+              alert(`기념일 저장 실패: ${err.message}`);
+              saveBtn.disabled=false;saveBtn.textContent='저장';
+              return;
+            }
+          }else{
+            saveAnniversaries(newList);
+          }
           renderAnniversaries();
           sheet.remove();
           annivActionsOpen=false;
@@ -3087,7 +3150,7 @@
       renderCal();renderBoss();renderDashboard();restoreCalendarCache();applyViewMode(currentViewMode);
       const savedPage=localStorage.getItem(ACTIVE_PAGE_KEY)||'dashboard';
       page(savedPage,{scroll:false});
-      if(hasPaperConfig()){setTimeout(()=>{loadProjectsFromWorker(true);loadCalendarFromWorker(true);loadDashboardTodayFromWorker();loadBossFromWorker(true)},300)}else setTimeout(()=>openSettings(),250);window.addEventListener('resize',()=>{hideSchedulePopup();renderDetail()});console.assert($('#stickyMonthLabel'),'test: header month label exists');console.assert($$('.navBtn').length===4,'test: nav has 4 tabs');console.assert($('#calendarGrid'),'test: calendar grid exists');
+      if(hasPaperConfig()){setTimeout(()=>{loadProjectsFromWorker(true);loadCalendarFromWorker(true);loadDashboardTodayFromWorker();loadBossFromWorker(true);loadAnniversariesFromWorker()},300)}else setTimeout(()=>openSettings(),250);window.addEventListener('resize',()=>{hideSchedulePopup();renderDetail()});console.assert($('#stickyMonthLabel'),'test: header month label exists');console.assert($$('.navBtn').length===4,'test: nav has 4 tabs');console.assert($('#calendarGrid'),'test: calendar grid exists');
     });
   </script>
 
