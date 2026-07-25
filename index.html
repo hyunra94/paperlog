@@ -281,6 +281,7 @@
     .moneyRecordItem{cursor:pointer}
     .moneyRecordItem:hover{background:rgba(255,255,255,.32)}
     .moneyStatsFab{right:calc(18px + env(safe-area-inset-right) + 66px);background:var(--blue);font-size:25px}
+    .moneyYearFab{right:calc(18px + env(safe-area-inset-right) + 132px);background:#dcc4b8;font-size:20px;font-family:'Gaegu'}
     .moneyMonthTitle{cursor:pointer;-webkit-tap-highlight-color:transparent}
     .moneyStatsHead{display:flex;justify-content:space-between;align-items:center;margin:4px 0 10px;color:var(--sub);font-size:12px;line-height:1.45}
     .moneyStatsTotal{font-family:'Gaegu';font-size:21px;color:var(--ink)}
@@ -291,8 +292,8 @@
     .moneyStatsRow .amount{font-size:22px}
     .moneyStatsEmpty{margin:0;color:var(--sub);font-family:'Gaegu';font-size:18px;line-height:1.4;text-align:center;padding:16px 4px}
 
-    @media (min-width:700px){.moneyDay{min-height:58px}.moneyWd{min-height:33px;font-size:17px}.moneyFab{right:calc((100vw - var(--app-max))/2 + 32px);bottom:calc(var(--nav) + 30px)}.moneyStatsFab{right:calc((100vw - var(--app-max))/2 + 98px)}}
-    @media (min-width:960px){.moneyFab{right:calc((100vw - var(--app-max))/2 + 40px)}.moneyStatsFab{right:calc((100vw - var(--app-max))/2 + 106px)}.moneyDay{min-height:64px}}
+    @media (min-width:700px){.moneyDay{min-height:58px}.moneyWd{min-height:33px;font-size:17px}.moneyFab{right:calc((100vw - var(--app-max))/2 + 32px);bottom:calc(var(--nav) + 30px)}.moneyStatsFab{right:calc((100vw - var(--app-max))/2 + 98px)}.moneyYearFab{right:calc((100vw - var(--app-max))/2 + 164px)}}
+    @media (min-width:960px){.moneyFab{right:calc((100vw - var(--app-max))/2 + 40px)}.moneyStatsFab{right:calc((100vw - var(--app-max))/2 + 106px)}.moneyYearFab{right:calc((100vw - var(--app-max))/2 + 172px)}.moneyDay{min-height:64px}}
 
     /* v24 money UI polish */
     .moneySummaryGrid{grid-template-columns:repeat(10,minmax(0,1fr))!important}
@@ -1315,6 +1316,7 @@
         <ul class="moneyList moneyRecords" id="moneyRecordList"></ul>
       </article>
       <button class="moneyFab moneyStatsFab" id="openMoneyStats" type="button" aria-label="가계부 통계"><img class="statsIconImg" src="./icons/stats-icon.png" alt=""></button>
+      <button class="moneyFab moneyYearFab" id="openMoneyYearStats" type="button" aria-label="연간 통계">연간</button>
       <button class="moneyFab" id="openMoneyEntry" type="button" aria-label="가계부 입력">＋</button>
     </section>
 
@@ -1407,6 +1409,29 @@
         </div>
         <div class="moneyStatsList" id="moneyStatsList"></div>
         <p class="sheetNote">현재 조회 중인 월 기준으로 카테고리별 합계를 보여줘요.</p>
+      </section>
+    </div>
+
+    <div class="sheetBg" id="moneyYearStatsSheet" hidden>
+      <section class="sheet">
+        <div class="handle"></div>
+        <div class="sheetHead"><h3>연간 통계</h3><button class="icon" id="closeMoneyYearStats" type="button">×</button></div>
+        <div style="display:grid;grid-template-columns:40px 1fr 40px;gap:8px;align-items:center;margin:2px 0 12px;padding:9px 10px;border:1.6px solid var(--line);border-radius:18px;background:rgba(255,250,242,.96);box-shadow:2px 2px 0 rgba(47,42,40,.12)">
+          <button class="moneyMonthBtn" id="moneyYearPrev" type="button" aria-label="이전 연도">‹</button>
+          <div class="moneyMonthTitle" id="moneyYearStatsTitle" style="cursor:default">연도</div>
+          <button class="moneyMonthBtn" id="moneyYearNext" type="button" aria-label="다음 연도">›</button>
+        </div>
+        <div class="moneyStatsHead"><span id="moneyYearStatsLabel">연간 지출</span><strong class="moneyStatsTotal" id="moneyYearStatsTotal">0</strong></div>
+        <div class="moneyTypeTabs moneyStatsTabs" style="grid-template-columns:1fr 1fr">
+          <button class="moneyTypeBtn moneyStatsTypeBtn moneyYearStatsTypeBtn on" data-stats-type="expense" type="button">지출</button>
+          <button class="moneyTypeBtn moneyStatsTypeBtn moneyYearStatsTypeBtn" data-stats-type="income" type="button">수입</button>
+        </div>
+        <div class="moneyTypeTabs" style="margin-top:6px">
+          <button class="moneyStatsViewBtn moneyYearStatsModeBtn on" data-stats-mode="month" type="button">월별</button>
+          <button class="moneyStatsViewBtn moneyYearStatsModeBtn" data-stats-mode="category" type="button">카테고리별</button>
+        </div>
+        <div class="moneyStatsList" id="moneyYearStatsList"></div>
+        <p class="sheetNote">선택한 연도 전체 데이터 기준이에요. 처음 조회하는 연도는 불러오는 데 시간이 조금 걸릴 수 있어요.</p>
       </section>
     </div>
 
@@ -3481,6 +3506,73 @@
       function openMoneyStats(){moneyStatsChartMode=false;const sheet=$('#moneyStatsSheet');if(sheet)sheet.hidden=false;renderMoneyStats(currentMoneyStatsType)}
       function closeMoneyStats(){const sheet=$('#moneyStatsSheet');if(sheet)sheet.hidden=true}
 
+      let moneyYearView=today.getFullYear();
+      let currentMoneyYearStatsType='expense';
+      let moneyYearStatsMode='month';
+      let moneyYearLoadSeq=0;
+      const moneyYearRecordsCache={};
+      async function fetchMoneyMonthRecords(monthStr){
+        const cached=getMoneyCacheStore()[monthStr];
+        if(cached&&Array.isArray(cached.records))return cached.records;
+        if(!window.paperLog?.fetch)return [];
+        try{
+          const res=await window.paperLog.fetch(`/api/money?month=${monthStr}`);
+          const data=await res.json().catch(()=>({}));
+          if(!res.ok||data.ok===false)return [];
+          const records=Array.isArray(data.records)?data.records:[];
+          const store=getMoneyCacheStore();
+          store[monthStr]={month:monthStr,records,days:data.days||computeDays(records),savedAt:Date.now()};
+          setMoneyCacheStore(store);
+          return records;
+        }catch(e){console.warn('월별 가계부 조회 실패:',monthStr,e);return []}
+      }
+      async function loadMoneyYearRecords(year){
+        const months=Array.from({length:12},(_,i)=>`${year}-${String(i+1).padStart(2,'0')}`);
+        const results=await Promise.all(months.map(fetchMoneyMonthRecords));
+        return results.flat();
+      }
+      async function renderMoneyYearStats(){
+        const seq=++moneyYearLoadSeq;
+        const titleEl=$('#moneyYearStatsTitle');if(titleEl)titleEl.textContent=`${moneyYearView}년`;
+        $$('.moneyYearStatsTypeBtn').forEach(btn=>btn.classList.toggle('on',btn.dataset.statsType===currentMoneyYearStatsType));
+        $$('.moneyYearStatsModeBtn').forEach(btn=>btn.classList.toggle('on',btn.dataset.statsMode===moneyYearStatsMode));
+        const labelEl=$('#moneyYearStatsLabel');if(labelEl)labelEl.textContent=`연간 ${currentMoneyYearStatsType==='income'?'수입':'지출'}`;
+        const list=$('#moneyYearStatsList');
+        if(list)list.innerHTML='<p class="moneyStatsEmpty">불러오는 중...</p>';
+        let records=moneyYearRecordsCache[moneyYearView];
+        if(!records){records=await loadMoneyYearRecords(moneyYearView);moneyYearRecordsCache[moneyYearView]=records}
+        if(seq!==moneyYearLoadSeq)return;
+        const typed=records.filter(r=>r.type===currentMoneyYearStatsType);
+        const total=typed.reduce((a,b)=>a+Number(b.amount||0),0);
+        const totalEl=$('#moneyYearStatsTotal');if(totalEl)totalEl.textContent=(currentMoneyYearStatsType==='income'?'+':'-')+won(total);
+        if(!list)return;
+        const amtClass=currentMoneyYearStatsType==='income'?'income':'expense';
+        const amtSign=currentMoneyYearStatsType==='income'?'+':'-';
+        if(moneyYearStatsMode==='month'){
+          const monthly=Array.from({length:12},(_,i)=>{
+            const mk=`${moneyYearView}-${String(i+1).padStart(2,'0')}`;
+            const monthRecords=typed.filter(r=>String(r.date||'').slice(0,7)===mk);
+            return {month:i+1,total:monthRecords.reduce((a,b)=>a+Number(b.amount||0),0),count:monthRecords.length};
+          });
+          const max=Math.max(1,...monthly.map(m=>m.total));
+          list.innerHTML=monthly.map(m=>`<div class="moneyChartRow"><div class="moneyChartTop"><span>${m.month}월</span><span class="amount ${amtClass}">${m.total?amtSign+won(m.total):won(0)}</span></div><div class="moneyChartTrack"><div class="moneyChartFill ${amtClass==='income'?'income':''}" style="width:${m.total?Math.max(4,Math.round(m.total/max*100)):0}%"></div></div><div class="moneyChartMeta">${m.count}건</div></div>`).join('');
+        }else{
+          const map=new Map();
+          typed.forEach(r=>{
+            const category=r.category||r.subject||'분류 없음';
+            const prev=map.get(category)||{category,total:0,count:0};
+            prev.total+=Number(r.amount||0);prev.count+=1;
+            map.set(category,prev);
+          });
+          const rows=[...map.values()].sort((a,b)=>b.total-a.total||a.category.localeCompare(b.category));
+          if(!rows.length){list.innerHTML='<p class="moneyStatsEmpty">표시할 통계가 없어요.</p>';return}
+          list.innerHTML=rows.map(row=>`<div class="moneyStatsRow"><span><strong>${row.category}</strong><small>${row.count}건</small></span><span class="amount ${amtClass}">${amtSign}${won(row.total)}</span></div>`).join('');
+        }
+      }
+      function changeMoneyYear(delta){moneyYearView+=delta;renderMoneyYearStats()}
+      function openMoneyYearStats(){const sheet=$('#moneyYearStatsSheet');if(sheet)sheet.hidden=false;renderMoneyYearStats()}
+      function closeMoneyYearStats(){const sheet=$('#moneyYearStatsSheet');if(sheet)sheet.hidden=true}
+
       async function loadMoneyFromWorker(silent=false){
         const seq=++moneyLoadSeq;
         const targetMonth=monthKey();
@@ -3701,6 +3793,12 @@
       $('#closeMoneyStats')?.addEventListener('click',closeMoneyStats);
       $$('.moneyStatsTypeBtn').forEach(btn=>btn.addEventListener('click',()=>renderMoneyStats(btn.dataset.statsType)));
       $('#moneyStatsChartBtn')?.addEventListener('click',()=>{moneyStatsChartMode=!moneyStatsChartMode;renderMoneyStats(currentMoneyStatsType)});
+      $('#openMoneyYearStats')?.addEventListener('click',openMoneyYearStats);
+      $('#closeMoneyYearStats')?.addEventListener('click',closeMoneyYearStats);
+      $('#moneyYearPrev')?.addEventListener('click',()=>changeMoneyYear(-1));
+      $('#moneyYearNext')?.addEventListener('click',()=>changeMoneyYear(1));
+      $$('.moneyYearStatsTypeBtn').forEach(btn=>btn.addEventListener('click',()=>{currentMoneyYearStatsType=btn.dataset.statsType;renderMoneyYearStats()}));
+      $$('.moneyYearStatsModeBtn').forEach(btn=>btn.addEventListener('click',()=>{moneyYearStatsMode=btn.dataset.statsMode;renderMoneyYearStats()}));
       $$('.moneyRecordFilterBtn').forEach(btn=>btn.addEventListener('click',()=>{moneyRecordTypeFilter=btn.dataset.filterType;renderMoneyRecords(moneyRecords.filter(r=>sameMonth(r.date)))}));
       $('#moneyMonthTitle')?.addEventListener('click',()=>{document.querySelector('#budget')?.scrollIntoView({behavior:'smooth',block:'start'});});
       $('#closeMoneyEntry')?.addEventListener('click',closeMoneySheet);
