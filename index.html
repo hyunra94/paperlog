@@ -288,6 +288,7 @@
     .moneyYearChip{border:1.5px solid var(--line);border-radius:999px;background:var(--card);padding:6px 12px;font-family:'Gaegu';font-size:15px;box-shadow:1.5px 1.5px 0 rgba(47,42,40,.1);white-space:nowrap;transition:opacity .15s,filter .15s}
     .moneyYearChip:not(.on){opacity:.5;filter:saturate(.4)}
     .moneyYearChip.on{background:var(--chip-color,var(--yellow));border-color:rgba(47,42,40,.5)}
+    .moneyYearMoreChip{opacity:1!important;filter:none!important;background:transparent;border-style:dashed;color:var(--sub)}
     .moneyMonthTitle{cursor:pointer;-webkit-tap-highlight-color:transparent}
     .moneyStatsHead{display:flex;justify-content:space-between;align-items:center;margin:4px 0 10px;color:var(--sub);font-size:12px;line-height:1.45}
     .moneyStatsTotal{font-family:'Gaegu';font-size:21px;color:var(--ink)}
@@ -3514,6 +3515,8 @@
       let moneyYearView=today.getFullYear();
       let currentMoneyYearStatsType='expense';
       let moneyYearSelectedCategory='';
+      let moneyYearActivePointIdx=null;
+      let moneyYearChipsExpanded=false;
       let moneyYearLoadSeq=0;
       const moneyYearRecordsCache={};
       const MONEY_YEAR_COLORS=['#e7c3c8','#b9dced','#f4d98b','#bfd8b8','#c9b8e8','#e8c4a4','#b8d8d0','#dcc4b8','#c4d0e8','#e0d4a8'];
@@ -3555,7 +3558,7 @@
         rows.forEach(r=>r.monthly.forEach((v,i)=>{totalMonthly[i]+=v}));
         return {rows,totalMonthly,total:rows.reduce((a,b)=>a+b.total,0)};
       }
-      function buildMoneyYearLineSvg(monthly,color){
+      function buildMoneyYearLineSvg(monthly,color,activeIdx,bubbleText){
         const w=320,h=150,padX=16,padTop=26,padBottom=20;
         const max=Math.max(1,...monthly);
         const scaleH=h-padTop-padBottom;
@@ -3564,11 +3567,30 @@
         const pathD=pts.map((p,i)=>`${i===0?'M':'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
         const baseY=(h-padBottom).toFixed(1);
         const areaD=`${pathD} L${pts[11].x.toFixed(1)},${baseY} L${pts[0].x.toFixed(1)},${baseY} Z`;
-        const circles=pts.map(p=>`<circle data-month-idx="${p.i}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="9" fill="transparent" style="cursor:pointer"/><circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3.5" fill="${color}" stroke="#fffdf7" stroke-width="1.4" style="pointer-events:none"/>`).join('');
+        const circles=pts.map(p=>`<circle data-month-idx="${p.i}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="9" fill="${activeIdx===p.i?'rgba(47,42,40,.08)':'transparent'}" style="cursor:pointer"/><circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${activeIdx===p.i?4.5:3.5}" fill="${color}" stroke="#fffdf7" stroke-width="1.4" style="pointer-events:none"/>`).join('');
         const labels=pts.map(p=>`<text x="${p.x.toFixed(1)}" y="${h-4}" text-anchor="middle" font-family="'Gaegu',sans-serif" font-size="10" fill="#9b9189">${p.i+1}</text>`).join('');
         const baseline=`<line x1="${padX}" y1="${baseY}" x2="${w-padX}" y2="${baseY}" stroke="#9b9189" stroke-width="1" stroke-dasharray="2,3" opacity="0.45"/><text x="2" y="${(h-padBottom-4).toFixed(1)}" font-family="'Gaegu',sans-serif" font-size="9" fill="#9b9189">0</text>`;
         const peak=pts.reduce((a,b)=>b.v>a.v?b:a,pts[0]);
-        const peakLabel=peak.v>0?`<text x="${Math.min(w-padX,Math.max(padX+12,peak.x)).toFixed(1)}" y="${Math.max(12,peak.y-9).toFixed(1)}" text-anchor="middle" font-family="'Gaegu',sans-serif" font-weight="700" font-size="12" fill="${color}">${compactWon(peak.v)}</text>`:'';
+        const peakLabel=(peak.v>0&&activeIdx!==peak.i)?`<text x="${Math.min(w-padX,Math.max(padX+12,peak.x)).toFixed(1)}" y="${Math.max(12,peak.y-9).toFixed(1)}" text-anchor="middle" font-family="'Gaegu',sans-serif" font-weight="700" font-size="12" fill="${color}">${compactWon(peak.v)}</text>`:'';
+        let bubble='';
+        if(activeIdx!=null&&pts[activeIdx]&&bubbleText){
+          const p=pts[activeIdx];
+          const textW=Math.min(150,Math.max(50,bubbleText.length*7+16));
+          const cx=Math.min(w-textW/2-2,Math.max(textW/2+2,p.x));
+          const bubbleH=22,rx=8,tw=6,th=7;
+          const above=p.y-padTop>bubbleH+th+4;
+          const left=(cx-textW/2),right=(cx+textW/2);
+          const top=above?p.y-14-bubbleH-th:p.y+14;
+          const bottom=top+bubbleH;
+          const tipX=Math.min(right-rx-tw,Math.max(left+rx+tw,p.x));
+          const bubblePath=above
+            ? `M${left+rx},${top} H${right-rx} A${rx},${rx} 0 0 1 ${right},${top+rx} V${bottom-rx} A${rx},${rx} 0 0 1 ${right-rx},${bottom} H${tipX+tw} L${tipX},${bottom+th} L${tipX-tw},${bottom} H${left+rx} A${rx},${rx} 0 0 1 ${left},${bottom-rx} V${top+rx} A${rx},${rx} 0 0 1 ${left+rx},${top} Z`
+            : `M${left+rx},${top} H${tipX-tw} L${tipX},${top-th} L${tipX+tw},${top} H${right-rx} A${rx},${rx} 0 0 1 ${right},${top+rx} V${bottom-rx} A${rx},${rx} 0 0 1 ${right-rx},${bottom} H${left+rx} A${rx},${rx} 0 0 1 ${left},${bottom-rx} V${top+rx} A${rx},${rx} 0 0 1 ${left+rx},${top} Z`;
+          bubble=`<g>
+            <path d="${bubblePath}" fill="${color}" stroke="rgba(47,42,40,.5)" stroke-width="1.2" stroke-linejoin="round"/>
+            <text x="${cx.toFixed(1)}" y="${(top+bubbleH/2+4).toFixed(1)}" text-anchor="middle" font-family="'Gaegu',sans-serif" font-weight="700" font-size="12" fill="#2f2a28">${bubbleText}</text>
+          </g>`;
+        }
         return `<svg viewBox="0 0 ${w} ${h}" class="moneyYearLineSvg" id="moneyYearLineSvg">
           <path d="${areaD}" fill="${color}" opacity="0.14" stroke="none"/>
           ${baseline}
@@ -3576,8 +3598,10 @@
           ${circles}
           ${labels}
           ${peakLabel}
+          ${bubble}
         </svg>`;
       }
+      const MONEY_YEAR_CHIP_LIMIT=6;
       async function renderMoneyYearStats(){
         const seq=++moneyYearLoadSeq;
         const titleEl=$('#moneyYearStatsTitle');if(titleEl)titleEl.textContent=`${moneyYearView}년`;
@@ -3585,53 +3609,64 @@
         const chartWrap=$('#moneyYearChartWrap');
         const chipsWrap=$('#moneyYearChips');
         const caption=$('#moneyYearLineCaption');
-        if(caption)caption.textContent='그래프의 점을 눌러 월별 금액을 확인해요.';
         if(chartWrap)chartWrap.innerHTML='<p class="moneyStatsEmpty">불러오는 중...</p>';
         if(chipsWrap)chipsWrap.innerHTML='';
         let records=moneyYearRecordsCache[moneyYearView];
         if(!records){records=await loadMoneyYearRecords(moneyYearView);moneyYearRecordsCache[moneyYearView]=records}
         if(seq!==moneyYearLoadSeq)return;
         const {rows,totalMonthly,total}=computeYearlyCategorySeries(records,currentMoneyYearStatsType);
-        const amtClass=currentMoneyYearStatsType==='income'?'income':'expense';
         const amtSign=currentMoneyYearStatsType==='income'?'+':'-';
         if(moneyYearSelectedCategory&&!rows.some(r=>r.category===moneyYearSelectedCategory))moneyYearSelectedCategory='';
         const activeRow=moneyYearSelectedCategory?rows.find(r=>r.category===moneyYearSelectedCategory):null;
         const activeMonthly=activeRow?activeRow.monthly:totalMonthly;
         const activeTotal=activeRow?activeRow.total:total;
-        const activeIdx=activeRow?rows.indexOf(activeRow):-1;
-        const activeColor=activeRow?MONEY_YEAR_COLORS[activeIdx%MONEY_YEAR_COLORS.length]:MONEY_YEAR_TOTAL_COLOR;
+        const activeRowIdx=activeRow?rows.indexOf(activeRow):-1;
+        const activeColor=activeRow?MONEY_YEAR_COLORS[activeRowIdx%MONEY_YEAR_COLORS.length]:MONEY_YEAR_TOTAL_COLOR;
         const labelEl=$('#moneyYearStatsLabel');if(labelEl)labelEl.textContent=`연간 ${currentMoneyYearStatsType==='income'?'수입':'지출'}${activeRow?' · '+activeRow.category:''}`;
         const totalEl=$('#moneyYearStatsTotal');if(totalEl)totalEl.textContent=(currentMoneyYearStatsType==='income'?'+':'-')+won(activeTotal);
         if(!total&&!rows.length){
           if(chartWrap)chartWrap.innerHTML='<p class="moneyStatsEmpty">표시할 통계가 없어요.</p>';
+          if(caption)caption.textContent='';
           return;
         }
-        if(chartWrap)chartWrap.innerHTML=buildMoneyYearLineSvg(activeMonthly,activeColor);
+        if(moneyYearActivePointIdx!=null&&caption){
+          const v=activeMonthly[moneyYearActivePointIdx]||0;
+          caption.textContent=`${moneyYearView}년 ${moneyYearActivePointIdx+1}월${activeRow?' · '+activeRow.category:''} · ${amtSign}${won(v)}`;
+        }else if(caption){
+          caption.textContent='그래프의 점을 눌러 월별 금액을 확인해요.';
+        }
+        const bubbleText=moneyYearActivePointIdx!=null?`${moneyYearActivePointIdx+1}월 ${amtSign}${compactWon(activeMonthly[moneyYearActivePointIdx]||0)}`:'';
+        if(chartWrap)chartWrap.innerHTML=buildMoneyYearLineSvg(activeMonthly,activeColor,moneyYearActivePointIdx,bubbleText);
         const svg=$('#moneyYearLineSvg');
         if(svg){
           svg.querySelectorAll('[data-month-idx]').forEach(c=>{
             c.addEventListener('click',()=>{
               const idx=Number(c.dataset.monthIdx);
-              const v=activeMonthly[idx]||0;
-              if(caption)caption.textContent=`${moneyYearView}년 ${idx+1}월${activeRow?' · '+activeRow.category:''} · ${amtSign}${won(v)}`;
+              moneyYearActivePointIdx=moneyYearActivePointIdx===idx?null:idx;
+              renderMoneyYearStats();
             });
           });
         }
         if(chipsWrap){
           const totalChip=`<button class="moneyYearChip ${!moneyYearSelectedCategory?'on':''}" data-cat="" style="--chip-color:${MONEY_YEAR_TOTAL_COLOR}">전체</button>`;
-          const catChips=rows.map((r,i)=>`<button class="moneyYearChip ${moneyYearSelectedCategory===r.category?'on':''}" data-cat="${r.category}" style="--chip-color:${MONEY_YEAR_COLORS[i%MONEY_YEAR_COLORS.length]}">${r.category}</button>`).join('');
-          chipsWrap.innerHTML=totalChip+catChips;
-          chipsWrap.querySelectorAll('.moneyYearChip').forEach(btn=>{
+          const allCatChips=rows.map((r,i)=>`<button class="moneyYearChip ${moneyYearSelectedCategory===r.category?'on':''}" data-cat="${r.category}" style="--chip-color:${MONEY_YEAR_COLORS[i%MONEY_YEAR_COLORS.length]}">${r.category}</button>`);
+          const hasMore=allCatChips.length>MONEY_YEAR_CHIP_LIMIT;
+          const visibleCatChips=moneyYearChipsExpanded?allCatChips:allCatChips.slice(0,MONEY_YEAR_CHIP_LIMIT);
+          const moreChip=hasMore?`<button class="moneyYearChip moneyYearMoreChip" type="button">${moneyYearChipsExpanded?'접기':`더보기 +${allCatChips.length-MONEY_YEAR_CHIP_LIMIT}`}</button>`:'';
+          chipsWrap.innerHTML=totalChip+visibleCatChips.join('')+moreChip;
+          chipsWrap.querySelectorAll('.moneyYearChip[data-cat]').forEach(btn=>{
             btn.addEventListener('click',()=>{
               const cat=btn.dataset.cat;
               moneyYearSelectedCategory=moneyYearSelectedCategory===cat?'':cat;
               renderMoneyYearStats();
             });
           });
+          const moreBtnEl=chipsWrap.querySelector('.moneyYearMoreChip');
+          if(moreBtnEl)moreBtnEl.addEventListener('click',()=>{moneyYearChipsExpanded=!moneyYearChipsExpanded;renderMoneyYearStats()});
         }
       }
-      function changeMoneyYear(delta){moneyYearView+=delta;moneyYearSelectedCategory='';renderMoneyYearStats()}
-      function openMoneyYearStats(){moneyYearSelectedCategory='';const sheet=$('#moneyYearStatsSheet');if(sheet)sheet.hidden=false;renderMoneyYearStats()}
+      function changeMoneyYear(delta){moneyYearView+=delta;moneyYearSelectedCategory='';moneyYearActivePointIdx=null;moneyYearChipsExpanded=false;renderMoneyYearStats()}
+      function openMoneyYearStats(){moneyYearSelectedCategory='';moneyYearActivePointIdx=null;moneyYearChipsExpanded=false;const sheet=$('#moneyYearStatsSheet');if(sheet)sheet.hidden=false;renderMoneyYearStats()}
       function closeMoneyYearStats(){const sheet=$('#moneyYearStatsSheet');if(sheet)sheet.hidden=true}
 
       async function loadMoneyFromWorker(silent=false){
@@ -3858,7 +3893,7 @@
       $('#closeMoneyYearStats')?.addEventListener('click',closeMoneyYearStats);
       $('#moneyYearPrev')?.addEventListener('click',()=>changeMoneyYear(-1));
       $('#moneyYearNext')?.addEventListener('click',()=>changeMoneyYear(1));
-      $$('.moneyYearStatsTypeBtn').forEach(btn=>btn.addEventListener('click',()=>{currentMoneyYearStatsType=btn.dataset.statsType;renderMoneyYearStats()}));
+      $$('.moneyYearStatsTypeBtn').forEach(btn=>btn.addEventListener('click',()=>{currentMoneyYearStatsType=btn.dataset.statsType;moneyYearActivePointIdx=null;moneyYearChipsExpanded=false;renderMoneyYearStats()}));
       $$('.moneyRecordFilterBtn').forEach(btn=>btn.addEventListener('click',()=>{moneyRecordTypeFilter=btn.dataset.filterType;renderMoneyRecords(moneyRecords.filter(r=>sameMonth(r.date)))}));
       $('#moneyMonthTitle')?.addEventListener('click',()=>{document.querySelector('#budget')?.scrollIntoView({behavior:'smooth',block:'start'});});
       $('#closeMoneyEntry')?.addEventListener('click',closeMoneySheet);
