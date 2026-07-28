@@ -1,4 +1,4 @@
-const CACHE_NAME = "paper-log-v96";
+const CACHE_NAME = "paper-log-v97";
 
 const APP_SHELL = [
   "./",
@@ -46,8 +46,12 @@ self.addEventListener("fetch", event => {
   }
 
   event.respondWith(
-    caches.match(event.request).then(cached => {
-      return cached || fetch(event.request);
-    })
+    fetch(event.request)
+      .then(res => {
+        const resClone = res.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone));
+        return res;
+      })
+      .catch(() => caches.match(event.request))
   );
 });

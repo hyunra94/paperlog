@@ -210,6 +210,11 @@ export default {
         return json({ ok: true, page: result }, 200, cors);
       }
 
+      if (url.pathname === "/api/money/expense/installment" && request.method === "GET") {
+        const records = await getInstallmentGroup(request, env);
+        return json({ ok: true, records }, 200, cors);
+      }
+
       if (url.pathname === "/api/money/expense/installment" && request.method === "POST") {
         const result = await createInstallmentExpenseGroup(request, env);
         return json({ ok: true, ...result }, 200, cors);
@@ -1913,6 +1918,28 @@ async function createInstallmentExpenseGroup(request, env) {
   }
 
   return { groupId, count: months, pages };
+}
+
+async function getInstallmentGroup(request, env) {
+  const url = new URL(request.url);
+  const groupId = url.searchParams.get("groupId");
+  if (!groupId) throw new Error("groupId is required");
+
+  const p = expenseProps(env);
+  const notionData = await notionQuery(env, env.NOTION_EXPENSE_DB_ID, {
+    filter: { property: p.installmentGroup, rich_text: { equals: groupId } },
+    sorts: [{ property: p.date, direction: "ascending" }],
+  });
+
+  return notionData.results.map(page => {
+    const props = page.properties || {};
+    return {
+      id: page.id,
+      title: readTitle(props, p.title) || "지출",
+      date: readDateRange(props, p.date).date,
+      amount: readNumber(props, p.amount),
+    };
+  });
 }
 
 async function deleteInstallmentGroup(request, env) {
