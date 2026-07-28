@@ -272,7 +272,6 @@
     .moneyRecordItem{cursor:pointer}
     .moneyRecordItem:hover{background:rgba(255,255,255,.32)}
     .moneyStatsFab{right:calc(18px + env(safe-area-inset-right) + 66px);background:var(--blue);font-size:25px}
-    .moneyYearFab{right:calc(18px + env(safe-area-inset-right) + 132px);background:#dcc4b8;font-size:20px;font-family:'Gaegu'}
     .moneyYearLineSvg{width:100%;display:block;margin-top:8px}
     .moneyYearLineCaption{min-height:16px;margin:6px 2px 0;color:var(--sub);font-size:12px;line-height:1.4;text-align:center}
     .moneyYearChips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
@@ -290,8 +289,8 @@
     .moneyStatsRow .amount{font-size:22px}
     .moneyStatsEmpty{margin:0;color:var(--sub);font-family:'Gaegu';font-size:18px;line-height:1.4;text-align:center;padding:16px 4px}
 
-    @media (min-width:700px){.moneyDay{min-height:58px}.moneyWd{min-height:33px;font-size:17px}.moneyFab{right:calc((100vw - var(--app-max))/2 + 32px);bottom:calc(var(--nav) + 30px)}.moneyStatsFab{right:calc((100vw - var(--app-max))/2 + 98px)}.moneyYearFab{right:calc((100vw - var(--app-max))/2 + 164px)}}
-    @media (min-width:960px){.moneyFab{right:calc((100vw - var(--app-max))/2 + 40px)}.moneyStatsFab{right:calc((100vw - var(--app-max))/2 + 106px)}.moneyYearFab{right:calc((100vw - var(--app-max))/2 + 172px)}.moneyDay{min-height:64px}}
+    @media (min-width:700px){.moneyDay{min-height:58px}.moneyWd{min-height:33px;font-size:17px}.moneyFab{right:calc((100vw - var(--app-max))/2 + 32px);bottom:calc(var(--nav) + 30px)}.moneyStatsFab{right:calc((100vw - var(--app-max))/2 + 98px)}}
+    @media (min-width:960px){.moneyFab{right:calc((100vw - var(--app-max))/2 + 40px)}.moneyStatsFab{right:calc((100vw - var(--app-max))/2 + 106px)}.moneyDay{min-height:64px}}
 
     /* v24 money UI polish */
     .moneySummaryGrid{grid-template-columns:repeat(10,minmax(0,1fr))!important}
@@ -302,6 +301,9 @@
     #moneyStatsSheet .sheetHead h3{font-size:30px}
     .moneyStatsTabs{grid-template-columns:1fr 1fr auto}.moneyStatsViewBtn{border:1.5px solid var(--line);border-radius:999px;background:#fffaf4;padding:9px 10px;font-family:'Gaegu';font-size:20px;box-shadow:2px 2px 0 rgba(47,42,40,.12);transition:opacity .15s,filter .15s}
     .moneyStatsViewBtn.on{background:#f4e4a8}
+    .moneyStatsModeBtn{border:1.5px solid var(--line);border-radius:999px;background:var(--card);padding:9px 10px;font-family:'Gaegu';font-size:20px;box-shadow:2px 2px 0 rgba(47,42,40,.12);transition:opacity .15s}
+    .moneyStatsModeBtn:not(.on){opacity:.5}
+    .moneyStatsModeBtn.on{background:var(--yellow)}
     .moneyStatsTypeBtn{transition:opacity .15s,filter .15s}
     .moneyStatsTypeBtn.on[data-stats-type="expense"]{background:#f2cece}
     .moneyStatsTypeBtn.on[data-stats-type="income"]{background:#c4dff0}
@@ -1314,7 +1316,6 @@
         <ul class="moneyList moneyRecords" id="moneyRecordList"></ul>
       </article>
       <button class="moneyFab moneyStatsFab" id="openMoneyStats" type="button" aria-label="가계부 통계"><img class="statsIconImg" src="./icons/stats-icon.png" alt=""></button>
-      <button class="moneyFab moneyYearFab" id="openMoneyYearStats" type="button" aria-label="연간 통계">연간</button>
       <button class="moneyFab" id="openMoneyEntry" type="button" aria-label="가계부 입력">＋</button>
     </section>
 
@@ -1400,10 +1401,19 @@
       <section class="sheet">
         <div class="handle"></div>
         <div class="sheetHead"><h3>가계부 통계</h3><button class="icon" id="closeMoneyStats" type="button">×</button></div>
-        <div style="display:grid;grid-template-columns:40px 1fr 40px;gap:8px;align-items:center;margin:2px 0 12px;padding:9px 10px;border:1.6px solid var(--line);border-radius:18px;background:rgba(255,250,242,.96);box-shadow:2px 2px 0 rgba(47,42,40,.12)">
+        <div class="moneyTypeTabs" style="margin-bottom:10px">
+          <button class="moneyStatsModeBtn on" data-stats-mode="monthly" type="button">월간</button>
+          <button class="moneyStatsModeBtn" data-stats-mode="yearly" type="button">연간</button>
+        </div>
+        <div id="moneyStatsMonthlyNav" style="display:grid;grid-template-columns:40px 1fr 40px;gap:8px;align-items:center;margin:2px 0 12px;padding:9px 10px;border:1.6px solid var(--line);border-radius:18px;background:rgba(255,250,242,.96);box-shadow:2px 2px 0 rgba(47,42,40,.12)">
           <button class="moneyMonthBtn" id="moneyStatsPrevMonth" type="button" aria-label="이전 달">‹</button>
           <div class="moneyMonthTitle" id="moneyStatsMonthTitle" style="cursor:default">월</div>
           <button class="moneyMonthBtn" id="moneyStatsNextMonth" type="button" aria-label="다음 달">›</button>
+        </div>
+        <div id="moneyStatsYearlyNav" hidden style="display:grid;grid-template-columns:40px 1fr 40px;gap:8px;align-items:center;margin:2px 0 12px;padding:9px 10px;border:1.6px solid var(--line);border-radius:18px;background:rgba(255,250,242,.96);box-shadow:2px 2px 0 rgba(47,42,40,.12)">
+          <button class="moneyMonthBtn" id="moneyYearPrev" type="button" aria-label="이전 연도">‹</button>
+          <div class="moneyMonthTitle" id="moneyYearStatsTitle" style="cursor:default">연도</div>
+          <button class="moneyMonthBtn" id="moneyYearNext" type="button" aria-label="다음 연도">›</button>
         </div>
         <div class="moneyStatsHead"><span id="moneyStatsMonth">현재 월</span><strong class="moneyStatsTotal" id="moneyStatsTotal">0</strong></div>
         <div class="moneyTypeTabs moneyStatsTabs">
@@ -1411,29 +1421,15 @@
           <button class="moneyTypeBtn moneyStatsTypeBtn" data-stats-type="income" type="button">수입</button>
           <button class="moneyStatsViewBtn" id="moneyStatsChartBtn" type="button">차트</button>
         </div>
-        <div class="moneyStatsList" id="moneyStatsList"></div>
-        <p class="sheetNote">현재 조회 중인 월 기준으로 카테고리별 합계를 보여줘요.</p>
-      </section>
-    </div>
-
-    <div class="sheetBg" id="moneyYearStatsSheet" hidden>
-      <section class="sheet">
-        <div class="handle"></div>
-        <div class="sheetHead"><h3>연간 통계</h3><button class="icon" id="closeMoneyYearStats" type="button">×</button></div>
-        <div style="display:grid;grid-template-columns:40px 1fr 40px;gap:8px;align-items:center;margin:2px 0 12px;padding:9px 10px;border:1.6px solid var(--line);border-radius:18px;background:rgba(255,250,242,.96);box-shadow:2px 2px 0 rgba(47,42,40,.12)">
-          <button class="moneyMonthBtn" id="moneyYearPrev" type="button" aria-label="이전 연도">‹</button>
-          <div class="moneyMonthTitle" id="moneyYearStatsTitle" style="cursor:default">연도</div>
-          <button class="moneyMonthBtn" id="moneyYearNext" type="button" aria-label="다음 연도">›</button>
+        <div id="moneyStatsMonthlyView">
+          <div class="moneyStatsList" id="moneyStatsList"></div>
         </div>
-        <div class="moneyStatsHead"><span id="moneyYearStatsLabel">연간 지출</span><strong class="moneyStatsTotal" id="moneyYearStatsTotal">0</strong></div>
-        <div class="moneyTypeTabs moneyStatsTabs" style="grid-template-columns:1fr 1fr">
-          <button class="moneyTypeBtn moneyStatsTypeBtn moneyYearStatsTypeBtn on" data-stats-type="expense" type="button">지출</button>
-          <button class="moneyTypeBtn moneyStatsTypeBtn moneyYearStatsTypeBtn" data-stats-type="income" type="button">수입</button>
+        <div id="moneyStatsYearlyView" hidden>
+          <div id="moneyYearChartWrap"></div>
+          <p class="moneyYearLineCaption" id="moneyYearLineCaption">그래프의 점을 눌러 월별 금액을 확인해요.</p>
+          <div class="moneyYearChips" id="moneyYearChips"></div>
         </div>
-        <div id="moneyYearChartWrap"></div>
-        <p class="moneyYearLineCaption" id="moneyYearLineCaption">그래프의 점을 눌러 월별 금액을 확인해요.</p>
-        <div class="moneyYearChips" id="moneyYearChips"></div>
-        <p class="sheetNote">선택한 연도 전체 데이터 기준이에요. 필터를 누르면 해당 항목의 월별 추이만 볼 수 있어요.</p>
+        <p class="sheetNote" id="moneyStatsFootNote">현재 조회 중인 월 기준으로 카테고리별 합계를 보여줘요.</p>
       </section>
     </div>
 
@@ -3428,6 +3424,23 @@
       }
 
       let currentMoneyStatsType='expense';
+      let moneyStatsMode='monthly';
+      function renderActiveMoneyStats(){
+        if(moneyStatsMode==='monthly')renderMoneyStats(currentMoneyStatsType);
+        else renderMoneyYearStats();
+      }
+      function setMoneyStatsMode(mode){
+        moneyStatsMode=mode;
+        $$('.moneyStatsModeBtn').forEach(b=>b.classList.toggle('on',b.dataset.statsMode===mode));
+        $('#moneyStatsMonthlyNav')&&($('#moneyStatsMonthlyNav').hidden=mode!=='monthly');
+        $('#moneyStatsYearlyNav')&&($('#moneyStatsYearlyNav').hidden=mode!=='yearly');
+        $('#moneyStatsMonthlyView')&&($('#moneyStatsMonthlyView').hidden=mode!=='monthly');
+        $('#moneyStatsYearlyView')&&($('#moneyStatsYearlyView').hidden=mode!=='yearly');
+        $('#moneyStatsChartBtn')&&($('#moneyStatsChartBtn').hidden=mode!=='monthly');
+        const note=$('#moneyStatsFootNote');
+        if(note)note.textContent=mode==='monthly'?'현재 조회 중인 월 기준으로 카테고리별 합계를 보여줘요.':'선택한 연도 전체 데이터 기준이에요. 필터를 누르면 해당 항목의 월별 추이만 볼 수 있어요.';
+        renderActiveMoneyStats();
+      }
       let moneyStatsChartMode=false;
       let moneyStatsView=new Date(today.getFullYear(),today.getMonth(),1);
       let moneyStatsLoadSeq=0;
@@ -3547,11 +3560,17 @@
         });
       }
       function changeMoneyStatsMonth(delta){moneyStatsView=new Date(moneyStatsView.getFullYear(),moneyStatsView.getMonth()+delta,1);renderMoneyStats(currentMoneyStatsType)}
-      function openMoneyStats(){moneyStatsChartMode=false;moneyStatsView=new Date(moneyView.getFullYear(),moneyView.getMonth(),1);const sheet=$('#moneyStatsSheet');if(sheet)sheet.hidden=false;renderMoneyStats(currentMoneyStatsType)}
+      function openMoneyStats(){
+        moneyStatsChartMode=false;
+        moneyStatsView=new Date(moneyView.getFullYear(),moneyView.getMonth(),1);
+        moneyYearView=today.getFullYear();
+        moneyYearSelectedCategory='';moneyYearActivePointIdx=null;moneyYearChipsExpanded=false;
+        const sheet=$('#moneyStatsSheet');if(sheet)sheet.hidden=false;
+        setMoneyStatsMode('monthly');
+      }
       function closeMoneyStats(){const sheet=$('#moneyStatsSheet');if(sheet)sheet.hidden=true}
 
       let moneyYearView=today.getFullYear();
-      let currentMoneyYearStatsType='expense';
       let moneyYearSelectedCategory='';
       let moneyYearActivePointIdx=null;
       let moneyYearChipsExpanded=false;
@@ -3646,7 +3665,7 @@
       const MONEY_YEAR_CHIP_LIMIT=6;
       const MONEY_YEAR_HOVER_CAPABLE=window.matchMedia('(hover:hover) and (pointer:fine)').matches;
       let moneyYearChartState=null;
-      function moneyYearSheetScrollEl(){return document.querySelector('#moneyYearStatsSheet .sheet')}
+      function moneyYearSheetScrollEl(){return document.querySelector('#moneyStatsSheet .sheet')}
       function bindMoneyYearChartPoints(){
         const svg=$('#moneyYearLineSvg');
         if(!svg)return;
@@ -3697,7 +3716,7 @@
         const prevWindowScrollY=window.scrollY;
         if(document.activeElement&&document.activeElement!==document.body)document.activeElement.blur();
         const titleEl=$('#moneyYearStatsTitle');if(titleEl)titleEl.textContent=`${moneyYearView}년`;
-        $$('.moneyYearStatsTypeBtn').forEach(btn=>btn.classList.toggle('on',btn.dataset.statsType===currentMoneyYearStatsType));
+        $$('.moneyStatsTypeBtn').forEach(btn=>btn.classList.toggle('on',btn.dataset.statsType===currentMoneyStatsType));
         const chartWrap=$('#moneyYearChartWrap');
         const chipsWrap=$('#moneyYearChips');
         const caption=$('#moneyYearLineCaption');
@@ -3706,16 +3725,16 @@
         let records=moneyYearRecordsCache[moneyYearView];
         if(!records){records=await loadMoneyYearRecords(moneyYearView);moneyYearRecordsCache[moneyYearView]=records}
         if(seq!==moneyYearLoadSeq)return;
-        const {rows,totalMonthly,total}=computeYearlyCategorySeries(records,currentMoneyYearStatsType);
-        const amtSign=currentMoneyYearStatsType==='income'?'+':'-';
+        const {rows,totalMonthly,total}=computeYearlyCategorySeries(records,currentMoneyStatsType);
+        const amtSign=currentMoneyStatsType==='income'?'+':'-';
         if(moneyYearSelectedCategory&&!rows.some(r=>r.category===moneyYearSelectedCategory))moneyYearSelectedCategory='';
         const activeRow=moneyYearSelectedCategory?rows.find(r=>r.category===moneyYearSelectedCategory):null;
         const activeMonthly=activeRow?activeRow.monthly:totalMonthly;
         const activeTotal=activeRow?activeRow.total:total;
         const activeRowIdx=activeRow?rows.indexOf(activeRow):-1;
         const activeColor=activeRow?MONEY_YEAR_COLORS[activeRowIdx%MONEY_YEAR_COLORS.length]:MONEY_YEAR_TOTAL_COLOR;
-        const labelEl=$('#moneyYearStatsLabel');if(labelEl)labelEl.textContent=`연간 ${currentMoneyYearStatsType==='income'?'수입':'지출'}${activeRow?' · '+activeRow.category:''}`;
-        const totalEl=$('#moneyYearStatsTotal');if(totalEl)totalEl.textContent=(currentMoneyYearStatsType==='income'?'+':'-')+won(activeTotal);
+        const labelEl=$('#moneyStatsMonth');if(labelEl)labelEl.textContent=`연간 ${currentMoneyStatsType==='income'?'수입':'지출'}${activeRow?' · '+activeRow.category:''}`;
+        const totalEl=$('#moneyStatsTotal');if(totalEl)totalEl.textContent=(currentMoneyStatsType==='income'?'+':'-')+won(activeTotal);
         if(!total&&!rows.length){
           moneyYearChartState=null;
           if(chartWrap)chartWrap.innerHTML='<p class="moneyStatsEmpty">표시할 통계가 없어요.</p>';
@@ -3750,8 +3769,6 @@
         window.scrollTo(0,prevWindowScrollY);
       }
       function changeMoneyYear(delta){moneyYearView+=delta;moneyYearSelectedCategory='';moneyYearActivePointIdx=null;moneyYearChipsExpanded=false;renderMoneyYearStats()}
-      function openMoneyYearStats(){moneyYearSelectedCategory='';moneyYearActivePointIdx=null;moneyYearChipsExpanded=false;const sheet=$('#moneyYearStatsSheet');if(sheet)sheet.hidden=false;renderMoneyYearStats()}
-      function closeMoneyYearStats(){const sheet=$('#moneyYearStatsSheet');if(sheet)sheet.hidden=true}
 
       async function loadMoneyFromWorker(silent=false){
         const seq=++moneyLoadSeq;
@@ -4011,18 +4028,20 @@
       $('.calcBackBtn')?.addEventListener('click',()=>handleMoneyCalcAction('back'));
       $('#openMoneyStats')?.addEventListener('click',openMoneyStats);
       $('#closeMoneyStats')?.addEventListener('click',closeMoneyStats);
-      $$('.moneyStatsTypeBtn').forEach(btn=>btn.addEventListener('click',()=>renderMoneyStats(btn.dataset.statsType)));
+      $$('.moneyStatsModeBtn').forEach(btn=>btn.addEventListener('click',()=>setMoneyStatsMode(btn.dataset.statsMode)));
+      $$('.moneyStatsTypeBtn').forEach(btn=>btn.addEventListener('click',()=>{
+        currentMoneyStatsType=btn.dataset.statsType;
+        moneyYearActivePointIdx=null;moneyYearChipsExpanded=false;
+        renderActiveMoneyStats();
+      }));
       $('#moneyStatsChartBtn')?.addEventListener('click',()=>{moneyStatsChartMode=!moneyStatsChartMode;renderMoneyStats(currentMoneyStatsType)});
       $('#moneyStatsPrevMonth')?.addEventListener('click',()=>changeMoneyStatsMonth(-1));
       $('#moneyStatsNextMonth')?.addEventListener('click',()=>changeMoneyStatsMonth(1));
-      $('#openMoneyYearStats')?.addEventListener('click',openMoneyYearStats);
-      $('#closeMoneyYearStats')?.addEventListener('click',closeMoneyYearStats);
       $('#moneyYearPrev')?.addEventListener('click',()=>changeMoneyYear(-1));
       $('#moneyYearNext')?.addEventListener('click',()=>changeMoneyYear(1));
-      $$('.moneyYearStatsTypeBtn').forEach(btn=>btn.addEventListener('click',()=>{currentMoneyYearStatsType=btn.dataset.statsType;moneyYearActivePointIdx=null;moneyYearChipsExpanded=false;renderMoneyYearStats()}));
       document.addEventListener('click',e=>{
-        const sheet=$('#moneyYearStatsSheet');
-        if(!sheet||sheet.hidden||moneyYearActivePointIdx==null)return;
+        const sheet=$('#moneyStatsSheet');
+        if(!sheet||sheet.hidden||moneyStatsMode!=='yearly'||moneyYearActivePointIdx==null)return;
         if(e.target.closest('[data-month-idx]'))return;
         moneyYearActivePointIdx=null;
         updateMoneyYearBubble();
