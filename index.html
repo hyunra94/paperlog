@@ -1451,13 +1451,13 @@
           <div class="row2"><div class="field"><label>분류</label><select id="moneyEntrySubject"></select></div><div class="field"><label id="moneyCardLabel">결제수단</label><select id="moneyEntryCard"></select></div></div>
           <div class="field moneyIncomeOnly" hidden><label>기타</label><input id="moneyEntryMemo" placeholder="수입 메모"></div>
           <div class="moneyCheckRow moneyExpenseOnly">
-            <label class="typeChip"><input type="checkbox" id="moneyEntryWaste"> 낭비 지출</label>
-            <label class="typeChip"><input type="checkbox" id="moneyEntryDone" checked> 입력완료</label>
+            <label class="typeChip"><input type="checkbox" id="moneyEntryWaste"> 낭비</label>
+            <label class="typeChip" id="moneyInstallmentRow" style="justify-content:flex-start">
+              <input type="checkbox" id="moneyEntryInstallment"> 할부
+              <input id="moneyEntryInstallmentMonths" type="number" min="2" max="60" inputmode="numeric" placeholder="개월" hidden style="width:52px;padding:4px 6px;border:1.3px solid var(--line);border-radius:8px;background:var(--card);font-size:14px;font-family:'Gowun Dodum',sans-serif;">
+            </label>
+            <input type="checkbox" id="moneyEntryDone" checked hidden>
           </div>
-          <div class="moneyCheckRow moneyExpenseOnly" id="moneyInstallmentRow">
-            <label class="typeChip"><input type="checkbox" id="moneyEntryInstallment"> 할부로 나눠 기록</label>
-          </div>
-          <div class="field moneyExpenseOnly" id="moneyInstallmentMonthsField" hidden><label>할부 개월수</label><input id="moneyEntryInstallmentMonths" type="number" min="2" max="60" inputmode="numeric" placeholder="예: 6"></div>
           <div class="moneySaveActions"><button class="save" type="submit">Notion에 저장</button><button class="cancel" id="moneySaveContinue" type="button">연속 추가</button></div>
           <p class="sheetNote" id="moneyEntryStatus">저장 후 현재 월 가계부가 자동으로 갱신됩니다.</p>
         </form>
@@ -3803,7 +3803,7 @@
       function resetMoneyInstallmentInputs(){
         $('#moneyEntryInstallment')&&($('#moneyEntryInstallment').checked=false);
         $('#moneyEntryInstallmentMonths')&&($('#moneyEntryInstallmentMonths').value='');
-        $('#moneyInstallmentMonthsField')&&($('#moneyInstallmentMonthsField').hidden=true);
+        $('#moneyEntryInstallmentMonths')&&($('#moneyEntryInstallmentMonths').hidden=true);
       }
       function openMoneySheet(type='expense'){
         editingMoneyRecord=null;
@@ -4053,7 +4053,7 @@
       $('#deleteMoneyInstallmentGroup')?.addEventListener('click',deleteMoneyInstallmentGroup);
       $('#moneyEntryInstallment')?.addEventListener('change',()=>{
         const checked=$('#moneyEntryInstallment')?.checked;
-        $('#moneyInstallmentMonthsField')&&($('#moneyInstallmentMonthsField').hidden=!checked);
+        $('#moneyEntryInstallmentMonths')&&($('#moneyEntryInstallmentMonths').hidden=!checked);
       });
       $('#moneyRecordList')?.addEventListener('click',e=>{
         if(e.target.closest('a'))return;
