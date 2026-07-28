@@ -1935,6 +1935,7 @@ async function getInstallmentGroup(request, env) {
     const props = page.properties || {};
     return {
       id: page.id,
+      url: page.url,
       title: readTitle(props, p.title) || "지출",
       date: readDateRange(props, p.date).date,
       amount: readNumber(props, p.amount),

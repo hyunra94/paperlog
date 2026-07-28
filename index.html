@@ -1464,6 +1464,15 @@
       </section>
     </div>
 
+    <div class="sheetBg" id="installmentScheduleSheet" hidden>
+      <section class="sheet">
+        <div class="handle"></div>
+        <div class="sheetHead"><h3>할부 일정</h3><button class="icon" id="closeInstallmentSchedule" type="button">×</button></div>
+        <div class="moneyStatsHead"><span>총 할부금액</span><strong class="moneyStatsTotal" id="installmentScheduleTotal">0</strong></div>
+        <div class="moneyStatsList" id="installmentScheduleList"></div>
+      </section>
+    </div>
+
     <div class="sheetBg" id="moneyCalcSheet" hidden>
       <section class="sheet moneyCalcSheet">
         <div class="handle"></div>
@@ -3415,9 +3424,11 @@
           if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'할부 일정 조회 실패');
           const records=(data.records||[]).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
           if(!records.length){alert('할부 일정을 찾을 수 없어요.');return}
-          const lines=records.map((r,i)=>`${i+1}회 · ${r.date||''} · ${won(r.amount)}원`);
           const total=records.reduce((a,b)=>a+Number(b.amount||0),0);
-          alert(`할부 전체 일정 (총 ${records.length}회, 합계 ${won(total)}원)\n\n${lines.join('\n')}`);
+          const totalEl=$('#installmentScheduleTotal');if(totalEl)totalEl.textContent='-'+won(total)+`원 · 총 ${records.length}회`;
+          const list=$('#installmentScheduleList');
+          if(list)list.innerHTML=records.map((r,i)=>`<div class="moneyStatsRow" style="grid-template-columns:1fr auto auto"><span><strong>${i+1}회${i===0?' · 원본':''}</strong><small>${r.date||''}</small></span><span class="amount expense">-${won(r.amount)}</span>${r.url?`<a class="goLink" href="${r.url}" target="_blank" rel="noopener noreferrer" aria-label="Notion 바로가기">↗</a>`:'<span class="goLink disabled">↗</span>'}</div>`).join('');
+          const sheet=$('#installmentScheduleSheet');if(sheet)sheet.hidden=false;
         }catch(err){
           alert('할부 일정 조회 실패: '+err.message);
         }
@@ -3840,8 +3851,8 @@
         $('#moneyEntryWaste')&&( $('#moneyEntryWaste').checked=!!record.waste);
         $('#moneyEntryDone')&&( $('#moneyEntryDone').checked=record.done!==false);
         resetMoneyInstallmentInputs();
-        $('#moneyInstallmentRow')&&($('#moneyInstallmentRow').hidden=true);
-        const status=$('#moneyEntryStatus');if(status)status.textContent=record.installmentGroup?'할부로 나눠 기록된 항목이에요. 이 달만 수정하거나, 할부 전체를 삭제할 수 있어요.':'수정 후 Notion에 반영됩니다.';
+        $('#moneyInstallmentRow')&&($('#moneyInstallmentRow').hidden=!!record.installmentGroup);
+        const status=$('#moneyEntryStatus');if(status)status.textContent=record.installmentGroup?'할부로 나눠 기록된 항목이에요. 이 달만 수정하거나, 할부 전체를 삭제할 수 있어요.':'수정 후 Notion에 반영됩니다. "할부"를 체크하면 이 기록을 할부로 바꿀 수 있어요.';
       }
       function closeMoneySheet(){const sheet=$('#moneySheet');if(sheet)sheet.hidden=true;editingMoneyRecord=null;const title=$('#moneySheetTitle');if(title)title.textContent='가계부 입력';$('#deleteMoneyEntry')&&($('#deleteMoneyEntry').hidden=true);$('#deleteMoneyInstallmentGroup')&&($('#deleteMoneyInstallmentGroup').hidden=true)}
       function setMoneyType(type){
@@ -3898,27 +3909,33 @@
           waste:!!$('#moneyEntryWaste')?.checked
         };
         if(!body.title||!body.date||!body.amount){const s=$('#moneyEntryStatus');if(s)s.textContent='내용, 날짜, 금액을 입력해줘.';return}
-        const isInstallment=!editingMoneyRecord&&saveType==='expense'&&!!$('#moneyEntryInstallment')?.checked;
+        const isConvertingToInstallment=!!(editingMoneyRecord&&!editingMoneyRecord.installmentGroup);
+        const isInstallment=saveType==='expense'&&!!$('#moneyEntryInstallment')?.checked&&!(editingMoneyRecord&&editingMoneyRecord.installmentGroup);
         let months=0;
         if(isInstallment){
           months=Math.round(Number($('#moneyEntryInstallmentMonths')?.value||0));
           if(!months||months<2||months>60){const s=$('#moneyEntryStatus');if(s)s.textContent='할부 개월수를 2~60 사이로 입력해줘.';return}
         }
         const path=isInstallment?'/api/money/expense/installment':(saveType==='income'?'/api/money/income':'/api/money/expense');
-        const method=editingMoneyRecord?'PATCH':'POST';
+        const method=isInstallment?'POST':(editingMoneyRecord?'PATCH':'POST');
         const submitBody=isInstallment?{title:body.title,date:body.date,totalAmount:body.amount,months,category:body.category,card:body.card,waste:body.waste}:body;
         const submitKey=moneySubmitKey(saveType,body,method)+(isInstallment?`|inst${months}`:'');
         const now=Date.now();
-        if(method==='POST'&&submitKey===lastMoneySubmitKey&&now-lastMoneySubmitAt<6000){
+        if(method==='POST'&&!isInstallment&&submitKey===lastMoneySubmitKey&&now-lastMoneySubmitAt<6000){
           const s=$('#moneyEntryStatus');if(s)s.textContent='방금 같은 내용으로 저장했어. 중복 저장을 막았어.';
           return;
         }
         setMoneySaving(true);
-        const status=$('#moneyEntryStatus');if(status)status.textContent=method==='PATCH'?'수정 중...':(isInstallment?`${months}개월로 나눠 저장 중...`:'저장 중...');
+        const status=$('#moneyEntryStatus');if(status)status.textContent=isInstallment?(isConvertingToInstallment?`할부 ${months}개월로 전환 중...`:`${months}개월로 나눠 저장 중...`):(editingMoneyRecord?'수정 중...':'저장 중...');
         try{
           const res=await window.paperLog.fetch(path,{method,body:JSON.stringify(submitBody)});
           const data=await res.json().catch(()=>({}));
           if(!res.ok||data.ok===false)throw new Error(data.message||data.error||(editingMoneyRecord?'수정 실패':'저장 실패'));
+
+          if(isInstallment&&isConvertingToInstallment){
+            try{await window.paperLog.fetch('/api/money/expense',{method:'DELETE',body:JSON.stringify({id:editingMoneyRecord.id})})}
+            catch(delErr){console.warn('할부 전환 시 기존 기록 삭제 실패:',delErr)}
+          }
 
           lastMoneySubmitKey=submitKey;
           lastMoneySubmitAt=Date.now();
@@ -3940,7 +3957,7 @@
             const s=$('#moneyEntryStatus');if(s)s.textContent='저장했어. 이어서 입력할 수 있어.';
           }else{
             closeMoneySheet();
-            setMoneyStatus(method==='PATCH'?'가계부 기록을 수정했어요.':'가계부 기록을 저장했어요.');
+            setMoneyStatus(isConvertingToInstallment?'할부로 전환했어요.':(method==='PATCH'?'가계부 기록을 수정했어요.':'가계부 기록을 저장했어요.'));
           }
         }catch(err){
           const s=$('#moneyEntryStatus');if(s)s.textContent=(editingMoneyRecord?'수정 실패: ':'저장 실패: ')+err.message;
@@ -4051,6 +4068,7 @@
       $('#closeMoneyEntry')?.addEventListener('click',closeMoneySheet);
       $('#deleteMoneyEntry')?.addEventListener('click',deleteMoneyEntry);
       $('#deleteMoneyInstallmentGroup')?.addEventListener('click',deleteMoneyInstallmentGroup);
+      $('#closeInstallmentSchedule')?.addEventListener('click',()=>{const sheet=$('#installmentScheduleSheet');if(sheet)sheet.hidden=true});
       $('#moneyEntryInstallment')?.addEventListener('change',()=>{
         const checked=$('#moneyEntryInstallment')?.checked;
         $('#moneyEntryInstallmentMonths')&&($('#moneyEntryInstallmentMonths').hidden=!checked);
@@ -4061,7 +4079,12 @@
         if(badge){e.stopPropagation();showInstallmentSchedule(badge.dataset.installmentGroup);return}
         const el=e.target.closest('[data-money-edit]');if(!el)return;const id=el.dataset.moneyEdit;const record=moneyRecords.find(r=>r.id===id);if(record)openMoneyEdit(record)
       });
-      $$('.moneyTypeBtn[data-money-type]').forEach(btn=>btn.addEventListener('click',()=>{moneySubjectTouched=false;moneyCardTouched=false;setMoneyType(btn.dataset.moneyType);const def=btn.dataset.moneyType==='income'?'국민카드':'토스뱅크';setSelectValue($('#moneyEntryCard'),def);applyMoneySuggestion();if(!editingMoneyRecord)resetMoneyInstallmentInputs();else $('#moneyInstallmentRow')&&($('#moneyInstallmentRow').hidden=true)}));
+      $$('.moneyTypeBtn[data-money-type]').forEach(btn=>btn.addEventListener('click',()=>{
+        moneySubjectTouched=false;moneyCardTouched=false;setMoneyType(btn.dataset.moneyType);
+        const def=btn.dataset.moneyType==='income'?'국민카드':'토스뱅크';setSelectValue($('#moneyEntryCard'),def);applyMoneySuggestion();
+        resetMoneyInstallmentInputs();
+        $('#moneyInstallmentRow')&&($('#moneyInstallmentRow').hidden=!!(editingMoneyRecord&&editingMoneyRecord.installmentGroup));
+      }));
       $('#moneyEntryTitle')?.addEventListener('input',()=>applyMoneySuggestion());
       $('#moneyEntryAmount')?.addEventListener('blur',formatAmountInput);
       $('#moneyEntryAmount')?.addEventListener('focus',normalizeAmountInputBeforeCalc);
