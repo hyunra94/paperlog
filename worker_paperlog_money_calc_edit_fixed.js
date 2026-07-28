@@ -53,7 +53,9 @@ export default {
             "/api/money/income",
             "/api/money/expense",
             "DELETE /api/money/income",
-            "DELETE /api/money/expense"
+            "DELETE /api/money/expense",
+            "POST /api/money/expense/installment",
+            "DELETE /api/money/expense/installment"
           ],
         }, 200, cors);
       }
@@ -208,6 +210,16 @@ export default {
         return json({ ok: true, page: result }, 200, cors);
       }
 
+      if (url.pathname === "/api/money/expense/installment" && request.method === "POST") {
+        const result = await createInstallmentExpenseGroup(request, env);
+        return json({ ok: true, ...result }, 200, cors);
+      }
+
+      if (url.pathname === "/api/money/expense/installment" && request.method === "DELETE") {
+        const result = await deleteInstallmentGroup(request, env);
+        return json({ ok: true, ...result }, 200, cors);
+      }
+
       return json({
         ok: false,
         error: "Not found",
@@ -284,6 +296,7 @@ function expenseProps(env) {
     card: env.EXPENSE_CARD_PROP || "Card",
     done: env.EXPENSE_DONE_PROP || "입력완료",
     waste: env.EXPENSE_WASTE_PROP || "Waste",
+    installmentGroup: env.EXPENSE_INSTALLMENT_PROP || "할부그룹",
   };
 }
 
@@ -1777,6 +1790,7 @@ async function getExpenseRecords(env, from, to) {
       payment: readTextLike(props, p.card),
       done: readCheckbox(props, p.done),
       waste: readCheckbox(props, p.waste),
+      installmentGroup: readRichText(props, p.installmentGroup),
     };
   });
 }
@@ -1845,6 +1859,77 @@ async function deleteMoneyPage(request, env) {
   }
 
   return notionArchivePage(env, body.id);
+}
+
+/* =========================
+   할부 (Installment) 지출
+   - 새 Notion 속성 없이는 "이 지출이 할부인지"와 "전체 삭제"를 구현할 수 없어서,
+     Expense DB에 사용자가 직접 추가한 "할부그룹" 텍스트 속성에 그룹 ID를 심어 둔다.
+   - 회차 표시("2/6")는 별도 속성 없이 제목에 그대로 적어서 사람이 바로 읽을 수 있게 한다.
+========================= */
+
+function addMonthsClampedDate(dateStr, n) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const targetIndex = m - 1 + n;
+  const targetYear = y + Math.floor(targetIndex / 12);
+  const targetMonth = ((targetIndex % 12) + 12) % 12;
+  const daysInTargetMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+  const day = Math.min(d, daysInTargetMonth);
+  return `${targetYear}-${String(targetMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
+async function createInstallmentExpenseGroup(request, env) {
+  const body = await request.json();
+  const p = expenseProps(env);
+
+  if (!body.title) throw new Error("title is required");
+  if (!body.date) throw new Error("date is required");
+
+  const months = Math.max(2, Math.min(60, Math.round(Number(body.months || 0))));
+  const totalAmount = Math.round(Number(body.totalAmount || 0));
+  if (!totalAmount) throw new Error("totalAmount is required");
+
+  const base = Math.floor(totalAmount / months);
+  const remainder = totalAmount - base * months;
+  const groupId = crypto.randomUUID();
+
+  const pages = [];
+  for (let i = 0; i < months; i++) {
+    const dateStr = addMonthsClampedDate(body.date, i);
+    const amount = base + (i === months - 1 ? remainder : 0);
+
+    const properties = {
+      [p.title]: { title: [{ text: { content: `${body.title} (할부 ${i + 1}/${months})` } }] },
+      [p.date]: { date: { start: dateStr } },
+      [p.amount]: { number: amount },
+      [p.installmentGroup]: { rich_text: [{ text: { content: groupId } }] },
+    };
+    if (body.category) properties[p.subject] = { select: { name: body.category } };
+    if (body.card) properties[p.card] = { select: { name: body.card } };
+    if (p.done) properties[p.done] = { checkbox: true };
+    if (p.waste) properties[p.waste] = { checkbox: Boolean(body.waste) };
+
+    pages.push(await notionCreatePage(env, env.NOTION_EXPENSE_DB_ID, properties));
+  }
+
+  return { groupId, count: months, pages };
+}
+
+async function deleteInstallmentGroup(request, env) {
+  const body = await request.json();
+  if (!body.groupId) throw new Error("groupId is required");
+
+  const p = expenseProps(env);
+  const notionData = await notionQuery(env, env.NOTION_EXPENSE_DB_ID, {
+    filter: { property: p.installmentGroup, rich_text: { equals: body.groupId } },
+  });
+
+  const archived = [];
+  for (const page of notionData.results) {
+    archived.push(await notionArchivePage(env, page.id));
+  }
+
+  return { archived: archived.length };
 }
 
 function buildExpenseProperties(body, p, isCreate) {
