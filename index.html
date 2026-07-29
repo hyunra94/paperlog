@@ -210,6 +210,8 @@
       place-items:center;
     }
     .calendarTabs{margin-bottom:10px;grid-template-columns:1fr 1fr;position:relative;z-index:66}
+    .app{position:relative;overflow-x:hidden}
+    .page.pageIncoming{position:absolute;top:0;left:0;right:0;animation:none;z-index:2}
     .calMenuBtn{position:relative}
     .calMenuBtn.on{background:#f4e4a8}
     .calMenuBtn.hasActive::after{content:"";position:absolute;top:6px;right:9px;width:6px;height:6px;border-radius:999px;background:#e08a8a;box-shadow:0 0 0 1.5px rgba(255,250,242,.95)}
@@ -1813,13 +1815,49 @@
       function page(id,options={}){
         if(currentViewMode==='work'&&(id==='budget'||id==='boss'))id='dashboard';
         if(!document.getElementById(id))id='dashboard';
-        localStorage.setItem(ACTIVE_PAGE_KEY,id);
         $$('.page').forEach(p=>p.classList.toggle('on',p.id===id));
+        finalizePage(id,options);
+      }
+      function finalizePage(id,options={}){
+        localStorage.setItem(ACTIVE_PAGE_KEY,id);
         $$('.navBtn').forEach(b=>b.classList.toggle('on',b.dataset.target===id));
         if(options.scroll!==false)scrollTo({top:0,behavior:'smooth'});
         if(id==='calendar')setTimeout(()=>loadCalendarFromWorker(true),180);
         if(id==='budget')setTimeout(()=>window.paperMoney?.load?.(true),260);
         if(id==='boss')setTimeout(()=>loadBossFromWorker(true),220);
+      }
+      let pageSwiping=false;
+      function swipeToPage(id,dir){
+        if(currentViewMode==='work'&&(id==='budget'||id==='boss'))id='dashboard';
+        if(!document.getElementById(id))id='dashboard';
+        const curEl=document.querySelector('.page.on');
+        const nextEl=document.getElementById(id);
+        if(!curEl||!nextEl||curEl===nextEl||pageSwiping){page(id);return}
+        pageSwiping=true;
+        const w=document.querySelector('.app')?.clientWidth||window.innerWidth;
+        nextEl.classList.add('on','pageIncoming');
+        nextEl.style.transition='none';
+        nextEl.style.transform=`translateX(${dir>0?w:-w}px)`;
+        curEl.style.transition='none';
+        curEl.style.transform='translateX(0)';
+        void nextEl.offsetWidth;
+        const finish=()=>{
+          curEl.classList.remove('on');
+          curEl.style.transition='';curEl.style.transform='';
+          nextEl.classList.remove('pageIncoming');
+          nextEl.style.transition='';nextEl.style.transform='';
+          nextEl.removeEventListener('transitionend',finish);
+          pageSwiping=false;
+        };
+        requestAnimationFrame(()=>{
+          curEl.style.transition='transform .26s cubic-bezier(.22,.61,.36,1)';
+          nextEl.style.transition='transform .26s cubic-bezier(.22,.61,.36,1)';
+          curEl.style.transform=`translateX(${dir>0?-w:w}px)`;
+          nextEl.style.transform='translateX(0)';
+        });
+        nextEl.addEventListener('transitionend',finish,{once:true});
+        setTimeout(()=>{if(pageSwiping)finish()},450);
+        finalizePage(id,{scroll:false});
       }
       function dateStrip(){const root=$('#dateStrip');root.innerHTML='';const mon=new Date(today);mon.setDate(today.getDate()-((today.getDay()+6)%7));for(let i=0;i<7;i++){const d=new Date(mon);d.setDate(mon.getDate()+i);root.insertAdjacentHTML('beforeend',`<div class="pill ${key(d)===key(today)?'on':''} ${isWeekend(d)?'weekend':''} ${isHoliday(d)?'holiday':''}" title="${HOLIDAYS_KR[key(d)]||''}"><strong>${d.getDate()}</strong><span>${wk[d.getDay()]}</span></div>`)}}
       const MOOD_LABELS={happy:'좋음',sad:'슬픔',angry:'화남',sleepy:'졸림',surprised:'놀람',excited:'신남',calm:'편안',anxious:'불안',lonely:'외로움',love:'설렘',sick:'아픔',absurd:'어이없음'};
@@ -2756,7 +2794,7 @@
           if(curIdx<0)return;
           const nextIdx=curIdx+(dx<0?1:-1);
           if(nextIdx<0||nextIdx>=targets.length)return;
-          page(targets[nextIdx]);
+          swipeToPage(targets[nextIdx],dx<0?1:-1);
         },{passive:true});
       })();
       function moveCalendarMonth(offset){
