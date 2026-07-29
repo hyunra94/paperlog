@@ -274,7 +274,8 @@
     .moneyMiniCal{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--cal-line);border:1.5px solid var(--cal-line);border-radius:20px;overflow:hidden}
     .moneyWd,.moneyDay{background:var(--cal-cell);min-height:34px;padding:5px;text-align:left;position:relative}
     .moneyWd{text-align:center;background:var(--cal-head);font-family:'Patrick Hand';font-size:15px;min-height:29px;color:#3f382f}.moneyWd.weekend{color:var(--cal-red)}
-    .moneyDay{border:0}.moneyDay.incomeOnly{background:#d9ebf5}.moneyDay.expenseOnly{background:#f8dddd}.moneyDay.both{background:#eadff6}.moneyDay.wasteFlag:after{content:"";position:absolute;right:6px;top:6px;width:7px;height:7px;border:1px solid rgba(47,42,40,.45);border-radius:999px;background:#f4d98b}.moneyDay.mute{background:var(--cal-muted);opacity:.82}.moneyDay.mute.incomeOnly{background:#d6dde0}.moneyDay.mute.expenseOnly{background:#e6d8d8}.moneyDay.mute.both{background:#ddd8e3}.moneyDay.today .moneyNum,.moneyDay.sel .moneyNum{display:inline-grid;place-items:center;width:22px;height:22px;border:1.1px solid var(--line);border-radius:999px}.moneyDay.today .moneyNum{background:var(--cal-today)}.moneyDay.sel .moneyNum{background:var(--cal-sel)}
+    .moneyDay{border:0}.moneyDay.incomeOnly{background:#d9ebf5}.moneyDay.expenseOnly{background:#f8dddd}.moneyDay.both{background:#eadff6}.moneyDay.wasteFlag:after{content:"";position:absolute;right:6px;top:6px;width:7px;height:7px;border:1px solid rgba(47,42,40,.45);border-radius:999px;background:#f4d98b}
+.moneyDay.installmentFlag:before{content:"";position:absolute;left:6px;top:6px;width:7px;height:7px;border:1px solid rgba(47,42,40,.45);border-radius:999px;background:#9fcbdf}.moneyDay.mute{background:var(--cal-muted);opacity:.82}.moneyDay.mute.incomeOnly{background:#d6dde0}.moneyDay.mute.expenseOnly{background:#e6d8d8}.moneyDay.mute.both{background:#ddd8e3}.moneyDay.today .moneyNum,.moneyDay.sel .moneyNum{display:inline-grid;place-items:center;width:22px;height:22px;border:1.1px solid var(--line);border-radius:999px}.moneyDay.today .moneyNum{background:var(--cal-today)}.moneyDay.sel .moneyNum{background:var(--cal-sel)}
     .moneyNum{font-family:'Gaegu';font-size:17px;line-height:1}.moneyDay.weekend .moneyNum{color:var(--cal-red)}
     .moneyDots{position:absolute;left:6px;right:6px;bottom:6px;display:flex;gap:4px}.moneyDot{width:8px;height:8px;border:1px solid rgba(47,42,40,.45);border-radius:999px}.moneyDot.income{background:#b9dced}.moneyDot.expense{background:#e7c3c8}.moneyDot.waste{background:#f4d98b}
     .moneyRecordHead{display:flex;align-items:center;justify-content:space-between;gap:8px}.moneyRecordTotals{margin:-2px 2px 8px;text-align:right;color:var(--sub);font-size:11px;line-height:1.35}.moneyClearFilter{border:1.2px solid var(--line);border-radius:999px;background:var(--card);font-size:12px;padding:4px 8px;box-shadow:1.5px 1.5px 0 rgba(47,42,40,.08)}
@@ -2805,6 +2806,7 @@
             window.scrollTo(0,0);
             document.querySelector('.app')?.classList.add('pageDragActive');
             neighborEl.classList.add('on','pageIncoming');
+            void neighborEl.offsetHeight;
             neighborEl.style.transition='none';
             curEl.style.transition='none';
           }
@@ -3461,7 +3463,7 @@
         const waste=records.filter(r=>r.type==='expense'&&r.waste).reduce((a,b)=>a+Number(b.amount||0),0);return {income,expense,balance:income-expense,waste,count:records.length};
       }
       function computeDays(records){
-        return records.reduce((acc,r)=>{if(!r.date)return acc;(acc[r.date]??={income:false,expense:false,waste:false});if(r.type==='income')acc[r.date].income=true;if(r.type==='expense')acc[r.date].expense=true;if(r.waste)acc[r.date].waste=true;return acc},{});
+        return records.reduce((acc,r)=>{if(!r.date)return acc;(acc[r.date]??={income:false,expense:false,waste:false,installment:false});if(r.type==='income')acc[r.date].income=true;if(r.type==='expense')acc[r.date].expense=true;if(r.waste)acc[r.date].waste=true;if(r.installmentGroup)acc[r.date].installment=true;return acc},{});
       }
       let moneyLoadSeq=0, dashboardMoneyLoadSeq=0;
       function getMoneyCacheStore(){try{return JSON.parse(localStorage.getItem(MONEY_CACHE_KEY)||'{}')}catch{return {}}}
@@ -3557,7 +3559,7 @@
         const first=new Date(moneyView.getFullYear(),moneyView.getMonth(),1), start=new Date(first);start.setDate(first.getDate()-((first.getDay()+6)%7));
         for(let i=0;i<42;i++){
           const d=new Date(start);d.setDate(start.getDate()+i);const k=key(d);const info=days[k]||{};
-          const tone=info.income&&info.expense?'both':info.income?'incomeOnly':info.expense?'expenseOnly':'';const wasteClass=info.waste?'wasteFlag':'';root.insertAdjacentHTML('beforeend',`<button class="moneyDay ${tone} ${wasteClass} ${d.getMonth()!==moneyView.getMonth()?'mute':''} ${k===key(today)?'today':''} ${k===selectedMoneyDate?'sel':''} ${d.getDay()===0||d.getDay()===6?'weekend':''}" data-money-date="${k}" type="button"><span class="moneyNum">${d.getDate()}</span></button>`);
+          const tone=info.income&&info.expense?'both':info.income?'incomeOnly':info.expense?'expenseOnly':'';const wasteClass=info.waste?'wasteFlag':'';const installmentClass=info.installment?'installmentFlag':'';root.insertAdjacentHTML('beforeend',`<button class="moneyDay ${tone} ${wasteClass} ${installmentClass} ${d.getMonth()!==moneyView.getMonth()?'mute':''} ${k===key(today)?'today':''} ${k===selectedMoneyDate?'sel':''} ${d.getDay()===0||d.getDay()===6?'weekend':''}" data-money-date="${k}" type="button"><span class="moneyNum">${d.getDate()}</span></button>`);
         }
       }
 
