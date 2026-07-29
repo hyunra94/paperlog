@@ -209,8 +209,9 @@
       display:grid;
       place-items:center;
     }
-    .calendarTabs{margin-bottom:10px;grid-template-columns:1fr 1fr;position:relative;z-index:66}
-    .app{position:relative;overflow-x:hidden}
+    .calendarTabs{margin-bottom:10px;grid-template-columns:1fr 1fr;position:relative;z-index:41}
+    .app{position:relative}
+    .app.pageDragActive{overflow-x:hidden}
     .page.pageIncoming{position:absolute;top:0;left:0;right:0;animation:none;z-index:2}
     .calMenuBtn{position:relative}
     .calMenuBtn.on{background:#f4e4a8}
@@ -1282,7 +1283,7 @@
       <div class="title"><h2>Calendar</h2><small>Schedule + Tasks · Mon start</small></div>
       <div class="calendarTopBar">
         <button class="calendarMonthBtn" id="prevMonth" type="button" aria-label="지난 달">‹</button>
-        <div class="calendarMonthTitle" id="monthTitle">May 2026</div>
+        <div class="calendarMonthTitle" id="monthTitle">2026년 5월</div>
         <button class="calendarTodayBtn" id="calendarTodayBtn" type="button">오늘</button>
         <button class="calendarMonthBtn" id="nextMonth" type="button" aria-label="다음 달">›</button>
       </div>
@@ -1961,7 +1962,7 @@
           entrySaving=false;
         }
       }
-      function renderCal(){const grid=$('#calendarGrid'), title=$('#monthTitle');grid.innerHTML='';title.textContent=new Intl.DateTimeFormat('en-US',{month:'long',year:'numeric'}).format(view);wkMon.forEach(x=>grid.insertAdjacentHTML('beforeend',`<div class="wd ${x==='sat'||x==='sun'?'weekend':''}">${x}</div>`));const first=new Date(view.getFullYear(),view.getMonth(),1), start=new Date(first);start.setDate(first.getDate()-((first.getDay()+6)%7));for(let i=0;i<42;i++){const d=new Date(start);d.setDate(start.getDate()+i);const k=key(d),v=visible(k),markers=calendarMarkers(v);grid.insertAdjacentHTML('beforeend',`<button class="day ${d.getMonth()!==view.getMonth()?'mute':''} ${k===key(today)?'today':''} ${k===selected?'sel':''} ${isWeekend(d)?'weekend':''} ${isHoliday(d)?'holiday':''} ${v.daily&&v.daily[0]?'hasMoodBg':''}" data-date="${k}" title="${HOLIDAYS_KR[k]||''}"${(v.daily&&v.daily[0])?moodBgAttr(v.daily[0].mood):''}><span class="num">${d.getDate()}</span><div class="dots">${markers.map(m=>m==='anniversary'?`<svg class="dot anniversary" viewBox="0 0 9 9" width="9" height="9" xmlns="http://www.w3.org/2000/svg"><rect x=".8" y="4" width="7.4" height="4.5" rx="1.2" fill="#f0a0b5" stroke="rgba(47,42,40,.4)" stroke-width=".7"/><line x1="1.2" y1="4" x2="7.8" y2="4" stroke="rgba(47,42,40,.25)" stroke-width=".5"/><rect x="3.7" y="2" width="1.6" height="2.2" rx=".4" fill="#f5d07a"/><ellipse cx="4.5" cy="1.6" rx=".9" ry="1.1" fill="#f07050"/></svg>`:`<span class="dot ${m}"></span>`).join('')}</div></button>`)}
+      function renderCal(){const grid=$('#calendarGrid'), title=$('#monthTitle');grid.innerHTML='';title.textContent=`${view.getFullYear()}년 ${view.getMonth()+1}월`;wkMon.forEach(x=>grid.insertAdjacentHTML('beforeend',`<div class="wd ${x==='sat'||x==='sun'?'weekend':''}">${x}</div>`));const first=new Date(view.getFullYear(),view.getMonth(),1), start=new Date(first);start.setDate(first.getDate()-((first.getDay()+6)%7));for(let i=0;i<42;i++){const d=new Date(start);d.setDate(start.getDate()+i);const k=key(d),v=visible(k),markers=calendarMarkers(v);grid.insertAdjacentHTML('beforeend',`<button class="day ${d.getMonth()!==view.getMonth()?'mute':''} ${k===key(today)?'today':''} ${k===selected?'sel':''} ${isWeekend(d)?'weekend':''} ${isHoliday(d)?'holiday':''} ${v.daily&&v.daily[0]?'hasMoodBg':''}" data-date="${k}" title="${HOLIDAYS_KR[k]||''}"${(v.daily&&v.daily[0])?moodBgAttr(v.daily[0].mood):''}><span class="num">${d.getDate()}</span><div class="dots">${markers.map(m=>m==='anniversary'?`<svg class="dot anniversary" viewBox="0 0 9 9" width="9" height="9" xmlns="http://www.w3.org/2000/svg"><rect x=".8" y="4" width="7.4" height="4.5" rx="1.2" fill="#f0a0b5" stroke="rgba(47,42,40,.4)" stroke-width=".7"/><line x1="1.2" y1="4" x2="7.8" y2="4" stroke="rgba(47,42,40,.25)" stroke-width=".5"/><rect x="3.7" y="2" width="1.6" height="2.2" rx=".4" fill="#f5d07a"/><ellipse cx="4.5" cy="1.6" rx=".9" ry="1.1" fill="#f07050"/></svg>`:`<span class="dot ${m}"></span>`).join('')}</div></button>`)}
                            
                            renderDetail()}
       function isTabletLayout(){return window.matchMedia('(min-width:960px)').matches}
@@ -2747,6 +2748,7 @@
       $$('.navBtn').forEach(b=>b.onclick=()=>page(b.dataset.target));$$('.jump').forEach(b=>b.onclick=()=>page(b.dataset.target));$$('[data-scroll]').forEach(b=>b.onclick=()=>document.getElementById(b.dataset.scroll).scrollIntoView({behavior:'smooth'}));
       (function initTabSwipe(){
         let sx=0,sy=0,st=0,tracking=false,dragging=false,dragDir=0,w=0;
+        const GAP=14;
         let curEl=null,neighborEl=null,neighborId=null;
         const blockerSel='.sheetBg:not([hidden]),.schedulePopupBg:not([hidden]),.calMenuBg:not([hidden])';
         const EASE='transform .22s cubic-bezier(.22,.61,.36,1)';
@@ -2769,6 +2771,7 @@
             next.classList.remove('pageIncoming');
             next.style.transition='';next.style.transform='';
             next.removeEventListener('transitionend',finish);
+            document.querySelector('.app')?.classList.remove('pageDragActive');
             pageDragBusy=false;
             onDone&&onDone();
           };
@@ -2792,6 +2795,7 @@
             if(!neighborId||!curEl){tracking=false;return}
             neighborEl=document.getElementById(neighborId);
             dragging=true;dragDir=dir;
+            document.querySelector('.app')?.classList.add('pageDragActive');
             neighborEl.classList.add('on','pageIncoming');
             neighborEl.style.transition='none';
             curEl.style.transition='none';
@@ -2800,7 +2804,7 @@
           e.preventDefault();
           const clamped=dragDir>0?Math.min(0,dx):Math.max(0,dx);
           curEl.style.transform=`translateX(${clamped}px)`;
-          neighborEl.style.transform=`translateX(${dragDir>0?w+clamped:-w+clamped}px)`;
+          neighborEl.style.transform=`translateX(${dragDir>0?w+GAP+clamped:-w-GAP+clamped}px)`;
         },{passive:false});
         document.addEventListener('touchend',e=>{
           if(!tracking){return}
@@ -2820,7 +2824,7 @@
           }else{
             cur.style.transition=EASE;next.style.transition=EASE;
             cur.style.transform='translateX(0)';
-            next.style.transform=`translateX(${dir>0?w:-w}px)`;
+            next.style.transform=`translateX(${dir>0?w+GAP:-w-GAP}px)`;
             settle(cur,next,null);
           }
           clearDragRefs();
@@ -2911,7 +2915,7 @@
           return;
         }
         const charLoot=e.target.closest('[data-charloot]');if(charLoot){openBossLootMemo('char:'+charLoot.dataset.charloot);return}const money=e.target.closest('[data-moneyvalue]');if(money){moneyDetail(money.dataset.moneylabel||'금액',money.dataset.moneyvalue||0);return}const loot=e.target.closest('[data-bossloot]');if(loot){openBossLootMemo(loot.dataset.bossloot);return}const del=e.target.closest('[data-deleteboss]');if(del){const r=bossRecords.find(x=>x.key===del.dataset.deleteboss);const cid=r?.charId;bossRecords=bossRecords.filter(x=>x.key!==del.dataset.deleteboss);renderBoss();if(cid)await saveBossWeeklyRecordForChar(cid);return}const c=e.target.closest('[data-bosskey]');if(c){const r=bossRecords.find(x=>x.key===c.dataset.bosskey);if(r){r.clear=!r.clear;renderBoss();await saveBossWeeklyRecordForChar(r.charId)}}};$('#bossList').addEventListener('change',async e=>{const mode=e.target.closest('[data-partykey]');if(mode){const r=bossRecords.find(x=>x.key===mode.dataset.partykey);if(r){r.partyType=mode.value;if(r.partyType==='other'&&!r.otherParty)r.otherParty=3;saveBossPartyPref(r);renderBoss();if(r.clear)await saveBossWeeklyRecordForChar(r.charId)}return}const other=e.target.closest('[data-otherpartykey]');if(other){const r=bossRecords.find(x=>x.key===other.dataset.otherpartykey);if(r){r.otherParty=Number(other.value)||3;saveBossPartyPref(r);renderBoss();if(r.clear)await saveBossWeeklyRecordForChar(r.charId)}}});$('#bossLootMemo')&&($('#bossLootMemo').oninput=updateBossLootCalc);$('#bossLootForm')&&($('#bossLootForm').onsubmit=async e=>{e.preventDefault();const input=$('#bossLootMemo')?.value||'';if(String(editingBossLootKey||'').startsWith('char:')){const charId=String(editingBossLootKey).slice(5);bossLootMemos[charId]=uniqueMemoLines(input).join('\n');renderBoss();await saveBossWeeklyRecordForChar(charId,{silent:true})}else{const r=bossRecords.find(x=>x.key===editingBossLootKey);if(r&&String(input).trim()){bossLootMemos[r.charId]=appendBossMemoLine(bossLootMemos[r.charId]||'',r.name,input);renderBoss();await saveBossWeeklyRecordForChar(r.charId,{silent:true})}}closeBossLootSheet()});$('#clearBossLoot')&&($('#clearBossLoot').onclick=()=>{$('#bossLootMemo').value='';updateBossLootCalc()});$('#closeBossLoot')&&($('#closeBossLoot').onclick=closeBossLootSheet);const bossLootSheetBg=$('#bossLootSheet');if(bossLootSheetBg)bossLootSheetBg.addEventListener('click',e=>{if(e.target===bossLootSheetBg)closeBossLootSheet()});
-      const openSettingsBtn=$('#openSettings');if(openSettingsBtn)openSettingsBtn.onclick=openSettings;const closeSettingsBtn=$('#closeSettings');if(closeSettingsBtn)closeSettingsBtn.onclick=closeSettings;const settingsForm=$('#settingsForm');if(settingsForm)settingsForm.onsubmit=saveSettingsForm;const viewModeSelect=$('#settingViewMode');if(viewModeSelect)viewModeSelect.onchange=()=>setViewMode(viewModeSelect.value);const settingLoadBtn=$('#settingLoadNotion');if(settingLoadBtn)settingLoadBtn.onclick=async()=>{await loadProjectsFromWorker(true);loadCalendarFromWorker(false)};const clearSettingsBtn=$('#clearSettings');if(clearSettingsBtn)clearSettingsBtn.onclick=()=>{clearPaperConfig();fillSettingsForm();const s=$('#settingsStatus');if(s)s.textContent='저장된 설정을 지웠어요.'};const cancelToggle=$('#showCanceledSchedules');if(cancelToggle){cancelToggle.checked=state.showCanceled;cancelToggle.onchange=()=>{state.showCanceled=cancelToggle.checked;updateCalMenuIndicators();loadCalendarFromWorker(false)}};const dateStripEl=$('#dateStrip');if(dateStripEl)dateStripEl.ondblclick=toggleWeekStrip;const stickyTopEl=$('#stickyTop');if(stickyTopEl)stickyTopEl.ondblclick=()=>{localStorage.setItem('paperWeekStripHidden','false');applyWeekStripHidden()};const currentMonthLabel=$('#stickyMonthLabel');if(currentMonthLabel)currentMonthLabel.textContent=`${today.getFullYear()}년 ${String(today.getMonth()+1).padStart(2,'0')}월`;$('#expenseDate').value=key(today);$('#incomeDate').value=key(today);$('#bossWeekTitle').textContent=weekKey();applyWeekStripHidden();dateStrip();      ['addSchedule','entrySubject'].forEach(id=>{const el=$('#'+id);if(el){el.addEventListener('input',updateAppointmentTargetVisibility);el.addEventListener('change',updateAppointmentTargetVisibility);}});
+      const openSettingsBtn=$('#openSettings');if(openSettingsBtn)openSettingsBtn.onclick=openSettings;const closeSettingsBtn=$('#closeSettings');if(closeSettingsBtn)closeSettingsBtn.onclick=closeSettings;const settingsForm=$('#settingsForm');if(settingsForm)settingsForm.onsubmit=saveSettingsForm;const viewModeSelect=$('#settingViewMode');if(viewModeSelect)viewModeSelect.onchange=()=>setViewMode(viewModeSelect.value);const settingLoadBtn=$('#settingLoadNotion');if(settingLoadBtn)settingLoadBtn.onclick=async()=>{await loadProjectsFromWorker(true);loadCalendarFromWorker(false)};const clearSettingsBtn=$('#clearSettings');if(clearSettingsBtn)clearSettingsBtn.onclick=()=>{clearPaperConfig();fillSettingsForm();const s=$('#settingsStatus');if(s)s.textContent='저장된 설정을 지웠어요.'};const cancelToggle=$('#showCanceledSchedules');if(cancelToggle){cancelToggle.checked=state.showCanceled;cancelToggle.onchange=()=>{state.showCanceled=cancelToggle.checked;updateCalMenuIndicators();loadCalendarFromWorker(false)}};const dateStripEl=$('#dateStrip');if(dateStripEl)dateStripEl.ondblclick=toggleWeekStrip;const stickyTopEl=$('#stickyTop');if(stickyTopEl)stickyTopEl.ondblclick=()=>{localStorage.setItem('paperWeekStripHidden','false');applyWeekStripHidden()};const currentMonthLabel=$('#stickyMonthLabel');if(currentMonthLabel)currentMonthLabel.textContent=`${today.getFullYear()}년 ${today.getMonth()+1}월`;$('#expenseDate').value=key(today);$('#incomeDate').value=key(today);$('#bossWeekTitle').textContent=weekKey();applyWeekStripHidden();dateStrip();      ['addSchedule','entrySubject'].forEach(id=>{const el=$('#'+id);if(el){el.addEventListener('input',updateAppointmentTargetVisibility);el.addEventListener('change',updateAppointmentTargetVisibility);}});
 // ── Habit Tracker ──────────────────────────────────────────────
       const HABIT_KEY='paperlog_habits_v1';
       const HABIT_CHECK_KEY='paperlog_habit_checks_v1';
