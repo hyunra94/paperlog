@@ -231,6 +231,14 @@
     .calCheckInput:checked+.calCheck{background:var(--yellow)}
     .calCheckInput:checked+.calCheck:after{opacity:1;transform:scale(1)}
     .calMenuRow:active .calCheck{transform:scale(.92)}
+    .sundayMapleLink{font-family:'Gowun Dodum',sans-serif;font-size:12px;font-weight:400;border:1.2px solid var(--line);border-radius:999px;background:#fff6cf;padding:5px 10px;white-space:nowrap;text-decoration:none;color:var(--ink);box-shadow:1.5px 1.5px 0 rgba(47,42,40,.1)}
+    .charLinkRow{display:flex;gap:5px;margin-left:6px}
+    .charLinkRow a{border:1.2px solid rgba(47,42,40,.35);border-radius:999px;background:rgba(255,255,255,.7);padding:2px 7px;font-size:10px;font-weight:400;font-family:'Gowun Dodum',sans-serif;text-decoration:none;color:var(--sub);white-space:nowrap}
+    .charLinkRow a.link-boss{background:#fbe0e6}
+    .charLinkRow a.link-info{background:#dcebf5}
+    .charLinkRow a.link-spec{background:#dcf0d6}
+    .charLinkItem{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--grid);font-size:14px}
+    .charLinkItem:last-child{border-bottom:0}
     .calendarFab{
       position:fixed;
       right:calc(18px + env(safe-area-inset-right));
@@ -1369,7 +1377,8 @@
     <section id="boss" class="page">
       <div class="title"><h2>Maple Boss</h2><small>default boss setup → weekly generate</small></div>
       <article class="card"><div class="weekCard bossWeekNavCard"><div><span class="weekLabel">보스 주차</span><div class="bossWeekNav"><button class="weekArrow" id="bossPrevWeek" type="button" aria-label="이전 주">◀</button><strong id="bossWeekTitle">이번 주</strong><button class="weekArrow" id="bossNextWeek" type="button" aria-label="다음 주">▶</button></div><p>화살표로 주차를 이동해서 해당 주차 보스 기록을 불러옵니다.</p></div><button class="icon" id="bossTodayWeek" type="button" aria-label="오늘 주차">↺</button></div><div class="bossTool"><button class="bossAction gen" id="generateBoss">선택 주차 생성</button><button class="bossAction setup" id="loadBossNotion" type="button">선택 주차 불러오기</button></div></article>
-      <article class="card"><div class="divTitle">캐릭터 필터</div><div class="chips" id="characterChips"></div></article>
+      <article class="card"><div class="divTitle">캐릭터 필터<a class="sundayMapleLink" href="https://maplestory.nexon.com/News/Event" target="_blank" rel="noopener noreferrer">🍁 썬데이 메이플</a></div><div class="chips" id="characterChips"></div></article>
+      <article class="card"><div class="divTitle">환산주스탯 바로가기</div><div id="charLinkList" class="list"></div></article>
       <article class="card"><div class="divTitle">이번 주 보스 체크</div><div class="bossSum bossSumV47"><div><span>보스 수</span><strong id="bossCount">0개</strong></div><div><span>예정 메소</span><strong id="bossExpectedTotal">0</strong></div><div><span>득템</span><strong id="bossLootTotal">0</strong></div><div><span>결정석</span><strong id="bossCrystalTotal">0</strong></div></div><div id="bossList"></div><p class="note">나중에 Worker API 연결 시 보스 체크 기록 DB에 실제 페이지 생성</p></article>
     </section>
 
@@ -2340,12 +2349,22 @@
           :`<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#9b9189" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
         return `<div class="bossBucket"><div class="bossBucketTitle" style="display:flex;align-items:center;justify-content:space-between;"><span>${label}</span><button class="bossBucketAllBtn" data-bucket-keys="${keys}" data-all-clear="${allClear}" title="${allClear?'전체 해제':'전체 체크'}" type="button" style="${checkBtnStyle}">${checkSVG}</button></div>${sorted.map(renderBossChip).join('')}</div>`;
       }
+      function charMaplescouterLinksHtml(charName){
+        const n=encodeURIComponent(charName||'');
+        if(!n)return '';
+        return `<span class="charLinkRow"><a class="link-boss" href="https://maplescouter.com/ko/result?name=${n}&preset=00000" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">보스</a><a class="link-info" href="https://maplescouter.com/ko/info?name=${n}&preset=00000" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">장비</a><a class="link-spec" href="https://maplescouter.com/ko/spec-order?name=${n}&preset=00000" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()">스펙</a></span>`;
+      }
       function renderBoss(){
         updateBossWeekTitle();
         syncBossPartyPrefs();
         dedupeBossRecords();
         const chips=$('#characterChips');
         chips.innerHTML=[chars.find(c=>c.id==='all')||{id:'all',name:'전체'},...orderBossChars(chars.filter(c=>c.id!=='all'&&!isHiddenBossCharacterName(c.name)&&!String(c.name||'').includes('득템')))].map(c=>`<button class="chip ${bossFilter===c.id?'on':''} ${c.id==='all'?'iconOnly':''}" data-id="${c.id}" title="${bossChipTitle(c)}" aria-label="${bossChipTitle(c)}">${bossChipLabel(c)}</button>`).join('');
+        const charLinkList=$('#charLinkList');
+        if(charLinkList){
+          const allNamedChars=orderBossChars(chars.filter(c=>c.id!=='all'&&!isHiddenBossCharacterName(c.name)));
+          charLinkList.innerHTML=allNamedChars.length?allNamedChars.map(c=>`<div class="charLinkItem"><span>${c.name}</span>${charMaplescouterLinksHtml(c.name)}</div>`).join(''):'<p class="empty-msg">캐릭터가 없어요.</p>';
+        }
         const isLootChar=cid=>String(chars.find(c=>c.id===cid)?.name||'').includes('득템');
         const noCrystal=r=>String(r.name||'').includes('메이린')||String(r.family||'').includes('메이린');
         const list=$('#bossList'), rows=bossRecords.filter(r=>!isLootChar(r.charId)&&(bossFilter==='all'||r.charId===bossFilter));
@@ -2373,7 +2392,7 @@
           const menuBtn=bossCardOpenCharId===cid
             ?`<button class="bossCharMenuBtn" data-open-boss-setting="${cid}" title="보스 설정" type="button" style="${menuBtnStyle}"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>`
             :'';
-          return `<div class="bossCard"><div class="bossTitle"><span style="display:flex;align-items:center;gap:6px;"><span data-boss-char-toggle="${cid}" style="cursor:pointer;user-select:none;">${charName}</span>${menuBtn}</span><span class="tag y">예정 ${won(expectedSum)} · 결정석 ${won(checkedSum)}</span></div>${renderLootBucket(cid)}${renderBossBucket('1인 파티','solo',solo)}${renderBossBucket('2인 파티','duo',duo)}${renderBossBucket('기타 인원','other',other)}</div>`;
+          return `<div class="bossCard"><div class="bossTitle"><span style="display:flex;align-items:center;gap:6px;"><span data-boss-char-toggle="${cid}" style="cursor:pointer;user-select:none;">${charName}</span>${charMaplescouterLinksHtml(charName)}${menuBtn}</span><span class="tag y">예정 ${won(expectedSum)} · 결정석 ${won(checkedSum)}</span></div>${renderLootBucket(cid)}${renderBossBucket('1인 파티','solo',solo)}${renderBossBucket('2인 파티','duo',duo)}${renderBossBucket('기타 인원','other',other)}</div>`;
         }).join('');
       }
       function openBossLootMemo(keyValue){
