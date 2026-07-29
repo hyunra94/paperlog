@@ -2727,7 +2727,39 @@
       function applyWeekStripHidden(){document.body.classList.toggle('weekStripHidden',localStorage.getItem('paperWeekStripHidden')==='true')}
       function toggleWeekStrip(){const next=!(localStorage.getItem('paperWeekStripHidden')==='true');localStorage.setItem('paperWeekStripHidden',String(next));applyWeekStripHidden()}
       function normalizeBossIds(ids){const monthly=ids.filter(id=>bosses.find(b=>b.id===id)?.cycle==='monthly');const weekly=[];const fam=new Set();ids.map(id=>bosses.find(b=>b.id===id)).filter(b=>b&&b.cycle==='weekly').forEach(b=>{if(weekly.length>=12)return;if(fam.has(b.family))return;fam.add(b.family);weekly.push(b.id)});return [...monthly,...weekly]}
-      $$('.navBtn').forEach(b=>b.onclick=()=>page(b.dataset.target));$$('.jump').forEach(b=>b.onclick=()=>page(b.dataset.target));$$('[data-scroll]').forEach(b=>b.onclick=()=>document.getElementById(b.dataset.scroll).scrollIntoView({behavior:'smooth'}));function moveCalendarMonth(offset){
+      $$('.navBtn').forEach(b=>b.onclick=()=>page(b.dataset.target));$$('.jump').forEach(b=>b.onclick=()=>page(b.dataset.target));$$('[data-scroll]').forEach(b=>b.onclick=()=>document.getElementById(b.dataset.scroll).scrollIntoView({behavior:'smooth'}));
+      (function initTabSwipe(){
+        let sx=0,sy=0,st=0,tracking=false;
+        const blockerSel='.sheetBg:not([hidden]),.schedulePopupBg:not([hidden]),.calMenuBg:not([hidden])';
+        function hasScrollableAncestor(el){
+          while(el&&el!==document.body){
+            if(el.scrollWidth>el.clientWidth+2){
+              const cs=getComputedStyle(el);
+              if(cs.overflowX==='auto'||cs.overflowX==='scroll')return true;
+            }
+            el=el.parentElement;
+          }
+          return false;
+        }
+        document.addEventListener('touchstart',e=>{
+          if(e.touches.length!==1||document.querySelector(blockerSel)||hasScrollableAncestor(e.target)){tracking=false;return}
+          const t=e.touches[0];sx=t.clientX;sy=t.clientY;st=Date.now();tracking=true;
+        },{passive:true});
+        document.addEventListener('touchend',e=>{
+          if(!tracking)return;tracking=false;
+          if(document.querySelector(blockerSel))return;
+          const t=e.changedTouches[0];const dx=t.clientX-sx,dy=t.clientY-sy,dt=Date.now()-st;
+          if(dt>700||Math.abs(dx)<70||Math.abs(dx)<Math.abs(dy)*1.6)return;
+          const targets=$$('.navBtn').filter(b=>b.offsetParent!==null).map(b=>b.dataset.target);
+          const curId=document.querySelector('.page.on')?.id;
+          const curIdx=targets.indexOf(curId);
+          if(curIdx<0)return;
+          const nextIdx=curIdx+(dx<0?1:-1);
+          if(nextIdx<0||nextIdx>=targets.length)return;
+          page(targets[nextIdx]);
+        },{passive:true});
+      })();
+      function moveCalendarMonth(offset){
         view=new Date(view.getFullYear(),view.getMonth()+offset,1);
         const first=key(new Date(view.getFullYear(),view.getMonth(),1));
         const last=key(new Date(view.getFullYear(),view.getMonth()+1,0));
