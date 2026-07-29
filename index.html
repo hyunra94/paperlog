@@ -211,7 +211,8 @@
     }
     .calendarTabs{margin-bottom:10px;grid-template-columns:1fr 1fr;position:relative;z-index:41}
     .app{position:relative}
-    .app.pageDragActive{overflow-x:clip}
+    .app.pageDragActive{overflow-x:clip;overflow-anchor:none}
+    .app.pageDragActive *{overflow-anchor:none}
     .app.pageDragActive .calendarTopBar,.app.pageDragActive .moneyTopBar{position:relative!important;top:auto!important}
     .page.pageIncoming{position:fixed;top:0;animation:none;z-index:2}
     .calMenuBtn{position:relative}
@@ -2791,7 +2792,7 @@
             else next.classList.remove('on');
             cur.style.transition='';cur.style.transform='';
             next.classList.remove('pageIncoming');
-            next.style.transition='';next.style.transform='';next.style.left='';next.style.width='';
+            next.style.transition='';next.style.transform='';next.style.left='';next.style.width='';next.style.top='';
             next.removeEventListener('transitionend',finish);
             document.querySelector('.app')?.classList.remove('pageDragActive');
             pageDragBusy=false;
@@ -2819,9 +2820,11 @@
             dragging=true;dragDir=dir;
             window.scrollTo(0,0);
             document.querySelector('.app')?.classList.add('pageDragActive');
+            const curTop=curEl.getBoundingClientRect().top;
             neighborEl.classList.add('on','pageIncoming');
             const appRect=document.querySelector('.app')?.getBoundingClientRect();
             if(appRect){neighborEl.style.left=appRect.left+'px';neighborEl.style.width=appRect.width+'px'}
+            neighborEl.style.top=curTop+'px';
             void neighborEl.offsetHeight;
             window.dispatchEvent(new Event('scroll'));
             neighborEl.style.transition='none';
