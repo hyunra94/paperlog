@@ -2814,6 +2814,7 @@
           }
           if(!dragging)return;
           e.preventDefault();
+          if(window.scrollY!==0)window.scrollTo(0,0);
           const clamped=dragDir>0?Math.min(0,dx):Math.max(0,dx);
           curEl.style.transform=`translateX(${clamped}px)`;
           neighborEl.style.transform=`translateX(${dragDir>0?w+GAP+clamped:-w-GAP+clamped}px)`;
