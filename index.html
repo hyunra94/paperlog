@@ -214,14 +214,21 @@
     .app.pageDragActive{overflow-x:hidden}
     .page.pageIncoming{position:absolute;top:0;left:0;right:0;animation:none;z-index:2}
     .calMenuBtn{position:relative}
-    .calMenuBtn.on{background:#f4e4a8}
+    .calMenuBtn#calDisplayBtn{background:#d9ebf5}
+    .calMenuBtn#calFilterBtn{background:#dcebd6}
+    .calMenuBtn#calDisplayBtn.on,.calMenuBtn#calFilterBtn.on{background:#f4e4a8}
     .calMenuBtn.hasActive::after{content:"";position:absolute;top:6px;right:9px;width:6px;height:6px;border-radius:999px;background:#e08a8a;box-shadow:0 0 0 1.5px rgba(255,250,242,.95)}
     .calMenuBg{position:fixed;inset:0;z-index:40;background:transparent}
     .calMenuBg[hidden]{display:none}
     .calMenuPopover{position:fixed;z-index:65;min-width:210px;border:1.5px solid var(--cal-line);border-radius:16px;background:rgba(255,250,242,.98);box-shadow:0 10px 26px rgba(47,42,40,.16),3px 3px 0 rgba(47,42,40,.12);padding:11px 13px;display:flex;flex-direction:column;gap:10px}
     .calMenuPopover[hidden]{display:none}
-    .calMenuRow{display:flex;align-items:center;gap:8px;font-size:14px;line-height:1.3}
-    .calMenuRow input{width:15px;height:15px;margin:0;flex:none}
+    .calMenuRow{position:relative;display:flex;align-items:center;gap:9px;font-size:14px;line-height:1.3;cursor:pointer}
+    .calMenuRow .calCheckInput{position:absolute;opacity:0;width:19px;height:19px;margin:0;pointer-events:none}
+    .calCheck{width:19px;height:19px;flex:0 0 auto;border:1.6px solid var(--line);border-radius:6px;background:var(--card);box-shadow:1.5px 1.5px 0 rgba(47,42,40,.14);display:inline-grid;place-items:center;transition:background .15s ease,transform .1s ease}
+    .calCheck:after{content:"";width:11px;height:11px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path d='M2.5 8.5l3.5 3.5 7.5-8' fill='none' stroke='%232f2a28' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/></svg>");background-size:contain;background-repeat:no-repeat;opacity:0;transform:scale(.5);transition:opacity .12s ease,transform .16s cubic-bezier(.34,1.56,.64,1)}
+    .calCheckInput:checked+.calCheck{background:var(--yellow)}
+    .calCheckInput:checked+.calCheck:after{opacity:1;transform:scale(1)}
+    .calMenuRow:active .calCheck{transform:scale(.92)}
     .calendarFab{
       position:fixed;
       right:calc(18px + env(safe-area-inset-right));
@@ -1294,13 +1301,13 @@
         </div>
         <div class="calMenuBg" id="calMenuBg" hidden></div>
         <div class="calMenuPopover" id="calDisplayMenu" hidden>
-          <label class="calMenuRow"><input type="checkbox" id="showCanceledSchedules"> 취소 일정 포함해서 보기</label>
-          <label class="calMenuRow"><input type="checkbox" id="dailyEmphasisToggle"> 데일리 로그 진하게 보기</label>
+          <label class="calMenuRow"><input type="checkbox" id="showCanceledSchedules" class="calCheckInput"><span class="calCheck"></span> 취소 일정 포함해서 보기</label>
+          <label class="calMenuRow"><input type="checkbox" id="dailyEmphasisToggle" class="calCheckInput"><span class="calCheck"></span> 데일리 로그 진하게 보기</label>
         </div>
         <div class="calMenuPopover" id="calFilterMenu" hidden>
-          <label class="calMenuRow"><input type="checkbox" class="calTypeCheck" data-type="schedule" checked> 일정</label>
-          <label class="calMenuRow"><input type="checkbox" class="calTypeCheck" data-type="todo" checked> 할 일</label>
-          <label class="calMenuRow"><input type="checkbox" class="calTypeCheck" data-type="daily" checked> 데일리 로그</label>
+          <label class="calMenuRow"><input type="checkbox" class="calCheckInput calTypeCheck" data-type="schedule" checked><span class="calCheck"></span> 일정</label>
+          <label class="calMenuRow"><input type="checkbox" class="calCheckInput calTypeCheck" data-type="todo" checked><span class="calCheck"></span> 할 일</label>
+          <label class="calMenuRow"><input type="checkbox" class="calCheckInput calTypeCheck" data-type="daily" checked><span class="calCheck"></span> 데일리 로그</label>
         </div>
         <p class="syncStatus" id="syncStatus">메뉴에서 Notion을 불러오거나 설정을 저장하면 자동으로 동기화됩니다.</p>
         <div class="calendarWide">
@@ -2795,6 +2802,7 @@
             if(!neighborId||!curEl){tracking=false;return}
             neighborEl=document.getElementById(neighborId);
             dragging=true;dragDir=dir;
+            window.scrollTo(0,0);
             document.querySelector('.app')?.classList.add('pageDragActive');
             neighborEl.classList.add('on','pageIncoming');
             neighborEl.style.transition='none';
