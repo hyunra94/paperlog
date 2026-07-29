@@ -244,6 +244,16 @@
     .charShowBtn{background:#dcf0d6}
     .charHiddenToggle{width:100%;margin-top:8px;border:1.2px dashed var(--line);border-radius:14px;background:transparent;padding:8px;font-size:12px;color:var(--sub);text-align:center}
     .charHiddenList{margin-top:6px}
+    .charLinkItem{display:block}
+    .charLinkRowTop{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .charEditToggle{border:1.2px solid rgba(47,42,40,.35);border-radius:999px;background:rgba(255,255,255,.7);padding:2px 8px;font-size:12px;color:var(--sub)}
+    .charLinkEditActions{display:flex;gap:6px;margin-top:6px;padding-left:2px}
+    .charEditBtn,.charDeleteBtn{border:1.2px solid rgba(47,42,40,.35);border-radius:999px;padding:3px 9px;font-size:11px;font-family:'Gowun Dodum',sans-serif}
+    .charEditBtn{background:#dcebf5}
+    .charDeleteBtn{background:#f8dddd;color:#9f4f4f}
+    .charLinkSectionHead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:14px 0 8px;font-family:'Gaegu';font-size:19px;font-weight:700}
+    .charAddLocalBtn{border:1.6px solid var(--line);border-radius:999px;background:var(--yellow);padding:5px 12px;font-family:'Gaegu';font-size:15px;box-shadow:2px 2px 0 rgba(47,42,40,.1)}
+    .bossAddCharBtn{border:1.6px solid var(--line);border-radius:999px;background:var(--green);padding:5px 12px;font-family:'Gaegu';font-size:15px;box-shadow:2px 2px 0 rgba(47,42,40,.1);white-space:nowrap}
     .bossTopBar{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:12px}
     .bossIndexBtn{border:1.6px solid var(--line);border-radius:999px;background:#fffaf4;padding:9px 8px;font-family:'Gaegu';font-size:19px;box-shadow:2px 2px 0 rgba(47,42,40,.1)}
     .bossIndexBtn.on{background:var(--yellow)}
@@ -1388,8 +1398,8 @@
     <section id="boss" class="page">
       <div class="title"><h2>Maple Boss</h2><small>default boss setup → weekly generate</small></div>
       <div class="bossTopBar">
-        <button class="bossIndexBtn" id="bossIndexShortcuts" data-boss-view="shortcuts" type="button">바로가기</button>
         <button class="bossIndexBtn" id="bossIndexBoss" data-boss-view="boss" type="button">보스</button>
+        <button class="bossIndexBtn" id="bossIndexShortcuts" data-boss-view="shortcuts" type="button">바로가기</button>
         <button class="bossIndexBtn soon" id="bossIndexTodo" data-boss-view="todo" type="button" title="추후 추가 예정">메할일</button>
       </div>
       <div class="bossViewPanel" data-boss-panel="shortcuts">
@@ -1397,7 +1407,7 @@
       </div>
       <div class="bossViewPanel" data-boss-panel="boss">
         <article class="card"><div class="weekCard bossWeekNavCard"><div><span class="weekLabel">보스 주차</span><div class="bossWeekNav"><button class="weekArrow" id="bossPrevWeek" type="button" aria-label="이전 주">◀</button><strong id="bossWeekTitle">이번 주</strong><button class="weekArrow" id="bossNextWeek" type="button" aria-label="다음 주">▶</button></div></div><button class="icon" id="bossTodayWeek" type="button" aria-label="오늘 주차">↺</button></div><div class="bossTool"><button class="bossAction gen" id="generateBoss">선택 주차 생성</button><button class="bossAction setup" id="loadBossNotion" type="button">선택 주차 불러오기</button></div></article>
-        <article class="card"><div class="divTitle">이번 주 보스 체크</div><div class="bossSum bossSumV47"><div><span>보스 수</span><strong id="bossCount">0개</strong></div><div><span>예정 메소</span><strong id="bossExpectedTotal">0</strong></div><div><span>득템</span><strong id="bossLootTotal">0</strong></div><div><span>결정석</span><strong id="bossCrystalTotal">0</strong></div></div><div id="bossList"></div><p class="note">나중에 Worker API 연결 시 보스 체크 기록 DB에 실제 페이지 생성</p></article>
+        <article class="card"><div class="divTitle">이번 주 보스 체크<button class="bossAddCharBtn" id="addBossCharacter" type="button">+ 캐릭터</button></div><div class="bossSum bossSumV47"><div><span>보스 수</span><strong id="bossCount">0개</strong></div><div><span>예정 메소</span><strong id="bossExpectedTotal">0</strong></div><div><span>득템</span><strong id="bossLootTotal">0</strong></div><div><span>결정석</span><strong id="bossCrystalTotal">0</strong></div></div><div id="bossList"></div><p class="note">나중에 Worker API 연결 시 보스 체크 기록 DB에 실제 페이지 생성</p></article>
       </div>
     </section>
 
@@ -1789,10 +1799,14 @@
       const bossSet={c1:['b10','b06','b27','b29','b36'],c2:['b10','b27','b36'],c3:['b10','b18','b23','b25'],c4:['b27','b29','b31','b33'],c5:[]}; let bossFilter='all', bossRecords=[], bossLootMemos={}, showLowBosses=false, bossSettingActiveCharId='', bossAutoSaveTimer=null, editingBossLootKey='', bossViewBaseDate=new Date(today);
       let showHiddenChars=false;
       const BOSS_VIEW_KEY='paperLogBossView';
-      let bossActiveView=(()=>{try{return localStorage.getItem(BOSS_VIEW_KEY)||'shortcuts'}catch{return 'shortcuts'}})();
+      let bossActiveView=(()=>{try{return localStorage.getItem(BOSS_VIEW_KEY)||'boss'}catch{return 'boss'}})();
       const HIDDEN_CHAR_KEY='paperLogHiddenBossChars';
       function getHiddenCharIdSet(){try{return new Set(JSON.parse(localStorage.getItem(HIDDEN_CHAR_KEY)||'[]'))}catch{return new Set()}}
       function setHiddenCharIdSet(set){try{localStorage.setItem(HIDDEN_CHAR_KEY,JSON.stringify([...set]))}catch(e){console.warn('숨긴 캐릭터 저장 실패',e)}}
+      const LOCAL_SHORTCUT_KEY='paperLogLocalCharShortcuts';
+      function getLocalShortcuts(){try{return JSON.parse(localStorage.getItem(LOCAL_SHORTCUT_KEY)||'[]')}catch{return []}}
+      function setLocalShortcuts(list){try{localStorage.setItem(LOCAL_SHORTCUT_KEY,JSON.stringify(list))}catch(e){console.warn('바로가기 저장 실패',e)}}
+      let charLinkEditOpenId='';
       const won=n=>new Intl.NumberFormat('ko-KR').format(n);
       const eok=n=>{const v=n/100000000;return `${Number.isInteger(v)?v:v.toFixed(v<1?2:1).replace(/0$/,'').replace(/\.0$/,'')}억`};
       const briefMoney=n=>`${Math.round(Number(n||0)/100000000)}억`;
@@ -2389,9 +2403,23 @@
           const hiddenSet=getHiddenCharIdSet();
           const visibleChars=allNamedChars.filter(c=>!hiddenSet.has(c.id));
           const hiddenChars=allNamedChars.filter(c=>hiddenSet.has(c.id));
-          const visibleHtml=visibleChars.length?visibleChars.map(c=>`<div class="charLinkItem"><span>${c.name}</span><span class="charLinkActions">${charMaplescouterLinksHtml(c.name)}<button class="charHideBtn" data-hide-char="${c.id}" type="button">숨기기</button></span></div>`).join(''):'<p class="empty-msg">캐릭터가 없어요.</p>';
-          const hiddenToggleHtml=hiddenChars.length?`<button class="charHiddenToggle" id="toggleHiddenChars" type="button">${showHiddenChars?'숨긴 캐릭터 접기 ▲':`숨긴 캐릭터 ${hiddenChars.length}명 보기 ▼`}</button>${showHiddenChars?`<div class="charHiddenList">${hiddenChars.map(c=>`<div class="charLinkItem"><span>${c.name}</span><span class="charLinkActions">${charMaplescouterLinksHtml(c.name)}<button class="charShowBtn" data-show-char="${c.id}" type="button">보이기</button></span></div>`).join('')}</div>`:''}`:'';
-          charLinkList.innerHTML=visibleHtml+hiddenToggleHtml;
+          const localShortcuts=getLocalShortcuts();
+          const realRow=c=>{
+            const key='real:'+c.id;
+            const isOpen=charLinkEditOpenId===key;
+            const actions=isOpen?`<div class="charLinkEditActions"><button class="charHideBtn" data-hide-char="${c.id}" type="button">숨기기</button></div>`:'';
+            return `<div class="charLinkItem"><div class="charLinkRowTop"><span>${c.name}</span><span class="charLinkActions">${charMaplescouterLinksHtml(c.name)}<button class="charEditToggle" data-edit-toggle="${key}" type="button">⋯</button></span></div>${actions}</div>`;
+          };
+          const localRow=s=>{
+            const key='local:'+s.id;
+            const isOpen=charLinkEditOpenId===key;
+            const actions=isOpen?`<div class="charLinkEditActions"><button class="charEditBtn" data-edit-local="${s.id}" type="button">편집</button><button class="charDeleteBtn" data-delete-local="${s.id}" type="button">삭제</button></div>`:'';
+            return `<div class="charLinkItem"><div class="charLinkRowTop"><span>${s.name}</span><span class="charLinkActions">${charMaplescouterLinksHtml(s.name)}<button class="charEditToggle" data-edit-toggle="${key}" type="button">⋯</button></span></div>${actions}</div>`;
+          };
+          const visibleHtml=visibleChars.length?visibleChars.map(realRow).join(''):'<p class="empty-msg">캐릭터가 없어요.</p>';
+          const hiddenToggleHtml=hiddenChars.length?`<button class="charHiddenToggle" id="toggleHiddenChars" type="button">${showHiddenChars?'숨긴 캐릭터 접기 ▲':`숨긴 캐릭터 ${hiddenChars.length}명 보기 ▼`}</button>${showHiddenChars?`<div class="charHiddenList">${hiddenChars.map(c=>`<div class="charLinkItem"><div class="charLinkRowTop"><span>${c.name}</span><span class="charLinkActions">${charMaplescouterLinksHtml(c.name)}<button class="charShowBtn" data-show-char="${c.id}" type="button">보이기</button></span></div></div>`).join('')}</div>`:''}`:'';
+          const localHtml=`<div class="charLinkSectionHead"><span>추가한 바로가기</span><button class="charAddLocalBtn" id="addLocalShortcut" type="button">+ 추가</button></div>${localShortcuts.length?localShortcuts.map(localRow).join(''):'<p class="empty-msg">추가한 바로가기가 없어요.</p>'}`;
+          charLinkList.innerHTML=visibleHtml+hiddenToggleHtml+localHtml;
         }
         const isLootChar=cid=>String(chars.find(c=>c.id===cid)?.name||'').includes('득템');
         const noCrystal=r=>String(r.name||'').includes('메이린')||String(r.family||'').includes('메이린');
@@ -2420,7 +2448,7 @@
           const menuBtn=bossCardOpenCharId===cid
             ?`<button class="bossCharMenuBtn" data-open-boss-setting="${cid}" title="보스 설정" type="button" style="${menuBtnStyle}"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>`
             :'';
-          return `<div class="bossCard"><div class="bossTitle"><span style="display:flex;align-items:center;gap:6px;"><span data-boss-char-toggle="${cid}" style="cursor:pointer;user-select:none;">${charName}</span>${charMaplescouterLinksHtml(charName)}${menuBtn}</span><span class="tag y">예정 ${won(expectedSum)} · 결정석 ${won(checkedSum)}</span></div>${renderLootBucket(cid)}${renderBossBucket('1인 파티','solo',solo)}${renderBossBucket('2인 파티','duo',duo)}${renderBossBucket('기타 인원','other',other)}</div>`;
+          return `<div class="bossCard"><div class="bossTitle"><span style="display:flex;align-items:center;gap:6px;"><span data-boss-char-toggle="${cid}" style="cursor:pointer;user-select:none;">${charName}</span>${menuBtn}</span><span class="tag y">예정 ${won(expectedSum)} · 결정석 ${won(checkedSum)}</span></div>${renderLootBucket(cid)}${renderBossBucket('1인 파티','solo',solo)}${renderBossBucket('2인 파티','duo',duo)}${renderBossBucket('기타 인원','other',other)}</div>`;
         }).join('');
       }
       function openBossLootMemo(keyValue){
@@ -2939,7 +2967,19 @@
         updateCalMenuIndicators();
       });
       $$('.calTypeCheck').forEach(cb=>cb.onchange=()=>{const type=cb.dataset.type,on=Object.values(state.show).filter(Boolean).length;if(!cb.checked&&state.show[type]&&on===1){cb.checked=true;return}state.show[type]=cb.checked;renderCal();updateCalMenuIndicators()});
-      updateCalMenuIndicators();$('#openEntry').onclick=openEntry;$('#closeEntry').onclick=()=>{editingCalendarRecord=null;$('#entrySheet').hidden=true;};const entrySheetBg=$('#entrySheet');if(entrySheetBg)entrySheetBg.addEventListener('click',e=>{if(e.target===entrySheetBg){editingCalendarRecord=null;entrySheetBg.hidden=true;}});$('#closeDailyLog')&&( $('#closeDailyLog').onclick=closeDailySheet );$('#dailyForm')&&($('#dailyForm').onsubmit=saveDailyLog);$('#deleteDailyLog')?.addEventListener('click',deleteDailyLog);$('#deleteEntry')?.addEventListener('click',deleteCalendarEntry);$('#addSchedule').onchange=updateEntryMode;$('#addTodo').onchange=()=>{updateEntryMode();handleTodoKindChange()};$('#addDaily').onchange=updateEntryMode;$('#entryDone')&&($('#entryDone').onchange=handleTodoKindChange);$('#entryForm').onsubmit=saveEntry;$('#entrySubject')?.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.ctrlKey){e.preventDefault();const el=e.currentTarget;const start=el.selectionStart??el.value.length,end=el.selectionEnd??el.value.length;el.value=el.value.slice(0,start)+'\n'+el.value.slice(end);el.selectionStart=el.selectionEnd=start+1;}});$('#calendarDetail').addEventListener('click',e=>{if(e.target.closest('a'))return;const addDaily=e.target.closest('[data-daily-add]');if(addDaily){openDailyEntry(addDaily.dataset.dailyAdd||selected);return}const btn=e.target.closest('[data-todo-id]');if(btn&&btn.dataset.todoId){toggleTodoCheck(btn.dataset.todoId);return}const edit=e.target.closest('[data-calendar-edit]');if(edit&&edit.dataset.calendarEdit){openCalendarEdit(edit.dataset.calendarType,edit.dataset.calendarEdit);return}const open=e.target.closest('[data-open-schedule-popup]');if(open){const dayEl=$(`#calendarGrid .day[data-date="${selected}"]`);showSchedulePopup(selected,dayEl)}});const dashList=$('#dashboardTodayList');if(dashList)dashList.addEventListener('click',e=>{const btn=e.target.closest('[data-todo-id]');if(btn&&btn.dataset.todoId)toggleTodoCheck(btn.dataset.todoId)});const schedulePopupBg=$('#schedulePopupBg');if(schedulePopupBg)schedulePopupBg.addEventListener('click',e=>{if(e.target===schedulePopupBg)hideSchedulePopup()});const schedulePopupClose=$('#schedulePopupClose');if(schedulePopupClose)schedulePopupClose.onclick=hideSchedulePopup;const schedulePopupContent=$('#schedulePopupContent');if(schedulePopupContent)schedulePopupContent.addEventListener('click',e=>{if(e.target.closest('a'))return;const edit=e.target.closest('[data-calendar-edit]');if(edit&&edit.dataset.calendarEdit)openCalendarEdit(edit.dataset.calendarType,edit.dataset.calendarEdit)});document.addEventListener('click',e=>{const bg=$('#schedulePopupBg');if(!bg||bg.hidden||isTabletLayout())return;if(e.target.closest('#schedulePopup')||e.target.closest('.day')||e.target.closest('[data-open-schedule-popup]'))return;hideSchedulePopup()});$$('.moneyTab').forEach(t=>t.onclick=()=>{$$('.moneyTab').forEach(x=>x.classList.toggle('on',x===t));$('#expenseForm').classList.toggle('on',t.dataset.type==='expense');$('#incomeForm').classList.toggle('on',t.dataset.type==='income')});$('#generateBoss').onclick=generateBoss;$('#loadBossNotion')&&($('#loadBossNotion').onclick=()=>loadBossFromWorker(false));$('#bossPrevWeek')&&($('#bossPrevWeek').onclick=()=>moveBossWeek(-1));$('#bossNextWeek')&&($('#bossNextWeek').onclick=()=>moveBossWeek(1));$('#bossTodayWeek')&&($('#bossTodayWeek').onclick=resetBossWeekToToday);const closeBossSheet=()=>{preserveBossGridSelection();saveBossSettingForChar(bossSettingActiveCharId,{silent:true});lowEditAll=false;$('#bossSheet').hidden=true;};$('#closeBoss').onclick=closeBossSheet;$('#cancelBoss').onclick=closeBossSheet;const bossSheetBg=$('#bossSheet');if(bossSheetBg)bossSheetBg.addEventListener('click',e=>{if(e.target===bossSheetBg)closeBossSheet()});$('#bossLowEditAllBtn')&&($('#bossLowEditAllBtn').onclick=()=>{lowEditAll=!lowEditAll;$('#bossLowEditAllBtn').classList.toggle('on',lowEditAll);$('#bossLowEditAllBtn').textContent=lowEditAll?'닫기':'미사용 전체';renderBossGrid()});$('#bossCharSelect').onchange=()=>{preserveBossGridSelection();const prev=bossSettingActiveCharId;if(prev&&isValidNotionId(prev))saveBossSettingForChar(prev,{silent:true});bossSettingActiveCharId=$('#bossCharSelect').value;renderBossGrid();setBossSettingNote('선택하면 자동으로 저장됩니다.');};$('#bossSettingGrid').addEventListener('click',e=>{
+      updateCalMenuIndicators();$('#openEntry').onclick=openEntry;$('#closeEntry').onclick=()=>{editingCalendarRecord=null;$('#entrySheet').hidden=true;};const entrySheetBg=$('#entrySheet');if(entrySheetBg)entrySheetBg.addEventListener('click',e=>{if(e.target===entrySheetBg){editingCalendarRecord=null;entrySheetBg.hidden=true;}});$('#closeDailyLog')&&( $('#closeDailyLog').onclick=closeDailySheet );$('#dailyForm')&&($('#dailyForm').onsubmit=saveDailyLog);$('#deleteDailyLog')?.addEventListener('click',deleteDailyLog);$('#deleteEntry')?.addEventListener('click',deleteCalendarEntry);$('#addSchedule').onchange=updateEntryMode;$('#addTodo').onchange=()=>{updateEntryMode();handleTodoKindChange()};$('#addDaily').onchange=updateEntryMode;$('#entryDone')&&($('#entryDone').onchange=handleTodoKindChange);$('#entryForm').onsubmit=saveEntry;$('#entrySubject')?.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.ctrlKey){e.preventDefault();const el=e.currentTarget;const start=el.selectionStart??el.value.length,end=el.selectionEnd??el.value.length;el.value=el.value.slice(0,start)+'\n'+el.value.slice(end);el.selectionStart=el.selectionEnd=start+1;}});$('#calendarDetail').addEventListener('click',e=>{if(e.target.closest('a'))return;const addDaily=e.target.closest('[data-daily-add]');if(addDaily){openDailyEntry(addDaily.dataset.dailyAdd||selected);return}const btn=e.target.closest('[data-todo-id]');if(btn&&btn.dataset.todoId){toggleTodoCheck(btn.dataset.todoId);return}const edit=e.target.closest('[data-calendar-edit]');if(edit&&edit.dataset.calendarEdit){openCalendarEdit(edit.dataset.calendarType,edit.dataset.calendarEdit);return}const open=e.target.closest('[data-open-schedule-popup]');if(open){const dayEl=$(`#calendarGrid .day[data-date="${selected}"]`);showSchedulePopup(selected,dayEl)}});const dashList=$('#dashboardTodayList');if(dashList)dashList.addEventListener('click',e=>{const btn=e.target.closest('[data-todo-id]');if(btn&&btn.dataset.todoId)toggleTodoCheck(btn.dataset.todoId)});const schedulePopupBg=$('#schedulePopupBg');if(schedulePopupBg)schedulePopupBg.addEventListener('click',e=>{if(e.target===schedulePopupBg)hideSchedulePopup()});const schedulePopupClose=$('#schedulePopupClose');if(schedulePopupClose)schedulePopupClose.onclick=hideSchedulePopup;const schedulePopupContent=$('#schedulePopupContent');if(schedulePopupContent)schedulePopupContent.addEventListener('click',e=>{if(e.target.closest('a'))return;const edit=e.target.closest('[data-calendar-edit]');if(edit&&edit.dataset.calendarEdit)openCalendarEdit(edit.dataset.calendarType,edit.dataset.calendarEdit)});document.addEventListener('click',e=>{const bg=$('#schedulePopupBg');if(!bg||bg.hidden||isTabletLayout())return;if(e.target.closest('#schedulePopup')||e.target.closest('.day')||e.target.closest('[data-open-schedule-popup]'))return;hideSchedulePopup()});$$('.moneyTab').forEach(t=>t.onclick=()=>{$$('.moneyTab').forEach(x=>x.classList.toggle('on',x===t));$('#expenseForm').classList.toggle('on',t.dataset.type==='expense');$('#incomeForm').classList.toggle('on',t.dataset.type==='income')});$('#generateBoss').onclick=generateBoss;$('#loadBossNotion')&&($('#loadBossNotion').onclick=()=>loadBossFromWorker(false));$('#bossPrevWeek')&&($('#bossPrevWeek').onclick=()=>moveBossWeek(-1));$('#bossNextWeek')&&($('#bossNextWeek').onclick=()=>moveBossWeek(1));$('#bossTodayWeek')&&($('#bossTodayWeek').onclick=resetBossWeekToToday);$('#addBossCharacter')&&($('#addBossCharacter').onclick=async()=>{
+        const name=prompt('추가할 캐릭터명을 입력해줘 (Notion 캐릭터 DB에 새로 생성돼요)');
+        if(!name||!name.trim())return;
+        try{
+          const res=await window.paperLog.fetch('/api/boss/character',{method:'POST',body:JSON.stringify({name:name.trim()})});
+          const data=await res.json().catch(()=>({}));
+          if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'캐릭터 생성 실패');
+          await loadBossFromWorker(true);
+          const status=$('#syncStatus');if(status)status.textContent=`${name.trim()} 캐릭터를 추가했어요.`;
+        }catch(err){
+          alert('캐릭터 추가 실패: '+err.message);
+        }
+      });const closeBossSheet=()=>{preserveBossGridSelection();saveBossSettingForChar(bossSettingActiveCharId,{silent:true});lowEditAll=false;$('#bossSheet').hidden=true;};$('#closeBoss').onclick=closeBossSheet;$('#cancelBoss').onclick=closeBossSheet;const bossSheetBg=$('#bossSheet');if(bossSheetBg)bossSheetBg.addEventListener('click',e=>{if(e.target===bossSheetBg)closeBossSheet()});$('#bossLowEditAllBtn')&&($('#bossLowEditAllBtn').onclick=()=>{lowEditAll=!lowEditAll;$('#bossLowEditAllBtn').classList.toggle('on',lowEditAll);$('#bossLowEditAllBtn').textContent=lowEditAll?'닫기':'미사용 전체';renderBossGrid()});$('#bossCharSelect').onchange=()=>{preserveBossGridSelection();const prev=bossSettingActiveCharId;if(prev&&isValidNotionId(prev))saveBossSettingForChar(prev,{silent:true});bossSettingActiveCharId=$('#bossCharSelect').value;renderBossGrid();setBossSettingNote('선택하면 자동으로 저장됩니다.');};$('#bossSettingGrid').addEventListener('click',e=>{
         const currentCid=bossSettingActiveCharId||$('#bossCharSelect')?.value||'';
         // per-variant toggle
         const varLow=e.target.closest('.bossVariantLowBtn');
@@ -2970,11 +3010,36 @@
       };
       $('#charLinkList')?.addEventListener('click',e=>{
         const hideBtn=e.target.closest('[data-hide-char]');
-        if(hideBtn){const set=getHiddenCharIdSet();set.add(hideBtn.dataset.hideChar);setHiddenCharIdSet(set);renderBoss();return}
+        if(hideBtn){const set=getHiddenCharIdSet();set.add(hideBtn.dataset.hideChar);setHiddenCharIdSet(set);charLinkEditOpenId='';renderBoss();return}
         const showBtn=e.target.closest('[data-show-char]');
         if(showBtn){const set=getHiddenCharIdSet();set.delete(showBtn.dataset.showChar);setHiddenCharIdSet(set);renderBoss();return}
         const toggle=e.target.closest('#toggleHiddenChars');
         if(toggle){showHiddenChars=!showHiddenChars;renderBoss();return}
+        const editToggle=e.target.closest('[data-edit-toggle]');
+        if(editToggle){const key=editToggle.dataset.editToggle;charLinkEditOpenId=charLinkEditOpenId===key?'':key;renderBoss();return}
+        const editLocal=e.target.closest('[data-edit-local]');
+        if(editLocal){
+          const list=getLocalShortcuts();const item=list.find(s=>s.id===editLocal.dataset.editLocal);
+          const next=prompt('바로가기 이름 수정',item?.name||'');
+          if(next&&next.trim()){item.name=next.trim();setLocalShortcuts(list);renderBoss()}
+          return;
+        }
+        const deleteLocal=e.target.closest('[data-delete-local]');
+        if(deleteLocal){
+          if(!confirm('이 바로가기를 삭제할까요?'))return;
+          setLocalShortcuts(getLocalShortcuts().filter(s=>s.id!==deleteLocal.dataset.deleteLocal));
+          charLinkEditOpenId='';renderBoss();return;
+        }
+        const addLocal=e.target.closest('#addLocalShortcut');
+        if(addLocal){
+          const name=prompt('추가할 캐릭터명을 입력해줘 (Notion에는 저장되지 않아요)');
+          if(name&&name.trim()){
+            const list=getLocalShortcuts();
+            list.push({id:'local-'+Date.now(),name:name.trim()});
+            setLocalShortcuts(list);renderBoss();
+          }
+          return;
+        }
       });
       function setBossView(view){
         bossActiveView=view;

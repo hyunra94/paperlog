@@ -175,6 +175,11 @@ export default {
         return json({ ok: true, ...result }, 200, cors);
       }
 
+      if (url.pathname === "/api/boss/character" && request.method === "POST") {
+        const result = await createBossCharacter(request, env);
+        return json({ ok: true, page: result }, 200, cors);
+      }
+
       if (url.pathname === "/api/money" && request.method === "GET") {
         const money = await getMoney(request, env);
         return json({ ok: true, ...money }, 200, cors);
@@ -344,6 +349,20 @@ function bossCharacterProps(env) {
     title: env.BOSS_CHARACTER_TITLE_PROP || "제목",
     level: env.BOSS_CHARACTER_LEVEL_PROP || "레벨",
   };
+}
+
+async function createBossCharacter(request, env) {
+  const body = await request.json();
+  const p = bossCharacterProps(env);
+
+  if (!body.name || !String(body.name).trim()) throw new Error("name is required");
+  if (!env.NOTION_BOSS_CHARACTER_DB_ID) throw new Error("NOTION_BOSS_CHARACTER_DB_ID is not configured");
+
+  const properties = {
+    [p.title]: { title: [{ text: { content: String(body.name).trim() } }] },
+  };
+
+  return notionCreatePage(env, env.NOTION_BOSS_CHARACTER_DB_ID, properties);
 }
 
 function bossCrystalProps(env) {
