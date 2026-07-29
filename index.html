@@ -267,12 +267,15 @@
     .moneyMonthTitle{text-align:center;font-family:'Gaegu';font-size:31px;line-height:1;font-weight:700}
     .moneyMonthBtn{height:38px;border:1.6px solid var(--line);border-radius:14px;background:var(--card);box-shadow:2px 2px 0 rgba(47,42,40,.12);font-family:'Gaegu';font-size:27px;line-height:1;display:grid;place-items:center}
     .moneySummaryGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+    .moneySummaryRow2{display:flex;gap:8px;margin-top:8px}
+    .moneySummaryRow2 .moneySummaryBox{flex:1;min-width:0}
     .moneySummaryBox{padding:11px 10px;border:1.5px solid var(--line);border-radius:16px;background:rgba(255,255,255,.35)}
     .moneySummaryBox span{display:block;color:var(--sub);font-size:12px}.moneySummaryBox strong{display:block;margin-top:4px;font-family:'Gaegu';font-size:24px;line-height:1.05}
-    .moneySummaryBox.balance{grid-column:1/-1;background:#fffaf2}
-    .moneySummaryBox.waste,.moneySummaryBox.installment{cursor:pointer;font:inherit;text-align:left;-webkit-tap-highlight-color:transparent;width:100%}
+    .moneySummaryBox.balance{background:#fffaf2}
+    .moneySummaryBox.waste,.moneySummaryBox.installment{cursor:pointer;font:inherit;text-align:left;-webkit-tap-highlight-color:transparent}
     .moneySummaryBox.waste{background:#fff7df}
     .moneySummaryBox.installment{background:#d9ebf5}
+    .moneySummaryRow2 .moneySummaryBox strong{font-size:19px}
     .moneyStatus{margin:8px 2px 0;color:var(--sub);font-size:12px;line-height:1.45}
     .moneyMiniCal{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--cal-line);border:1.5px solid var(--cal-line);border-radius:20px;overflow:hidden}
     .moneyWd,.moneyDay{background:var(--cal-cell);min-height:34px;padding:5px;text-align:left;position:relative}
@@ -1334,6 +1337,8 @@
         <div class="moneySummaryGrid">
           <div class="moneySummaryBox"><span>이번 달 수입</span><strong class="income" id="moneyIncomeTotal">0</strong></div>
           <div class="moneySummaryBox"><span>이번 달 지출</span><strong class="expense" id="moneyExpenseTotal">0</strong></div>
+        </div>
+        <div class="moneySummaryRow2">
           <div class="moneySummaryBox balance"><span>이번 달 잔액</span><strong id="moneyBalanceTotal">0</strong></div>
           <button type="button" class="moneySummaryBox waste" data-money-filter="waste"><span>낭비</span><strong id="moneyWasteCount">0건</strong></button>
           <button type="button" class="moneySummaryBox installment" data-money-filter="installment"><span>할부</span><strong id="moneyInstallmentCount">0건</strong></button>
