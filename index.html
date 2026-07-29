@@ -213,7 +213,7 @@
     .app{position:relative}
     .app.pageDragActive{overflow-x:clip;overflow-anchor:none}
     .app.pageDragActive *{overflow-anchor:none}
-    .app.pageDragActive .calendarTopBar,.app.pageDragActive .moneyTopBar{position:relative!important;top:auto!important}
+    .app.pageDragActive .calendarTopBar,.app.pageDragActive .moneyTopBar,.app.pageDragActive .bossTopBar{position:relative!important;top:auto!important}
     .page.pageIncoming{position:fixed;top:0;animation:none;z-index:2}
     .calMenuBtn{position:relative}
     .calMenuBtn#calDisplayBtn{background:#d9ebf5}
@@ -254,7 +254,8 @@
     .charLinkSectionHead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:14px 0 8px;font-family:'Gaegu';font-size:19px;font-weight:700}
     .charAddLocalBtn{border:1.6px solid var(--line);border-radius:999px;background:var(--yellow);padding:5px 12px;font-family:'Gaegu';font-size:15px;box-shadow:2px 2px 0 rgba(47,42,40,.1)}
     .bossAddCharBtn{border:1.6px solid var(--line);border-radius:999px;background:var(--green);padding:5px 12px;font-family:'Gaegu';font-size:15px;box-shadow:2px 2px 0 rgba(47,42,40,.1);white-space:nowrap}
-    .bossTopBar{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:12px}
+    .charLinkNameJump{cursor:pointer;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
+    .bossTopBar{position:sticky;top:calc(var(--sticky-h) + 8px + env(safe-area-inset-top));z-index:44;display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:12px;padding:6px;border-radius:18px;background:rgba(251,247,237,.92);backdrop-filter:blur(10px)}
     .bossIndexBtn{border:1.6px solid var(--line);border-radius:999px;background:#fffaf4;padding:9px 8px;font-family:'Gaegu';font-size:19px;box-shadow:2px 2px 0 rgba(47,42,40,.1)}
     .bossIndexBtn.on{background:var(--yellow)}
     .bossIndexBtn.soon{opacity:.55;font-size:15px}
@@ -350,6 +351,7 @@
     @media (min-width:960px){.moneyFab{right:calc((100vw - var(--app-max))/2 + 40px)}.moneyStatsFab{right:calc((100vw - var(--app-max))/2 + 106px)}.moneyDay{min-height:64px}}
 
     #moneyStatsSheet .sheetHead{position:sticky;top:-10px;z-index:12;margin:0 -2px 10px;padding:8px 0 10px;background:rgba(255,253,247,.98);backdrop-filter:blur(10px);border-bottom:1px solid rgba(47,42,40,.12)}
+    #bossSheet .sheetHead{position:sticky;top:-10px;z-index:12;margin:0 -2px 10px;padding:8px 0 10px;background:rgba(255,253,247,.98);backdrop-filter:blur(10px);border-bottom:1px solid rgba(47,42,40,.12)}
     #moneyStatsSheet .sheetHead h3{font-size:30px}
     .moneyStatsTabs{grid-template-columns:1fr 1fr auto}.moneyStatsViewBtn{border:1.5px solid var(--line);border-radius:999px;background:#fffaf4;padding:9px 10px;font-family:'Gaegu';font-size:20px;box-shadow:2px 2px 0 rgba(47,42,40,.12);transition:opacity .15s,filter .15s}
     .moneyStatsViewBtn.on{background:#f4e4a8}
@@ -1601,7 +1603,7 @@
     </div>
 
 
-    <div class="sheetBg" id="bossSheet" hidden><section class="sheet"><div class="handle"></div><div class="sheetHead"><h3>기본 주간 보스 설정</h3><div class="bossSheetActions"><button class="bossLowEditAllBtn" id="bossLowEditAllBtn" type="button">미사용 전체</button><button class="icon" id="closeBoss">×</button></div></div><div class="bossSettingSticky"><div class="bossSettingSummary" id="bossSettingSummary"></div><div style="margin-bottom:8px;font-family:'Gaegu';font-size:20px;color:var(--sub);" id="bossCharNameDisplay"></div><select id="bossCharSelect" hidden></select></div><div class="bossGrid" id="bossSettingGrid"></div><p class="sheetNote" id="bossSettingNote">선택하면 자동으로 저장됩니다.</p><div class="sheetActions"><button class="cancel" id="cancelBoss" type="button">닫기</button><button class="save" id="saveBoss" type="button">저장 후 닫기</button></div></section></div>
+    <div class="sheetBg" id="bossSheet" hidden><section class="sheet"><div class="handle"></div><div class="sheetHead"><h3>기본 주간 보스 설정</h3><div class="bossSheetActions"><button class="bossLowEditAllBtn" id="bossLowEditAllBtn" type="button">미사용</button><button class="icon" id="closeBoss">×</button></div></div><div class="bossSettingSticky"><div class="bossSettingSummary" id="bossSettingSummary"></div><div style="margin-bottom:8px;font-family:'Gaegu';font-size:20px;color:var(--sub);" id="bossCharNameDisplay"></div><select id="bossCharSelect" hidden></select></div><div class="bossGrid" id="bossSettingGrid"></div><p class="sheetNote" id="bossSettingNote">선택하면 자동으로 저장됩니다.</p><div class="sheetActions"><button class="cancel" id="cancelBoss" type="button">닫기</button><button class="save" id="saveBoss" type="button">저장 후 닫기</button></div></section></div>
 
     <div class="sheetBg" id="bossLootSheet" hidden>
       <section class="sheet">
@@ -2399,7 +2401,7 @@
         dedupeBossRecords();
         const charLinkList=$('#charLinkList');
         if(charLinkList){
-          const allNamedChars=orderBossChars(chars.filter(c=>c.id!=='all'&&!isHiddenBossCharacterName(c.name)));
+          const allNamedChars=orderBossChars(chars.filter(c=>c.id!=='all'&&!isHiddenBossCharacterName(c.name)&&!String(c.name||'').includes('득템')));
           const hiddenSet=getHiddenCharIdSet();
           const visibleChars=allNamedChars.filter(c=>!hiddenSet.has(c.id));
           const hiddenChars=allNamedChars.filter(c=>hiddenSet.has(c.id));
@@ -2408,7 +2410,7 @@
             const key='real:'+c.id;
             const isOpen=charLinkEditOpenId===key;
             const actions=isOpen?`<div class="charLinkEditActions"><button class="charHideBtn" data-hide-char="${c.id}" type="button">숨기기</button></div>`:'';
-            return `<div class="charLinkItem"><div class="charLinkRowTop"><span>${c.name}</span><span class="charLinkActions">${charMaplescouterLinksHtml(c.name)}<button class="charEditToggle" data-edit-toggle="${key}" type="button">⋯</button></span></div>${actions}</div>`;
+            return `<div class="charLinkItem"><div class="charLinkRowTop"><span class="charLinkNameJump" data-jump-boss-char="${c.id}">${c.name}</span><span class="charLinkActions">${charMaplescouterLinksHtml(c.name)}<button class="charEditToggle" data-edit-toggle="${key}" type="button">⋯</button></span></div>${actions}</div>`;
           };
           const localRow=s=>{
             const key='local:'+s.id;
@@ -2807,7 +2809,7 @@
           const isEditing=lowEditAll;
           const isMulti=activeItems.length>1;
           const variantHTML=activeItems.map(b=>{
-            const lowBtn=isEditing&&activeItems.length>1?`<button class="bossVariantLowBtn" data-boss-id="${b.id}" type="button">미사용</button>`:'';
+            const lowBtn=isEditing?`<button class="bossVariantLowBtn" data-boss-id="${b.id}" type="button">미사용</button>`:'';
             return `<label class="bossVariant"><input type="checkbox" value="${b.id}" data-family="${family}" ${cur.includes(b.id)?'checked':''}><span class="bossVariantDiff">${diffName(b)}</span><span class="bossVariantPrice">(${eok(b.price)})</span>${lowBtn}</label>`;
           }).join('');
           return `<div class="bossFamily${isMulti?' multi':''}"><div class="bossFamilyTitle" style="display:flex;align-items:center;gap:5px;"><span>${family}</span><span class="miniTag">${items[0].cycle==='monthly'?'월간':'주간'}${items.some(x=>x.exception)?' · 예외':''}</span></div><div class="bossVariantRow">${variantHTML}</div></div>`;
@@ -2827,7 +2829,7 @@
         // 미사용: low 난이도가 1개 이상인 패밀리
         const low=entries.filter(([,items])=>items.some(b=>lowIdsSet.has(b.id))).map(lowCard).join('');
         $('#bossSettingGrid').innerHTML=`${main}<button class="lowBossToggle" id="toggleLowBoss" type="button"><span>미사용 보스</span><span>${showLowBosses?'접기 ▲':'펼치기 ▼'}</span></button><div class="lowBossWrap" ${showLowBosses?'':'hidden'}>${low}</div>`;
-        const editAllBtn=$('#bossLowEditAllBtn');if(editAllBtn){editAllBtn.classList.toggle('on',lowEditAll);editAllBtn.textContent=lowEditAll?'닫기':'미사용 전체'}
+        const editAllBtn=$('#bossLowEditAllBtn');if(editAllBtn){editAllBtn.classList.toggle('on',lowEditAll);editAllBtn.textContent=lowEditAll?'닫기':'미사용'}
         renderBossSettingSummary();
       }
       function renderBossSettingSummary(){const box=$('#bossSettingSummary');if(!box)return;const checked=$$('#bossSettingGrid input[data-family]:checked').map(input=>bosses.find(b=>b.id===input.value)).filter(Boolean);const weeklyCount=checked.filter(b=>b.cycle==='weekly').length;const monthlyCount=checked.filter(b=>b.cycle==='monthly').length;box.innerHTML=`<div class="bossSettingSummaryHead"><span>선택한 기본 보스</span><strong>${checked.length}개</strong></div><div class="bossSettingSummaryList">${checked.length?checked.map(b=>`<span class="miniTag">${b.name}</span>`).join(''):'<span class="muted">아직 선택한 보스가 없어요.</span>'}</div><p class="sheetNote">주간 ${weeklyCount}개 / 월간 ${monthlyCount}개</p>`}
@@ -2986,7 +2988,7 @@
         }catch(err){
           alert('캐릭터 추가 실패: '+err.message);
         }
-      });const closeBossSheet=()=>{preserveBossGridSelection();saveBossSettingForChar(bossSettingActiveCharId,{silent:true});lowEditAll=false;$('#bossSheet').hidden=true;};$('#closeBoss').onclick=closeBossSheet;$('#cancelBoss').onclick=closeBossSheet;const bossSheetBg=$('#bossSheet');if(bossSheetBg)bossSheetBg.addEventListener('click',e=>{if(e.target===bossSheetBg)closeBossSheet()});$('#bossLowEditAllBtn')&&($('#bossLowEditAllBtn').onclick=()=>{lowEditAll=!lowEditAll;$('#bossLowEditAllBtn').classList.toggle('on',lowEditAll);$('#bossLowEditAllBtn').textContent=lowEditAll?'닫기':'미사용 전체';renderBossGrid()});$('#bossCharSelect').onchange=()=>{preserveBossGridSelection();const prev=bossSettingActiveCharId;if(prev&&isValidNotionId(prev))saveBossSettingForChar(prev,{silent:true});bossSettingActiveCharId=$('#bossCharSelect').value;renderBossGrid();setBossSettingNote('선택하면 자동으로 저장됩니다.');};$('#bossSettingGrid').addEventListener('click',e=>{
+      });const closeBossSheet=()=>{preserveBossGridSelection();saveBossSettingForChar(bossSettingActiveCharId,{silent:true});lowEditAll=false;showLowBosses=false;$('#bossSheet').hidden=true;};$('#closeBoss').onclick=closeBossSheet;$('#cancelBoss').onclick=closeBossSheet;const bossSheetBg=$('#bossSheet');if(bossSheetBg)bossSheetBg.addEventListener('click',e=>{if(e.target===bossSheetBg)closeBossSheet()});$('#bossLowEditAllBtn')&&($('#bossLowEditAllBtn').onclick=()=>{lowEditAll=!lowEditAll;$('#bossLowEditAllBtn').classList.toggle('on',lowEditAll);$('#bossLowEditAllBtn').textContent=lowEditAll?'닫기':'미사용';renderBossGrid()});$('#bossCharSelect').onchange=()=>{preserveBossGridSelection();const prev=bossSettingActiveCharId;if(prev&&isValidNotionId(prev))saveBossSettingForChar(prev,{silent:true});bossSettingActiveCharId=$('#bossCharSelect').value;renderBossGrid();setBossSettingNote('선택하면 자동으로 저장됩니다.');};$('#bossSettingGrid').addEventListener('click',e=>{
         const currentCid=bossSettingActiveCharId||$('#bossCharSelect')?.value||'';
         // per-variant toggle
         const varLow=e.target.closest('.bossVariantLowBtn');
@@ -3045,6 +3047,19 @@
             list.push({id:'local-'+Date.now(),name:name.trim()});
             setLocalShortcuts(list);renderBoss();
           }
+          return;
+        }
+        const jump=e.target.closest('[data-jump-boss-char]');
+        if(jump){
+          const cid=jump.dataset.jumpBossChar;
+          setBossView('boss');
+          requestAnimationFrame(()=>{
+            const target=document.querySelector(`[data-boss-char-toggle="${cid}"]`);
+            if(target){
+              target.closest('.bossCard')?.scrollIntoView({behavior:'smooth',block:'start'});
+              bossCardOpenCharId=cid;renderBoss();
+            }
+          });
           return;
         }
       });
