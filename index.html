@@ -270,12 +270,9 @@
     .moneySummaryBox{padding:11px 10px;border:1.5px solid var(--line);border-radius:16px;background:rgba(255,255,255,.35)}
     .moneySummaryBox span{display:block;color:var(--sub);font-size:12px}.moneySummaryBox strong{display:block;margin-top:4px;font-family:'Gaegu';font-size:24px;line-height:1.05}
     .moneySummaryBox.balance{grid-column:1/-1;background:#fffaf2}
-    .moneySummaryBox.waste{background:transparent;padding:0;overflow:hidden;display:flex}
-    .moneySummaryBox.waste .wasteHalf,.moneySummaryBox.waste .installmentHalf{flex:1;min-width:0;border:0;padding:11px 10px;text-align:left;cursor:pointer;font:inherit}
-    .moneySummaryBox.waste .wasteHalf{background:#fff7df}
-    .moneySummaryBox.waste .installmentHalf{background:#d9ebf5;border-left:1.5px solid var(--line)}
-    .moneySummaryBox.waste span{display:block;color:var(--sub);font-size:12px}
-    .moneySummaryBox.waste strong{display:block;margin-top:4px;font-family:'Gaegu';font-size:20px;line-height:1.05}
+    .moneySummaryBox.waste,.moneySummaryBox.installment{cursor:pointer;font:inherit;text-align:left;-webkit-tap-highlight-color:transparent;width:100%}
+    .moneySummaryBox.waste{background:#fff7df}
+    .moneySummaryBox.installment{background:#d9ebf5}
     .moneyStatus{margin:8px 2px 0;color:var(--sub);font-size:12px;line-height:1.45}
     .moneyMiniCal{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--cal-line);border:1.5px solid var(--cal-line);border-radius:20px;overflow:hidden}
     .moneyWd,.moneyDay{background:var(--cal-cell);min-height:34px;padding:5px;text-align:left;position:relative}
@@ -318,11 +315,6 @@
     @media (min-width:700px){.moneyDay{min-height:58px}.moneyWd{min-height:33px;font-size:17px}.moneyFab{right:calc((100vw - var(--app-max))/2 + 32px);bottom:calc(var(--nav) + 30px)}.moneyStatsFab{right:calc((100vw - var(--app-max))/2 + 98px)}}
     @media (min-width:960px){.moneyFab{right:calc((100vw - var(--app-max))/2 + 40px)}.moneyStatsFab{right:calc((100vw - var(--app-max))/2 + 106px)}.moneyDay{min-height:64px}}
 
-    /* v24 money UI polish */
-    .moneySummaryGrid{grid-template-columns:repeat(10,minmax(0,1fr))!important}
-    .moneySummaryGrid .moneySummaryBox:nth-child(1),.moneySummaryGrid .moneySummaryBox:nth-child(2){grid-column:span 5}
-    .moneySummaryBox.balance{grid-column:span 5!important}
-    .moneySummaryBox.waste{grid-column:span 5!important}
     #moneyStatsSheet .sheetHead{position:sticky;top:-10px;z-index:12;margin:0 -2px 10px;padding:8px 0 10px;background:rgba(255,253,247,.98);backdrop-filter:blur(10px);border-bottom:1px solid rgba(47,42,40,.12)}
     #moneyStatsSheet .sheetHead h3{font-size:30px}
     .moneyStatsTabs{grid-template-columns:1fr 1fr auto}.moneyStatsViewBtn{border:1.5px solid var(--line);border-radius:999px;background:#fffaf4;padding:9px 10px;font-family:'Gaegu';font-size:20px;box-shadow:2px 2px 0 rgba(47,42,40,.12);transition:opacity .15s,filter .15s}
@@ -1343,10 +1335,8 @@
           <div class="moneySummaryBox"><span>이번 달 수입</span><strong class="income" id="moneyIncomeTotal">0</strong></div>
           <div class="moneySummaryBox"><span>이번 달 지출</span><strong class="expense" id="moneyExpenseTotal">0</strong></div>
           <div class="moneySummaryBox balance"><span>이번 달 잔액</span><strong id="moneyBalanceTotal">0</strong></div>
-          <div class="moneySummaryBox waste">
-            <button type="button" class="wasteHalf" data-money-filter="waste"><span>낭비</span><strong class="expense" id="moneyWasteTotal">0</strong></button>
-            <button type="button" class="installmentHalf" data-money-filter="installment"><span>할부</span><strong class="expense" id="moneyInstallmentTotal">0</strong></button>
-          </div>
+          <button type="button" class="moneySummaryBox waste" data-money-filter="waste"><span>낭비</span><strong id="moneyWasteCount">0건</strong></button>
+          <button type="button" class="moneySummaryBox installment" data-money-filter="installment"><span>할부</span><strong id="moneyInstallmentCount">0건</strong></button>
         </div>
         <p class="moneyStatus" id="moneyStatus">가계부 데이터를 불러오는 중...</p>
         <input id="expenseDate" type="hidden"><input id="incomeDate" type="hidden">
@@ -1520,6 +1510,15 @@
         <div class="sheetHead"><h3>할부 일정</h3><button class="icon" id="closeInstallmentSchedule" type="button">×</button></div>
         <div class="moneyStatsHead"><span>총 할부금액</span><strong class="moneyStatsTotal" id="installmentScheduleTotal">0</strong></div>
         <div class="moneyStatsList" id="installmentScheduleList"></div>
+      </section>
+    </div>
+
+    <div class="sheetBg" id="moneyCategorySheet" hidden>
+      <section class="sheet">
+        <div class="handle"></div>
+        <div class="sheetHead"><h3 id="moneyCategorySheetTitle">낭비 지출</h3><button class="icon" id="closeMoneyCategorySheet" type="button">×</button></div>
+        <div class="moneyStatsHead"><span id="moneyCategorySheetCount">총 0건</span><strong class="moneyStatsTotal" id="moneyCategorySheetTotal">0</strong></div>
+        <div class="moneyStatsList" id="moneyCategorySheetList"></div>
       </section>
     </div>
 
@@ -3558,9 +3557,10 @@
         $('#moneyIncomeTotal')&&( $('#moneyIncomeTotal').textContent='+'+won(summary.income));
         $('#moneyExpenseTotal')&&( $('#moneyExpenseTotal').textContent='-'+won(summary.expense));
         $('#moneyBalanceTotal')&&( $('#moneyBalanceTotal').textContent=(summary.balance>=0?'+':'-')+won(Math.abs(summary.balance)) );
-        $('#moneyWasteTotal')&&( $('#moneyWasteTotal').textContent='-'+won(summary.waste||0));
-        const installmentTotal=monthly.filter(r=>r.type==='expense'&&r.installmentGroup).reduce((a,b)=>a+Number(b.amount||0),0);
-        $('#moneyInstallmentTotal')&&( $('#moneyInstallmentTotal').textContent='-'+won(installmentTotal));
+        const wasteCount=monthly.filter(r=>r.waste).length;
+        $('#moneyWasteCount')&&( $('#moneyWasteCount').textContent=`${wasteCount}건`);
+        const installmentCount=monthly.filter(r=>r.type==='expense'&&r.installmentGroup).length;
+        $('#moneyInstallmentCount')&&( $('#moneyInstallmentCount').textContent=`${installmentCount}건`);
         renderMoneyCalendar(byDay);
         renderMoneyRecords(monthly);
         if($('#moneyStatsSheet')&&!$('#moneyStatsSheet').hidden)renderMoneyStats(currentMoneyStatsType);
@@ -3617,6 +3617,17 @@
         }catch(err){
           alert('할부 일정 조회 실패: '+err.message);
         }
+      }
+      function showMoneyCategoryDetail(kind){
+        const monthly=moneyRecords.filter(r=>sameMonth(r.date));
+        const records=(kind==='waste'?monthly.filter(r=>r.waste):monthly.filter(r=>r.installmentGroup)).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+        const total=records.reduce((a,b)=>a+Number(b.amount||0),0);
+        const titleEl=$('#moneyCategorySheetTitle');if(titleEl)titleEl.textContent=kind==='waste'?'낭비 지출':'할부 결제';
+        const countEl=$('#moneyCategorySheetCount');if(countEl)countEl.textContent=`총 ${records.length}건`;
+        const totalEl=$('#moneyCategorySheetTotal');if(totalEl)totalEl.textContent='-'+won(total);
+        const list=$('#moneyCategorySheetList');
+        if(list)list.innerHTML=records.length?records.map(r=>`<div class="moneyStatsRow" style="grid-template-columns:1fr auto auto"><span><strong>${r.title||'(제목 없음)'}</strong><small>${r.date||''} · ${r.category||r.subject||'분류 없음'}${r.card?' · '+r.card:''}</small></span><span class="amount expense">-${won(r.amount)}</span>${r.url?`<a class="goLink" href="${r.url}" target="_blank" rel="noopener noreferrer" aria-label="Notion 바로가기">↗</a>`:'<span class="goLink disabled">↗</span>'}</div>`).join(''):'<p class="moneyStatsEmpty">이번 달 기록이 없어요.</p>';
+        const sheet=$('#moneyCategorySheet');if(sheet)sheet.hidden=false;
       }
 
       let currentMoneyStatsType='expense';
@@ -4249,12 +4260,9 @@
         updateMoneyYearBubble();
       });
       $$('.moneyRecordFilterBtn').forEach(btn=>btn.addEventListener('click',()=>{moneyRecordTypeFilter=btn.dataset.filterType;renderMoneyRecords(moneyRecords.filter(r=>sameMonth(r.date)))}));
-      $$('[data-money-filter]').forEach(btn=>btn.addEventListener('click',()=>{
-        moneyRecordTypeFilter=btn.dataset.moneyFilter;
-        selectedMoneyDate=null;
-        renderMoneyRecords(moneyRecords.filter(r=>sameMonth(r.date)));
-        $('#moneyRecordList')?.scrollIntoView({behavior:'smooth',block:'start'});
-      }));
+      $$('[data-money-filter]').forEach(btn=>btn.addEventListener('click',()=>showMoneyCategoryDetail(btn.dataset.moneyFilter)));
+      $('#closeMoneyCategorySheet')?.addEventListener('click',()=>{const s=$('#moneyCategorySheet');if(s)s.hidden=true});
+      const moneyCategorySheetBg=$('#moneyCategorySheet');if(moneyCategorySheetBg)moneyCategorySheetBg.addEventListener('click',e=>{if(e.target===moneyCategorySheetBg)moneyCategorySheetBg.hidden=true});
       $('#moneyMonthTitle')?.addEventListener('click',()=>{window.scrollTo({top:0,behavior:'smooth'});});
       $('#closeMoneyEntry')?.addEventListener('click',closeMoneySheet);
       $('#deleteMoneyEntry')?.addEventListener('click',deleteMoneyEntry);
