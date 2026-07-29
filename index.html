@@ -215,7 +215,7 @@
     .calMenuBtn{position:relative}
     .calMenuBtn.on{background:#f4e4a8}
     .calMenuBtn.hasActive::after{content:"";position:absolute;top:6px;right:9px;width:6px;height:6px;border-radius:999px;background:#e08a8a;box-shadow:0 0 0 1.5px rgba(255,250,242,.95)}
-    .calMenuBg{position:fixed;inset:0;z-index:64;background:transparent}
+    .calMenuBg{position:fixed;inset:0;z-index:40;background:transparent}
     .calMenuBg[hidden]{display:none}
     .calMenuPopover{position:fixed;z-index:65;min-width:210px;border:1.5px solid var(--cal-line);border-radius:16px;background:rgba(255,250,242,.98);box-shadow:0 10px 26px rgba(47,42,40,.16),3px 3px 0 rgba(47,42,40,.12);padding:11px 13px;display:flex;flex-direction:column;gap:10px}
     .calMenuPopover[hidden]{display:none}
@@ -1819,6 +1819,8 @@
         finalizePage(id,options);
       }
       function finalizePage(id,options={}){
+        closeCalMenus();
+        hideSchedulePopup();
         localStorage.setItem(ACTIVE_PAGE_KEY,id);
         $$('.navBtn').forEach(b=>b.classList.toggle('on',b.dataset.target===id));
         if(options.scroll!==false)scrollTo({top:0,behavior:'smooth'});
