@@ -254,9 +254,9 @@
     .charLinkSectionHead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:14px 0 8px;font-family:'Gaegu';font-size:19px;font-weight:700}
     .charAddLocalBtn{border:1.6px solid var(--line);border-radius:999px;background:var(--yellow);padding:5px 12px;font-family:'Gaegu';font-size:15px;box-shadow:2px 2px 0 rgba(47,42,40,.1)}
     .bossAddCharBtn{border:1.6px solid var(--line);border-radius:999px;background:var(--green);padding:5px 12px;font-family:'Gaegu';font-size:15px;box-shadow:2px 2px 0 rgba(47,42,40,.1);white-space:nowrap}
-    .charLinkNameJump{cursor:pointer;min-width:0}
-    .charLinkNameText{text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px}
-    .charLinkMeta{margin-top:2px;font-size:11px;color:var(--sub);font-family:'Gowun Dodum',sans-serif}
+    .charLinkNameJump{cursor:pointer;min-width:0;display:flex;align-items:baseline;gap:6px;overflow:hidden}
+    .charLinkNameText{flex:0 1 auto;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .charLinkMeta{flex:0 0 auto;font-size:11px;color:var(--sub);font-family:'Gowun Dodum',sans-serif;white-space:nowrap}
     .mapleBar{height:8px;background:var(--grid);border-radius:99px;margin-top:8px;overflow:hidden}
     .mapleBarFill{height:100%;background:var(--yellow);border-radius:99px}
     .bossTopBar{position:sticky;top:calc(var(--sticky-h) + 8px + env(safe-area-inset-top));z-index:44;display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:12px;padding:6px;border-radius:18px;background:rgba(251,247,237,.92);backdrop-filter:blur(10px)}
@@ -2531,7 +2531,7 @@
             const isOpen=charLinkEditOpenId===key;
             const actions=isOpen?`<div class="charLinkEditActions"><button class="charHideBtn" data-hide-char="${c.id}" type="button">숨기기</button></div>`:'';
             const sched=mapleSchedulerCache[c.name];
-            const meta=sched?`<div class="charLinkMeta">Lv.${sched.level} ${sched.job}</div>`:'';
+            const meta=sched?`<span class="charLinkMeta">Lv.${sched.level} ${sched.job}</span>`:'';
             return `<div class="charLinkItem"><div class="charLinkRowTop"><div class="charLinkNameJump" data-jump-boss-char="${c.id}"><span class="charLinkNameText">${c.name}</span>${meta}</div><span class="charLinkActions">${charMaplescouterLinksHtml(c.name)}<button class="charEditToggle" data-edit-toggle="${key}" type="button">⋯</button></span></div>${actions}</div>`;
           };
           const localRow=s=>{
