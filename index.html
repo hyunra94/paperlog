@@ -1909,9 +1909,13 @@
             const charData=await mapleSchedulerApiGet(`/api/character?name=${encodeURIComponent(charName)}`);
             ocid=charData.ocid;
           }
-          const raw=await mapleSchedulerApiGet(`/api/scheduler?ocid=${encodeURIComponent(ocid)}`);
-          const derived=deriveMapleSchedulerState(raw);
-          mapleSchedulerCache[charName]={ocid,...derived,fetchedAt:Date.now(),v:MAPLE_SCHEDULER_CACHE_VERSION};
+          try{
+            const raw=await mapleSchedulerApiGet(`/api/scheduler?ocid=${encodeURIComponent(ocid)}`);
+            const derived=deriveMapleSchedulerState(raw);
+            mapleSchedulerCache[charName]={ocid,...derived,fetchedAt:Date.now(),v:MAPLE_SCHEDULER_CACHE_VERSION};
+          }catch(schedErr){
+            mapleSchedulerCache[charName]={ocid,error:'스케줄러 미설정',fetchedAt:Date.now(),v:MAPLE_SCHEDULER_CACHE_VERSION};
+          }
           saveMapleSchedulerCache(mapleSchedulerCache);
         }catch(e){
           console.warn('메이플 스케줄러 조회 실패',charName,e);
@@ -1928,8 +1932,18 @@
         const localNames=getLocalShortcuts().map(s=>s.name);
         return [...new Set([...realNames,...localNames])];
       }
+      function mapleMetaHtml(sched){
+        if(!sched)return '';
+        if(sched.error)return `<span class="charLinkMeta">${sched.error}</span>`;
+        return `<span class="charLinkMeta">Lv.${sched.level} ${sched.job}</span>`;
+      }
+      const mapleSleep=ms=>new Promise(r=>setTimeout(r,ms));
       async function refreshAllMapleScheduler(){
-        await Promise.all(mapleSchedulerAllNames().map(n=>refreshMapleSchedulerChar(n)));
+        const names=mapleSchedulerAllNames();
+        for(let i=0;i<names.length;i++){
+          await refreshMapleSchedulerChar(names[i]);
+          if(i<names.length-1)await mapleSleep(400);
+        }
       }
       function aggregateMapleAccountWide(){
         const entries=mapleSchedulerAllNames().map(n=>mapleSchedulerCache[n]).filter(Boolean);
@@ -2548,6 +2562,9 @@
           if(!entry){
             return `<div class="bossCard"><div class="bossTitle"><span>${name}</span><span class="tag y">${loading?'조회 중…':'조회 전'}</span></div></div>`;
           }
+          if(entry.error){
+            return `<div class="bossCard"><div class="bossTitle"><span>${name}${loading?' ⟳':''}</span><span class="tag y">${entry.error}</span></div></div>`;
+          }
           let charDone=0,charTotal=0;
           const groupsHtml=entry.states.map(s=>{
             const keyed=s.items.map(([n,st])=>[`c:${name}:${s.title}:${n}`,n,st]);
@@ -2594,16 +2611,14 @@
             const key='real:'+c.id;
             const isOpen=charLinkEditOpenId===key;
             const actions=isOpen?`<div class="charLinkEditActions"><button class="charHideBtn" data-hide-char="${c.id}" type="button">숨기기</button></div>`:'';
-            const sched=mapleSchedulerCache[c.name];
-            const meta=sched?`<span class="charLinkMeta">Lv.${sched.level} ${sched.job}</span>`:'';
+            const meta=mapleMetaHtml(mapleSchedulerCache[c.name]);
             return `<div class="charLinkItem"><div class="charLinkRowTop"><div class="charLinkNameJump" data-jump-boss-char="${c.id}"><span class="charLinkNameText">${c.name}</span>${meta}</div><span class="charLinkActions">${charMaplescouterLinksHtml(c.name)}<button class="charEditToggle" data-edit-toggle="${key}" type="button">⋯</button></span></div>${actions}</div>`;
           };
           const localRow=s=>{
             const key='local:'+s.id;
             const isOpen=charLinkEditOpenId===key;
             const actions=isOpen?`<div class="charLinkEditActions"><button class="charEditBtn" data-edit-local="${s.id}" type="button">편집</button><button class="charDeleteBtn" data-delete-local="${s.id}" type="button">삭제</button></div>`:'';
-            const sched=mapleSchedulerCache[s.name];
-            const meta=sched?`<span class="charLinkMeta">Lv.${sched.level} ${sched.job}</span>`:'';
+            const meta=mapleMetaHtml(mapleSchedulerCache[s.name]);
             return `<div class="charLinkItem"><div class="charLinkRowTop"><div class="charLinkNameJump"><span class="charLinkNameText">${s.name}</span>${meta}</div><span class="charLinkActions">${charMaplescouterLinksHtml(s.name)}<button class="charEditToggle" data-edit-toggle="${key}" type="button">⋯</button></span></div>${actions}</div>`;
           };
           const realSectionHead=`<div class="charLinkSectionHead"><span>내 캐릭터</span><span style="display:flex;gap:6px;"><button class="charAddLocalBtn" id="mapleRefreshShortcuts" type="button">새로고침</button><button class="charAddLocalBtn" id="addBossCharacterShortcuts" type="button">+ 캐릭터</button></span></div>`;
