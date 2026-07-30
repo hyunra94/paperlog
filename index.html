@@ -269,6 +269,8 @@
     .multiplierStepper{display:flex;align-items:center;gap:8px}
     .multiplierBtn{width:22px;height:22px;border:1.2px solid var(--line);border-radius:50%;background:var(--card);font-family:'Gaegu';font-size:15px;line-height:1;display:grid;place-items:center;cursor:pointer}
     .multiplierValue{font-family:'Gaegu';font-size:16px;color:var(--ink);min-width:24px;text-align:center}
+    .navBtn.hasUrgent{position:relative}
+    .navBtn.hasUrgent::after{content:"";position:absolute;top:2px;right:calc(50% - 22px);width:7px;height:7px;border-radius:999px;background:#e08a8a;box-shadow:0 0 0 1.5px rgba(255,250,242,.95)}
     .bossTopBar{position:sticky;top:calc(var(--sticky-h) + 8px + env(safe-area-inset-top));z-index:44;display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:12px;padding:6px;border-radius:18px;background:rgba(251,247,237,.92);backdrop-filter:blur(10px)}
     .bossIndexBtn{border:1.6px solid var(--line);border-radius:999px;background:#fffaf4;padding:9px 8px;font-family:'Gaegu';font-size:19px;box-shadow:2px 2px 0 rgba(47,42,40,.1)}
     .bossIndexBtn.on{background:var(--yellow)}
@@ -1954,8 +1956,25 @@
           if(i<names.length-1)await mapleSleep(400);
         }
       }
+      function mapleLastDailyReset(now=new Date()){const d=new Date(now);d.setHours(0,0,0,0);return d.getTime()}
+      function mapleLastWeeklyReset(now=new Date()){const d=new Date(now);d.setHours(0,0,0,0);const day=d.getDay();const diff=(day-4+7)%7;d.setDate(d.getDate()-diff);return d.getTime()}
+      function mapleDisplayEntry(entry){
+        if(!entry||entry.error)return entry;
+        const dailyStale=(entry.fetchedAt||0)<mapleLastDailyReset();
+        const weeklyStale=(entry.fetchedAt||0)<mapleLastWeeklyReset();
+        if(!dailyStale&&!weeklyStale)return entry;
+        const states=(entry.states||[]).map(s=>{
+          if(s.title==='일퀘'&&dailyStale)return {...s,done:0,items:s.items.map(([n])=>[n,'미시작'])};
+          if(s.title==='지하수로'&&weeklyStale)return {...s,done:0,items:s.items.map(([n])=>[n,'미시작'])};
+          return s;
+        });
+        const done=states.reduce((a,s)=>a+s.done,0), total=states.reduce((a,s)=>a+s.total,0);
+        const epicItems=weeklyStale?(entry.epicItems||[]).map(it=>({...it,done:false})):entry.epicItems;
+        const monsterPark=dailyStale&&entry.monsterPark?{...entry.monsterPark,nowCount:0}:entry.monsterPark;
+        return {...entry,states,done,total,epicItems,monsterPark};
+      }
       function aggregateMapleAccountWide(){
-        const entries=mapleSchedulerAllNames().map(n=>mapleSchedulerCache[n]).filter(Boolean);
+        const entries=mapleSchedulerAllNames().map(n=>mapleDisplayEntry(mapleSchedulerCache[n])).filter(Boolean);
         const epicMap={};
         entries.forEach(e=>(e.epicItems||[]).forEach(it=>{epicMap[it.name]=epicMap[it.name]||it.done}));
         const epicList=Object.entries(epicMap).map(([name,done])=>[name,done?'완료':'미시작']);
@@ -1967,6 +1986,24 @@
         });
         return {epicList,worldMap};
       }
+      function mapleHasIncomplete(){
+        if(new Date().getHours()<23)return false;
+        const names=mapleSchedulerAllNames();
+        for(const n of names){
+          const entry=mapleDisplayEntry(mapleSchedulerCache[n]);
+          if(!entry||entry.error)continue;
+          if((entry.states||[]).some(s=>s.total>0&&s.done<s.total))return true;
+        }
+        const agg=aggregateMapleAccountWide();
+        if(agg.epicList.some(([,st])=>st!=='완료'))return true;
+        if(Object.values(agg.worldMap).some(v=>Math.min(v.nowCount,2)<2))return true;
+        return false;
+      }
+      function updateBossNavDot(){
+        const btn=document.querySelector('.navBtn[data-target="boss"]');
+        if(btn)btn.classList.toggle('hasUrgent',mapleHasIncomplete());
+      }
+      setInterval(updateBossNavDot,60000);
       function mapleSummaryCounts(){
         const agg=aggregateMapleAccountWide();
         const epicDone=agg.epicList.filter(([,st])=>st==='완료').length;
@@ -2583,7 +2620,7 @@
         };
         let doneAll=0,totalAll=0;
         const cardsHtml=names.length?names.map(name=>{
-          const entry=mapleSchedulerCache[name];
+          const entry=mapleDisplayEntry(mapleSchedulerCache[name]);
           const loading=mapleSchedulerLoadingNames.has(name);
           if(!entry){
             return `<div class="bossCard"><div class="bossTitle"><span>${name}</span><span class="tag y">${loading?'조회 중…':'조회 전'}</span></div></div>`;
@@ -2637,7 +2674,7 @@
           const realRow=c=>{
             const key='real:'+c.id;
             const isOpen=charLinkEditOpenId===key;
-            const actions=isOpen?`<div class="charLinkEditActions"><button class="charHideBtn" data-hide-char="${c.id}" type="button">숨기기</button></div>`:'';
+            const actions=isOpen?`<div class="charLinkEditActions"><button class="charEditBtn" data-open-boss-setting="${c.id}" type="button">보스 설정</button><button class="charHideBtn" data-hide-char="${c.id}" type="button">숨기기</button></div>`:'';
             const meta=mapleMetaHtml(mapleSchedulerCache[c.name]);
             return `<div class="charLinkItem"><div class="charLinkRowTop"><div class="charLinkNameJump" data-jump-boss-char="${c.id}"><span class="charLinkNameText">${c.name}</span>${meta}</div><span class="charLinkActions">${charMaplescouterLinksHtml(c.name)}<button class="charEditToggle" data-edit-toggle="${key}" type="button">⋯</button></span></div>${actions}</div>`;
           };
@@ -2655,6 +2692,7 @@
           charLinkList.innerHTML=visibleHtml+hiddenToggleHtml+localHtml;
         }
         renderMapleTodo();
+        updateBossNavDot();
         const isLootChar=cid=>String(chars.find(c=>c.id===cid)?.name||'').includes('득템');
         const noCrystal=r=>String(r.name||'').includes('메이린')||String(r.family||'').includes('메이린');
         const list=$('#bossList'), rows=bossRecords.filter(r=>!isLootChar(r.charId)&&(bossFilter==='all'||r.charId===bossFilter));
@@ -3289,6 +3327,8 @@
         if(addRealChar){addBossCharacterFlow();return}
         const refreshShortcuts=e.target.closest('#mapleRefreshShortcuts');
         if(refreshShortcuts){refreshAllMapleScheduler();return}
+        const openSetting=e.target.closest('[data-open-boss-setting]');
+        if(openSetting){charLinkEditOpenId='';openBossSheet(openSetting.dataset.openBossSetting);return}
         const addLocal=e.target.closest('#addLocalShortcut');
         if(addLocal){
           const name=prompt('추가할 캐릭터명을 입력해줘 (Notion에는 저장되지 않아요)');
