@@ -259,6 +259,10 @@
     .charLinkMeta{flex:0 0 auto;font-size:11px;color:var(--sub);font-family:'Gowun Dodum',sans-serif;white-space:nowrap}
     .mapleBar{height:8px;background:var(--grid);border-radius:99px;margin-top:8px;overflow:hidden}
     .mapleBarFill{height:100%;background:var(--yellow);border-radius:99px}
+    .mapleStateGroup{margin-top:10px;padding-top:8px;border-top:1px dashed rgba(47,42,40,.18)}
+    .mapleStateGroupHead{display:flex;justify-content:space-between;align-items:center;font-family:'Gaegu';font-size:16px;margin-bottom:4px}
+    .mapleStateItem{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:3px 0;font-size:12px;color:var(--sub)}
+    .mapleStateItem .miniTag.mapleDone{background:var(--green);color:#2f5c2f}
     .bossTopBar{position:sticky;top:calc(var(--sticky-h) + 8px + env(safe-area-inset-top));z-index:44;display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:12px;padding:6px;border-radius:18px;background:rgba(251,247,237,.92);backdrop-filter:blur(10px)}
     .bossIndexBtn{border:1.6px solid var(--line);border-radius:999px;background:#fffaf4;padding:9px 8px;font-family:'Gaegu';font-size:19px;box-shadow:2px 2px 0 rgba(47,42,40,.1)}
     .bossIndexBtn.on{background:var(--yellow)}
@@ -1812,6 +1816,7 @@
       ];
       const bossSet={c1:['b10','b06','b27','b29','b36'],c2:['b10','b27','b36'],c3:['b10','b18','b23','b25'],c4:['b27','b29','b31','b33'],c5:[]}; let bossFilter='all', bossRecords=[], bossLootMemos={}, showLowBosses=false, bossSettingActiveCharId='', bossAutoSaveTimer=null, editingBossLootKey='', bossViewBaseDate=new Date(today);
       let showHiddenChars=false;
+      let showLocalShortcuts=false;
       const BOSS_VIEW_KEY='paperLogBossView';
       let bossActiveView=(()=>{try{return localStorage.getItem(BOSS_VIEW_KEY)||'boss'}catch{return 'boss'}})();
       const HIDDEN_CHAR_KEY='paperLogHiddenBossChars';
@@ -1856,32 +1861,28 @@
         if(!raw)return null;
         const bossContentsKo=(raw.bossContents||[]).map(b=>({...b,difficulty:mapleToKoreanDifficulty(b.difficulty)})).sort((a,b)=>(a.list_order_no??0)-(b.list_order_no??0));
         const bossItemsRegistered=bossContentsKo.filter(b=>mapleTruthy(b.registration_flag)&&!mapleIsDailyBoss(b));
-        const weeklyBossRegistered=bossItemsRegistered.filter(b=>!mapleIsMonthlyBoss(b));
-        const monthlyBossRegistered=bossItemsRegistered.filter(b=>mapleIsMonthlyBoss(b));
-        const weeklyBossClearCount=raw.weeklyBossClearCount??0;
-        const weeklyBossClearLimitCount=raw.weeklyBossClearLimitCount??null;
-        const weeklyBossCapped=weeklyBossClearLimitCount!=null&&weeklyBossClearLimitCount>0&&weeklyBossClearCount>=weeklyBossClearLimitCount;
-        const weeklyBossDoneCount=weeklyBossCapped?weeklyBossRegistered.length:weeklyBossRegistered.filter(b=>mapleTruthy(b.complete_flag)).length;
+        const monthlyBossRegistered=bossItemsRegistered.filter(mapleIsMonthlyBoss);
         const monthlyBossDoneCount=monthlyBossRegistered.filter(b=>mapleTruthy(b.complete_flag)).length;
-        const dailyRegistered=(raw.dailyContents||[]).filter(d=>mapleTruthy(d.registration_flag));
+        const isMonsterParkContent=d=>d.content_name&&mapleNormalizeKey(d.content_name).includes('몬스터파크');
+        const dailyRegisteredAll=(raw.dailyContents||[]).filter(d=>mapleTruthy(d.registration_flag));
+        const monsterParkRaw=dailyRegisteredAll.find(isMonsterParkContent)||null;
+        const dailyRegistered=dailyRegisteredAll.filter(d=>!isMonsterParkContent(d));
         const weeklyRawRegistered=(raw.weeklyContents||[]).filter(w=>mapleTruthy(w.registration_flag));
         const epicRegistered=weeklyRawRegistered.filter(mapleIsEpicContent);
         const undergroundRegistered=weeklyRawRegistered.filter(mapleIsUndergroundContent);
-        const weeklyRegistered=weeklyRawRegistered.filter(w=>!mapleIsEpicContent(w)&&!mapleIsUndergroundContent(w));
         const toStateGroup=(title,items)=>{
           const done=items.filter(i=>mapleContentDoneText(i)==='완료').length;
           return {title,done,total:items.length,items:items.map(i=>[i.content_name,mapleContentDoneText(i)])};
         };
         const states=[
-          {title:'주간보스',done:weeklyBossDoneCount,total:weeklyBossRegistered.length,items:weeklyBossRegistered.map(b=>[`${b.difficulty||''} ${b.content_name}`.trim(),mapleTruthy(b.complete_flag)?'완료':'미시작'])},
           {title:'월간보스',done:monthlyBossDoneCount,total:monthlyBossRegistered.length,items:monthlyBossRegistered.map(b=>[`${b.difficulty||''} ${b.content_name}`.trim(),mapleTruthy(b.complete_flag)?'완료':'미시작'])},
           toStateGroup('일퀘',dailyRegistered),
-          toStateGroup('주간퀘',weeklyRegistered),
-          toStateGroup('에픽던전',epicRegistered),
           toStateGroup('지하수로',undergroundRegistered),
         ].filter(s=>s.total>0);
         const done=states.reduce((a,s)=>a+s.done,0), total=states.reduce((a,s)=>a+s.total,0);
-        return {name:raw.name,world:raw.world,job:raw.job,level:raw.level,states,done,total};
+        const epicItems=epicRegistered.map(w=>({name:w.content_name,done:mapleContentDoneText(w)==='완료'}));
+        const monsterPark=monsterParkRaw?{nowCount:monsterParkRaw.now_count||0,maxCount:monsterParkRaw.max_count||0}:null;
+        return {name:raw.name,world:raw.world,job:raw.job,level:raw.level,states,done,total,epicItems,monsterPark};
       }
       async function refreshMapleSchedulerChar(charName){
         mapleSchedulerLoadingNames.add(charName);
@@ -1907,8 +1908,26 @@
       function mapleSchedulerCharNames(){
         return orderBossChars(chars.filter(c=>c.id!=='all'&&!isHiddenBossCharacterName(c.name)&&!String(c.name||'').includes('득템'))).map(c=>c.name);
       }
+      function mapleSchedulerAllNames(){
+        const realNames=mapleSchedulerCharNames();
+        const localNames=getLocalShortcuts().map(s=>s.name);
+        return [...new Set([...realNames,...localNames])];
+      }
       async function refreshAllMapleScheduler(){
-        await Promise.all(mapleSchedulerCharNames().map(n=>refreshMapleSchedulerChar(n)));
+        await Promise.all(mapleSchedulerAllNames().map(n=>refreshMapleSchedulerChar(n)));
+      }
+      function aggregateMapleAccountWide(){
+        const entries=mapleSchedulerAllNames().map(n=>mapleSchedulerCache[n]).filter(Boolean);
+        const epicMap={};
+        entries.forEach(e=>(e.epicItems||[]).forEach(it=>{epicMap[it.name]=epicMap[it.name]||it.done}));
+        const epicList=Object.entries(epicMap).map(([name,done])=>[name,done?'완료':'미시작']);
+        const worldMap={};
+        entries.forEach(e=>{
+          if(!e.monsterPark||!e.world)return;
+          const cur=worldMap[e.world]||{nowCount:0,maxCount:0};
+          worldMap[e.world]={nowCount:Math.max(cur.nowCount,e.monsterPark.nowCount||0),maxCount:Math.max(cur.maxCount,e.monsterPark.maxCount||0)};
+        });
+        return {epicList,worldMap};
       }
       const won=n=>new Intl.NumberFormat('ko-KR').format(n);
       const eok=n=>{const v=n/100000000;return `${Number.isInteger(v)?v:v.toFixed(v<1?2:1).replace(/0$/,'').replace(/\.0$/,'')}억`};
@@ -2500,6 +2519,7 @@
         const list=$('#mapleTodoList'), summary=$('#mapleTodoSummary');
         if(!list||!summary)return;
         const names=mapleSchedulerCharNames();
+        const itemRow=([n,st])=>`<div class="mapleStateItem"><span>${n}</span><span class="miniTag${st==='완료'?' mapleDone':''}">${st}</span></div>`;
         let doneAll=0,totalAll=0;
         const cardsHtml=names.length?names.map(name=>{
           const entry=mapleSchedulerCache[name];
@@ -2509,10 +2529,15 @@
           }
           doneAll+=entry.done;totalAll+=entry.total;
           const pct=entry.total?Math.round(entry.done/entry.total*100):0;
-          const chips=entry.states.map(s=>`<span class="miniTag">${s.title} ${s.done}/${s.total}</span>`).join('');
-          return `<div class="bossCard"><div class="bossTitle"><span>${name}${loading?' ⟳':''}</span><span class="tag y">Lv.${entry.level} ${entry.job} · ${entry.done}/${entry.total}</span></div><div class="mapleBar"><div class="mapleBarFill" style="width:${pct}%"></div></div><div class="bossMeta">${chips}</div></div>`;
+          const groupsHtml=entry.states.map(s=>`<div class="mapleStateGroup"><div class="mapleStateGroupHead"><b>${s.title}</b><span>${s.done}/${s.total}</span></div>${s.items.map(itemRow).join('')}</div>`).join('');
+          return `<div class="bossCard"><div class="bossTitle"><span>${name}${loading?' ⟳':''}</span><span class="tag y">Lv.${entry.level} ${entry.job} · ${entry.done}/${entry.total}</span></div><div class="mapleBar"><div class="mapleBarFill" style="width:${pct}%"></div></div>${groupsHtml}</div>`;
         }).join(''):'<p class="empty-msg">캐릭터가 없어요.</p>';
-        list.innerHTML=cardsHtml;
+        const agg=aggregateMapleAccountWide();
+        const epicHtml=agg.epicList.length?`<div class="bossCard"><div class="bossTitle"><span>에픽던전</span><span class="tag y">아이디 기준</span></div>${agg.epicList.map(itemRow).join('')}</div>`:'';
+        const parkEntries=Object.entries(agg.worldMap);
+        const parkRow=([world,v])=>{const n=Math.min(v.nowCount,2);return `<div class="mapleStateItem"><span>${world}</span><span class="miniTag${n>=2?' mapleDone':''}">${n}/2</span></div>`};
+        const parkHtml=parkEntries.length?`<div class="bossCard"><div class="bossTitle"><span>몬스터파크</span><span class="tag y">월드 기준 · 무료 2회</span></div>${parkEntries.map(parkRow).join('')}</div>`:'';
+        list.innerHTML=cardsHtml+epicHtml+parkHtml;
         summary.innerHTML=`<div><span>오늘 체크 필요</span><strong>${totalAll-doneAll}개</strong></div><div><span>완료율</span><strong>${totalAll?Math.round(doneAll/totalAll*100):0}%</strong></div>`;
       }
       function renderBoss(){
@@ -2538,11 +2563,13 @@
             const key='local:'+s.id;
             const isOpen=charLinkEditOpenId===key;
             const actions=isOpen?`<div class="charLinkEditActions"><button class="charEditBtn" data-edit-local="${s.id}" type="button">편집</button><button class="charDeleteBtn" data-delete-local="${s.id}" type="button">삭제</button></div>`:'';
-            return `<div class="charLinkItem"><div class="charLinkRowTop"><span>${s.name}</span><span class="charLinkActions">${charMaplescouterLinksHtml(s.name)}<button class="charEditToggle" data-edit-toggle="${key}" type="button">⋯</button></span></div>${actions}</div>`;
+            const sched=mapleSchedulerCache[s.name];
+            const meta=sched?`<span class="charLinkMeta">Lv.${sched.level} ${sched.job}</span>`:'';
+            return `<div class="charLinkItem"><div class="charLinkRowTop"><div class="charLinkNameJump"><span class="charLinkNameText">${s.name}</span>${meta}</div><span class="charLinkActions">${charMaplescouterLinksHtml(s.name)}<button class="charEditToggle" data-edit-toggle="${key}" type="button">⋯</button></span></div>${actions}</div>`;
           };
           const visibleHtml=visibleChars.length?visibleChars.map(realRow).join(''):'<p class="empty-msg">캐릭터가 없어요.</p>';
           const hiddenToggleHtml=hiddenChars.length?`<button class="charHiddenToggle" id="toggleHiddenChars" type="button">${showHiddenChars?'숨긴 캐릭터 접기 ▲':`숨긴 캐릭터 ${hiddenChars.length}명 보기 ▼`}</button>${showHiddenChars?`<div class="charHiddenList">${hiddenChars.map(c=>`<div class="charLinkItem"><div class="charLinkRowTop"><span>${c.name}</span><span class="charLinkActions">${charMaplescouterLinksHtml(c.name)}<button class="charShowBtn" data-show-char="${c.id}" type="button">보이기</button></span></div></div>`).join('')}</div>`:''}`:'';
-          const localHtml=`<div class="charLinkSectionHead"><span>추가한 바로가기</span><button class="charAddLocalBtn" id="addLocalShortcut" type="button">+ 추가</button></div>${localShortcuts.length?localShortcuts.map(localRow).join(''):'<p class="empty-msg">추가한 바로가기가 없어요.</p>'}`;
+          const localHtml=`<div class="charLinkSectionHead"><span>추가한 바로가기${localShortcuts.length?` (${localShortcuts.length})`:''}</span><button class="charAddLocalBtn" id="addLocalShortcut" type="button">+ 추가</button></div>${localShortcuts.length?`<button class="charHiddenToggle" id="toggleLocalShortcuts" type="button">${showLocalShortcuts?'접기 ▲':'펼치기 ▼'}</button>${showLocalShortcuts?`<div class="charHiddenList">${localShortcuts.map(localRow).join('')}</div>`:''}`:'<p class="empty-msg">추가한 바로가기가 없어요.</p>'}`;
           charLinkList.innerHTML=visibleHtml+hiddenToggleHtml+localHtml;
         }
         renderMapleTodo();
@@ -3151,6 +3178,8 @@
         if(showBtn){const set=getHiddenCharIdSet();set.delete(showBtn.dataset.showChar);setHiddenCharIdSet(set);renderBoss();return}
         const toggle=e.target.closest('#toggleHiddenChars');
         if(toggle){showHiddenChars=!showHiddenChars;renderBoss();return}
+        const localToggle=e.target.closest('#toggleLocalShortcuts');
+        if(localToggle){showLocalShortcuts=!showLocalShortcuts;renderBoss();return}
         const editToggle=e.target.closest('[data-edit-toggle]');
         if(editToggle){const key=editToggle.dataset.editToggle;charLinkEditOpenId=charLinkEditOpenId===key?'':key;renderBoss();return}
         const editLocal=e.target.closest('[data-edit-local]');
@@ -3172,7 +3201,7 @@
           if(name&&name.trim()){
             const list=getLocalShortcuts();
             list.push({id:'local-'+Date.now(),name:name.trim()});
-            setLocalShortcuts(list);renderBoss();
+            setLocalShortcuts(list);showLocalShortcuts=true;renderBoss();
           }
           return;
         }
