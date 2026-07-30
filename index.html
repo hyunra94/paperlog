@@ -1905,16 +1905,17 @@
         try{
           let entry=mapleSchedulerCache[charName];
           let ocid=entry&&entry.ocid;
-          if(!ocid){
+          let job=entry&&entry.job, level=entry&&entry.level, world=entry&&entry.world;
+          if(!ocid||job==null){
             const charData=await mapleSchedulerApiGet(`/api/character?name=${encodeURIComponent(charName)}`);
-            ocid=charData.ocid;
+            ocid=charData.ocid;job=charData.job;level=charData.level;world=charData.world;
           }
           try{
             const raw=await mapleSchedulerApiGet(`/api/scheduler?ocid=${encodeURIComponent(ocid)}`);
             const derived=deriveMapleSchedulerState(raw);
             mapleSchedulerCache[charName]={ocid,...derived,fetchedAt:Date.now(),v:MAPLE_SCHEDULER_CACHE_VERSION};
           }catch(schedErr){
-            mapleSchedulerCache[charName]={ocid,error:'조회 불가(다른 계정)',fetchedAt:Date.now(),v:MAPLE_SCHEDULER_CACHE_VERSION};
+            mapleSchedulerCache[charName]={ocid,job,level,world,error:'스케줄러 조회 불가(다른 계정으로 추정)',fetchedAt:Date.now(),v:MAPLE_SCHEDULER_CACHE_VERSION};
           }
           saveMapleSchedulerCache(mapleSchedulerCache);
         }catch(e){
@@ -1934,7 +1935,7 @@
       }
       function mapleMetaHtml(sched){
         if(!sched)return '';
-        if(sched.error)return `<span class="charLinkMeta">${sched.error}</span>`;
+        if(sched.job==null||sched.level==null)return sched.error?`<span class="charLinkMeta">${sched.error}</span>`:'';
         return `<span class="charLinkMeta">Lv.${sched.level} ${sched.job}</span>`;
       }
       const mapleSleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -2563,7 +2564,8 @@
             return `<div class="bossCard"><div class="bossTitle"><span>${name}</span><span class="tag y">${loading?'조회 중…':'조회 전'}</span></div></div>`;
           }
           if(entry.error){
-            return `<div class="bossCard"><div class="bossTitle"><span>${name}${loading?' ⟳':''}</span><span class="tag y">${entry.error}</span></div></div>`;
+            const tag=(entry.job!=null&&entry.level!=null)?`Lv.${entry.level} ${entry.job} · ${entry.error}`:entry.error;
+            return `<div class="bossCard"><div class="bossTitle"><span>${name}${loading?' ⟳':''}</span><span class="tag y">${tag}</span></div></div>`;
           }
           let charDone=0,charTotal=0;
           const groupsHtml=entry.states.map(s=>{
