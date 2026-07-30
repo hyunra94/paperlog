@@ -1914,7 +1914,7 @@
             const derived=deriveMapleSchedulerState(raw);
             mapleSchedulerCache[charName]={ocid,...derived,fetchedAt:Date.now(),v:MAPLE_SCHEDULER_CACHE_VERSION};
           }catch(schedErr){
-            mapleSchedulerCache[charName]={ocid,error:'스케줄러 미설정',fetchedAt:Date.now(),v:MAPLE_SCHEDULER_CACHE_VERSION};
+            mapleSchedulerCache[charName]={ocid,error:'조회 불가(다른 계정)',fetchedAt:Date.now(),v:MAPLE_SCHEDULER_CACHE_VERSION};
           }
           saveMapleSchedulerCache(mapleSchedulerCache);
         }catch(e){
