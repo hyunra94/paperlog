@@ -263,6 +263,8 @@
     .mapleStateGroupHead{display:flex;justify-content:space-between;align-items:center;font-family:'Gaegu';font-size:16px;margin-bottom:4px}
     .mapleStateItem{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:3px 0;font-size:12px;color:var(--sub)}
     .mapleStateItem .miniTag.mapleDone{background:var(--green);color:#2f5c2f}
+    .mapleStateItem.mapleItemHidden{opacity:.45}
+    .mapleItemToggle{flex:0 0 auto;border:1.1px solid rgba(47,42,40,.28);border-radius:999px;padding:1px 7px;font-family:'Gaegu';font-size:12px;background:var(--card);cursor:pointer}
     .bossTopBar{position:sticky;top:calc(var(--sticky-h) + 8px + env(safe-area-inset-top));z-index:44;display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:12px;padding:6px;border-radius:18px;background:rgba(251,247,237,.92);backdrop-filter:blur(10px)}
     .bossIndexBtn{border:1.6px solid var(--line);border-radius:999px;background:#fffaf4;padding:9px 8px;font-family:'Gaegu';font-size:19px;box-shadow:2px 2px 0 rgba(47,42,40,.1)}
     .bossIndexBtn.on{background:var(--yellow)}
@@ -1421,7 +1423,7 @@
       </div>
       <div class="bossViewPanel" data-boss-panel="todo">
         <article class="card">
-          <div class="divTitle">메할일<button class="bossAddCharBtn" id="refreshMapleScheduler" type="button">새로고침</button></div>
+          <div class="divTitle">메할일<span style="display:flex;gap:6px;"><button class="bossLowEditAllBtn" id="mapleTodoEditBtn" type="button">편집</button><button class="bossAddCharBtn" id="refreshMapleScheduler" type="button">새로고침</button></span></div>
           <div class="bossSum bossSumV47" id="mapleTodoSummary"></div>
           <div id="mapleTodoList" class="list"></div>
           <p class="note">넥슨 API 스케줄러 등록 기준으로 조회돼요. 캐릭터명은 노션 캐릭터명과 동일해야 매칭돼요.</p>
@@ -1840,6 +1842,11 @@
       function saveMapleSchedulerCache(c){try{localStorage.setItem(MAPLE_SCHEDULER_CACHE_KEY,JSON.stringify(c))}catch(e){console.warn('메이플 스케줄러 캐시 저장 실패',e)}}
       let mapleSchedulerCache=getMapleSchedulerCache();
       const mapleSchedulerLoadingNames=new Set();
+      const MAPLE_DISABLED_KEY='paperLogMapleDisabledItems';
+      function getMapleDisabledSet(){try{return new Set(JSON.parse(localStorage.getItem(MAPLE_DISABLED_KEY)||'[]'))}catch{return new Set()}}
+      function saveMapleDisabledSet(set){try{localStorage.setItem(MAPLE_DISABLED_KEY,JSON.stringify([...set]))}catch(e){console.warn('메할일 편집 저장 실패',e)}}
+      let mapleDisabledSet=getMapleDisabledSet();
+      let mapleTodoEditMode=false;
       async function mapleSchedulerApiGet(path){
         const res=await fetch(`${MAPLE_SCHEDULER_WORKER}${path}`);
         const data=await res.json().catch(()=>({}));
@@ -2527,7 +2534,13 @@
         const list=$('#mapleTodoList'), summary=$('#mapleTodoSummary');
         if(!list||!summary)return;
         const names=mapleSchedulerCharNames();
-        const itemRow=([n,st])=>`<div class="mapleStateItem"><span>${n}</span><span class="miniTag${st==='완료'?' mapleDone':''}">${st}</span></div>`;
+        const isDisabled=key=>mapleDisabledSet.has(key);
+        const itemRow=(key,n,st)=>{
+          const hidden=isDisabled(key);
+          if(hidden&&!mapleTodoEditMode)return '';
+          const toggleBtn=mapleTodoEditMode?`<button class="mapleItemToggle" data-maple-toggle="${key}" type="button">${hidden?'보이기':'숨기기'}</button>`:'';
+          return `<div class="mapleStateItem${hidden?' mapleItemHidden':''}"><span>${n}</span><span class="miniTag${st==='완료'?' mapleDone':''}">${st}</span>${toggleBtn}</div>`;
+        };
         let doneAll=0,totalAll=0;
         const cardsHtml=names.length?names.map(name=>{
           const entry=mapleSchedulerCache[name];
@@ -2535,17 +2548,35 @@
           if(!entry){
             return `<div class="bossCard"><div class="bossTitle"><span>${name}</span><span class="tag y">${loading?'조회 중…':'조회 전'}</span></div></div>`;
           }
-          doneAll+=entry.done;totalAll+=entry.total;
-          const pct=entry.total?Math.round(entry.done/entry.total*100):0;
-          const groupsHtml=entry.states.map(s=>`<div class="mapleStateGroup"><div class="mapleStateGroupHead"><b>${s.title}</b><span>${s.done}/${s.total}</span></div>${s.items.map(itemRow).join('')}</div>`).join('');
-          return `<div class="bossCard"><div class="bossTitle"><span>${name}${loading?' ⟳':''}</span><span class="tag y">Lv.${entry.level} ${entry.job} · ${entry.done}/${entry.total}</span></div><div class="mapleBar"><div class="mapleBarFill" style="width:${pct}%"></div></div>${groupsHtml}</div>`;
+          let charDone=0,charTotal=0;
+          const groupsHtml=entry.states.map(s=>{
+            const keyed=s.items.map(([n,st])=>[`c:${name}:${s.title}:${n}`,n,st]);
+            const activeItems=keyed.filter(([k])=>!isDisabled(k));
+            const doneCount=activeItems.filter(([,,st])=>st==='완료').length;
+            charDone+=doneCount;charTotal+=activeItems.length;
+            if(!activeItems.length&&!mapleTodoEditMode)return '';
+            return `<div class="mapleStateGroup"><div class="mapleStateGroupHead"><b>${s.title}</b><span>${doneCount}/${activeItems.length}</span></div>${keyed.map(([k,n,st])=>itemRow(k,n,st)).join('')}</div>`;
+          }).join('');
+          doneAll+=charDone;totalAll+=charTotal;
+          const pct=charTotal?Math.round(charDone/charTotal*100):0;
+          return `<div class="bossCard"><div class="bossTitle"><span>${name}${loading?' ⟳':''}</span><span class="tag y">Lv.${entry.level} ${entry.job} · ${charDone}/${charTotal}</span></div><div class="mapleBar"><div class="mapleBarFill" style="width:${pct}%"></div></div>${groupsHtml}</div>`;
         }).join(''):'<p class="empty-msg">캐릭터가 없어요.</p>';
         const agg=aggregateMapleAccountWide();
-        const epicHtml=agg.epicList.length?`<div class="bossCard"><div class="bossTitle"><span>에픽던전</span><span class="tag y">아이디 기준</span></div>${agg.epicList.map(itemRow).join('')}</div>`:'';
+        const epicKeyed=agg.epicList.map(([n,st])=>[`e:${n}`,n,st]);
+        const epicActive=epicKeyed.filter(([k])=>!isDisabled(k));
+        const epicHtml=(epicActive.length||(mapleTodoEditMode&&epicKeyed.length))?`<div class="bossCard"><div class="bossTitle"><span>에픽던전</span><span class="tag y">아이디 기준</span></div>${epicKeyed.map(([k,n,st])=>itemRow(k,n,st)).join('')}</div>`:'';
         const parkEntries=Object.entries(agg.worldMap);
-        const parkRow=([world,v])=>{const n=Math.min(v.nowCount,2);return `<div class="mapleStateItem"><span>${world}</span><span class="miniTag${n>=2?' mapleDone':''}">${n}/2</span></div>`};
-        const parkHtml=parkEntries.length?`<div class="bossCard"><div class="bossTitle"><span>몬스터파크</span><span class="tag y">월드 기준 · 무료 2회</span></div>${parkEntries.map(parkRow).join('')}</div>`:'';
-        list.innerHTML=cardsHtml+epicHtml+parkHtml;
+        const parkKeyed=parkEntries.map(([world,v])=>[`p:${world}`,world,v]);
+        const parkActive=parkKeyed.filter(([k])=>!isDisabled(k));
+        const parkRow=([k,world,v])=>{
+          const hidden=isDisabled(k);
+          if(hidden&&!mapleTodoEditMode)return '';
+          const n=Math.min(v.nowCount,2);
+          const toggleBtn=mapleTodoEditMode?`<button class="mapleItemToggle" data-maple-toggle="${k}" type="button">${hidden?'보이기':'숨기기'}</button>`:'';
+          return `<div class="mapleStateItem${hidden?' mapleItemHidden':''}"><span>${world}</span><span class="miniTag${n>=2?' mapleDone':''}">${n}/2</span>${toggleBtn}</div>`;
+        };
+        const parkHtml=(parkActive.length||(mapleTodoEditMode&&parkKeyed.length))?`<div class="bossCard"><div class="bossTitle"><span>몬스터파크</span><span class="tag y">월드 기준 · 무료 2회</span></div>${parkKeyed.map(parkRow).join('')}</div>`:'';
+        list.innerHTML=epicHtml+parkHtml+cardsHtml;
         summary.innerHTML=`<div><span>오늘 체크 필요</span><strong>${totalAll-doneAll}개</strong></div><div><span>완료율</span><strong>${totalAll?Math.round(doneAll/totalAll*100):0}%</strong></div>`;
       }
       function renderBoss(){
@@ -2575,7 +2606,7 @@
             const meta=sched?`<span class="charLinkMeta">Lv.${sched.level} ${sched.job}</span>`:'';
             return `<div class="charLinkItem"><div class="charLinkRowTop"><div class="charLinkNameJump"><span class="charLinkNameText">${s.name}</span>${meta}</div><span class="charLinkActions">${charMaplescouterLinksHtml(s.name)}<button class="charEditToggle" data-edit-toggle="${key}" type="button">⋯</button></span></div>${actions}</div>`;
           };
-          const realSectionHead=`<div class="charLinkSectionHead"><span>내 캐릭터</span><button class="charAddLocalBtn" id="addBossCharacterShortcuts" type="button">+ 캐릭터</button></div>`;
+          const realSectionHead=`<div class="charLinkSectionHead"><span>내 캐릭터</span><span style="display:flex;gap:6px;"><button class="charAddLocalBtn" id="mapleRefreshShortcuts" type="button">새로고침</button><button class="charAddLocalBtn" id="addBossCharacterShortcuts" type="button">+ 캐릭터</button></span></div>`;
           const visibleHtml=realSectionHead+(visibleChars.length?visibleChars.map(realRow).join(''):'<p class="empty-msg">캐릭터가 없어요.</p>');
           const hiddenToggleHtml=hiddenChars.length?`<button class="charHiddenToggle" id="toggleHiddenChars" type="button">${showHiddenChars?'숨긴 캐릭터 접기 ▲':`숨긴 캐릭터 ${hiddenChars.length}명 보기 ▼`}</button>${showHiddenChars?`<div class="charHiddenList">${hiddenChars.map(c=>`<div class="charLinkItem"><div class="charLinkRowTop"><span>${c.name}</span><span class="charLinkActions">${charMaplescouterLinksHtml(c.name)}<button class="charShowBtn" data-show-char="${c.id}" type="button">보이기</button></span></div></div>`).join('')}</div>`:''}`:'';
           const localHtml=`<div class="charLinkSectionHead"><span>추가한 바로가기${localShortcuts.length?` (${localShortcuts.length})`:''}</span><button class="charAddLocalBtn" id="addLocalShortcut" type="button">+ 추가</button></div>${localShortcuts.length?`<button class="charHiddenToggle" id="toggleLocalShortcuts" type="button">${showLocalShortcuts?'접기 ▲':'펼치기 ▼'}</button>${showLocalShortcuts?`<div class="charHiddenList">${localShortcuts.map(localRow).join('')}</div>`:''}`:'<p class="empty-msg">추가한 바로가기가 없어요.</p>'}`;
@@ -3153,7 +3184,7 @@
         }
       }
       $('#addBossCharacter')&&($('#addBossCharacter').onclick=addBossCharacterFlow);
-      $('#refreshMapleScheduler')&&($('#refreshMapleScheduler').onclick=()=>{refreshAllMapleScheduler()});const closeBossSheet=()=>{preserveBossGridSelection();saveBossSettingForChar(bossSettingActiveCharId,{silent:true});lowEditAll=false;showLowBosses=false;$('#bossSheet').hidden=true;};$('#closeBoss').onclick=closeBossSheet;$('#cancelBoss').onclick=closeBossSheet;const bossSheetBg=$('#bossSheet');if(bossSheetBg)bossSheetBg.addEventListener('click',e=>{if(e.target===bossSheetBg)closeBossSheet()});$('#bossLowEditAllBtn')&&($('#bossLowEditAllBtn').onclick=()=>{lowEditAll=!lowEditAll;$('#bossLowEditAllBtn').classList.toggle('on',lowEditAll);$('#bossLowEditAllBtn').textContent=lowEditAll?'닫기':'미사용';renderBossGrid()});$('#bossCharSelect').onchange=()=>{preserveBossGridSelection();const prev=bossSettingActiveCharId;if(prev&&isValidNotionId(prev))saveBossSettingForChar(prev,{silent:true});bossSettingActiveCharId=$('#bossCharSelect').value;renderBossGrid();setBossSettingNote('선택하면 자동으로 저장됩니다.');};$('#bossSettingGrid').addEventListener('click',e=>{
+      $('#refreshMapleScheduler')&&($('#refreshMapleScheduler').onclick=()=>{refreshAllMapleScheduler()});$('#mapleTodoEditBtn')&&($('#mapleTodoEditBtn').onclick=()=>{mapleTodoEditMode=!mapleTodoEditMode;$('#mapleTodoEditBtn').classList.toggle('on',mapleTodoEditMode);$('#mapleTodoEditBtn').textContent=mapleTodoEditMode?'닫기':'편집';renderMapleTodo()});$('#mapleTodoList')?.addEventListener('click',e=>{const toggle=e.target.closest('[data-maple-toggle]');if(!toggle)return;const key=toggle.dataset.mapleToggle;if(mapleDisabledSet.has(key))mapleDisabledSet.delete(key);else mapleDisabledSet.add(key);saveMapleDisabledSet(mapleDisabledSet);renderMapleTodo()});const closeBossSheet=()=>{preserveBossGridSelection();saveBossSettingForChar(bossSettingActiveCharId,{silent:true});lowEditAll=false;showLowBosses=false;$('#bossSheet').hidden=true;};$('#closeBoss').onclick=closeBossSheet;$('#cancelBoss').onclick=closeBossSheet;const bossSheetBg=$('#bossSheet');if(bossSheetBg)bossSheetBg.addEventListener('click',e=>{if(e.target===bossSheetBg)closeBossSheet()});$('#bossLowEditAllBtn')&&($('#bossLowEditAllBtn').onclick=()=>{lowEditAll=!lowEditAll;$('#bossLowEditAllBtn').classList.toggle('on',lowEditAll);$('#bossLowEditAllBtn').textContent=lowEditAll?'닫기':'미사용';renderBossGrid()});$('#bossCharSelect').onchange=()=>{preserveBossGridSelection();const prev=bossSettingActiveCharId;if(prev&&isValidNotionId(prev))saveBossSettingForChar(prev,{silent:true});bossSettingActiveCharId=$('#bossCharSelect').value;renderBossGrid();setBossSettingNote('선택하면 자동으로 저장됩니다.');};$('#bossSettingGrid').addEventListener('click',e=>{
         const currentCid=bossSettingActiveCharId||$('#bossCharSelect')?.value||'';
         // per-variant toggle
         const varLow=e.target.closest('.bossVariantLowBtn');
@@ -3208,6 +3239,8 @@
         }
         const addRealChar=e.target.closest('#addBossCharacterShortcuts');
         if(addRealChar){addBossCharacterFlow();return}
+        const refreshShortcuts=e.target.closest('#mapleRefreshShortcuts');
+        if(refreshShortcuts){refreshAllMapleScheduler();return}
         const addLocal=e.target.closest('#addLocalShortcut');
         if(addLocal){
           const name=prompt('추가할 캐릭터명을 입력해줘 (Notion에는 저장되지 않아요)');
