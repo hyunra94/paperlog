@@ -727,7 +727,7 @@
     }
     .bossAction#loadBossNotion{background:#d9ebf5}
     @media(min-width:700px){.bossSumV47{grid-template-columns:repeat(4,minmax(0,1fr))}}
-    #mainEpicSummary,#mainParkSummary{font-family:inherit;font-size:12px;font-weight:400;line-height:1.5;word-break:keep-all}
+    #mainEpicSummary,#mainParkSummary{font-family:inherit;font-size:12px;font-weight:400;line-height:1.5;word-break:keep-all;white-space:pre-line}
     #mapleTodoEditBtn.on{background:rgba(47,42,40,.18)}
     .bossIndexBtn.on[data-boss-view="shortcuts"]{background:var(--blue)}
     .bossIndexBtn.on[data-boss-view="boss"]{background:var(--green)}
@@ -1887,6 +1887,7 @@
       function mapleIsDailyBoss(b){return MAPLE_KNOWN_DAILY_BOSSES.has(`${b.content_name}_${b.difficulty||''}`)||/일일|매일|daily/i.test(b.cycle||'')}
       const MAPLE_KNOWN_EPIC_DUNGEONS=new Set(['하이마운틴','앵글러 컴퍼니','악몽선경']);
       function mapleIsEpicContent(w){return w.content_name&&(MAPLE_KNOWN_EPIC_DUNGEONS.has(w.content_name)||mapleNormalizeKey(w.content_name).includes('에픽던전'))}
+      function mapleCleanEpicName(name){return String(name||'').replace(/^\s*에픽\s*던전\s*[:：]\s*/,'').trim()}
       function mapleIsUndergroundContent(w){return w.content_name&&mapleNormalizeKey(w.content_name).includes('지하수로')}
       const MAPLE_MONSTER_PARK_FREE_RUNS=2;
       function mapleContentDoneText(item){
@@ -1920,7 +1921,7 @@
           toStateGroup('지하수로',undergroundRegistered),
         ].filter(s=>s.total>0);
         const done=states.reduce((a,s)=>a+s.done,0), total=states.reduce((a,s)=>a+s.total,0);
-        const epicItems=epicRegistered.map(w=>({name:w.content_name,done:mapleContentDoneText(w)==='완료'}));
+        const epicItems=epicRegistered.map(w=>({name:mapleCleanEpicName(w.content_name),done:mapleContentDoneText(w)==='완료'}));
         const monsterPark=monsterParkRaw?{nowCount:monsterParkRaw.now_count||0,maxCount:monsterParkRaw.max_count||0}:null;
         return {name:raw.name,world:raw.world,job:raw.job,level:raw.level,states,done,total,epicItems,monsterPark};
       }
@@ -2023,13 +2024,13 @@
         const agg=aggregateMapleAccountWide();
         if(!agg.epicList.length)return '정보 없음';
         const incomplete=agg.epicList.filter(([,st])=>st!=='완료');
-        return incomplete.length?incomplete.map(([n])=>`${n} 미시작`).join(', '):'모두 완료';
+        return incomplete.length?incomplete.map(([n])=>`${n} 미시작`).join('\n'):'모두 완료';
       }
       function mapleParkSummaryText(){
         const agg=aggregateMapleAccountWide();
         const worlds=Object.entries(agg.worldMap);
         if(!worlds.length)return '정보 없음';
-        return worlds.map(([world,v])=>`${world} ${Math.min(v.nowCount,2)}/2`).join(', ');
+        return worlds.map(([world,v])=>`${world} ${Math.min(v.nowCount,2)}/2`).join('\n');
       }
       const won=n=>new Intl.NumberFormat('ko-KR').format(n);
       const eok=n=>{const v=n/100000000;return `${Number.isInteger(v)?v:v.toFixed(v<1?2:1).replace(/0$/,'').replace(/\.0$/,'')}억`};
