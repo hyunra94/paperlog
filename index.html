@@ -2070,6 +2070,30 @@
           localStorage.setItem(LOW_BOSS_IDS_KEY,JSON.stringify(all));
         }catch(e){console.warn('미사용 보스 저장 실패',e)}
       }
+      function bossSettingMemoPayload(charId){
+        return JSON.stringify({low:[...getLowBossIdsSet(charId)],hidden:getHiddenCharIdSet().has(charId)});
+      }
+      function applySyncedBossSettingMemo(charId,memoText){
+        let parsed=null;
+        if(memoText){try{parsed=JSON.parse(memoText)}catch{parsed=null}}
+        if(!parsed||typeof parsed!=='object')return false;
+        saveLowBossIdsSet(charId,new Set(Array.isArray(parsed.low)?parsed.low:[]));
+        const hset=getHiddenCharIdSet();
+        if(parsed.hidden)hset.add(charId);else hset.delete(charId);
+        setHiddenCharIdSet(hset);
+        return true;
+      }
+      async function syncBossSettingMemos(setups){
+        const toMigrate=[];
+        (setups||[]).forEach(s=>{
+          const cid=(s.characterIds||[])[0];
+          if(!cid)return;
+          if(!applySyncedBossSettingMemo(cid,s.memo))toMigrate.push(cid);
+        });
+        for(const cid of toMigrate){
+          await saveBossSettingForChar(cid,{silent:true});
+        }
+      }
       const BOSS_FAMILY_ORDER=['벨룸','파풀라투스','스우','데미안','가디언 엔젤 슬라임','윌','루시드','더스크','듄켈','진 힐라','선택받은 세렌','감시자 칼로스','최초의 대적자','카링','찬란한 흉성','림보','발드릭스','유피테르','검은 마법사','매그너스','피에르','반반','블러디 퀸','자쿰','시그너스','핑크빈','힐라'];
       function bossCharRank(name){const n=String(name||'').trim();const i=BOSS_CHAR_ORDER.findIndex(x=>n.includes(x));return i===-1?999:i}
       function orderBossChars(list){return [...list].sort((a,b)=>bossCharRank(a.name)-bossCharRank(b.name)||String(a.name||'').localeCompare(String(b.name||''),'ko'))}
@@ -2902,6 +2926,7 @@
                 (s.crystalIds||[]).forEach(bid=>{if(!bossSet[cid].includes(bid))bossSet[cid].push(bid)});
               });
             });
+            await syncBossSettingMemos(data.setups);
           }
           if(Array.isArray(data.records)&&data.records.length){
             bossRecords.splice(0,bossRecords.length,...data.records.filter(r=>!isHiddenBossCharacterName(r.charName)).map(r=>({
@@ -3054,7 +3079,7 @@
         const bossIds=(bossSet[charId]||[]).filter(isValidNotionId);
         try{
           if(!silent)setBossSettingNote('자동 저장 중...', 'saving');
-          const res=await window.paperLog.fetch('/api/boss/setup',{method:'POST',body:JSON.stringify({characterId:charId,characterName:charName,bossIds,active:true})});
+          const res=await window.paperLog.fetch('/api/boss/setup',{method:'POST',body:JSON.stringify({characterId:charId,characterName:charName,bossIds,active:true,memo:bossSettingMemoPayload(charId)})});
           const data=await res.json().catch(()=>({}));
           if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'기본 보스 저장 실패');
           if(!silent)setBossSettingNote('저장 완료 · 선택하면 자동으로 저장됩니다.', 'saved');
@@ -3366,7 +3391,7 @@
         const currentCid=bossSettingActiveCharId||$('#bossCharSelect')?.value||'';
         // per-variant toggle
         const varLow=e.target.closest('.bossVariantLowBtn');
-        if(varLow){e.preventDefault();e.stopPropagation();preserveBossGridSelection();const bid=varLow.dataset.bossId;const set=getLowBossIdsSet(currentCid);if(set.has(bid))set.delete(bid);else{set.add(bid);showLowBosses=true;}saveLowBossIdsSet(currentCid,set);renderBossGrid();return;}
+        if(varLow){e.preventDefault();e.stopPropagation();preserveBossGridSelection();const bid=varLow.dataset.bossId;const set=getLowBossIdsSet(currentCid);if(set.has(bid))set.delete(bid);else{set.add(bid);showLowBosses=true;}saveLowBossIdsSet(currentCid,set);renderBossGrid();queueBossSettingAutoSave();return;}
         // family-level restore-all (used only by the "사용" button in the unused section)
         const famLow=e.target.closest('.bossFamilyLowToggle');
         if(famLow){
@@ -3377,6 +3402,7 @@
           familyBossIds.forEach(id=>set.delete(id));
           saveLowBossIdsSet(currentCid,set);
           renderBossGrid();
+          queueBossSettingAutoSave();
           return;
         }
         // expand/collapse unused section
@@ -3393,9 +3419,9 @@
       };
       $('#charLinkList')?.addEventListener('click',e=>{
         const hideBtn=e.target.closest('[data-hide-char]');
-        if(hideBtn){const set=getHiddenCharIdSet();set.add(hideBtn.dataset.hideChar);setHiddenCharIdSet(set);charLinkEditOpenId='';renderBoss();return}
+        if(hideBtn){const cid=hideBtn.dataset.hideChar;const set=getHiddenCharIdSet();set.add(cid);setHiddenCharIdSet(set);charLinkEditOpenId='';renderBoss();if(isValidNotionId(cid))saveBossSettingForChar(cid,{silent:true});return}
         const showBtn=e.target.closest('[data-show-char]');
-        if(showBtn){const set=getHiddenCharIdSet();set.delete(showBtn.dataset.showChar);setHiddenCharIdSet(set);renderBoss();return}
+        if(showBtn){const cid=showBtn.dataset.showChar;const set=getHiddenCharIdSet();set.delete(cid);setHiddenCharIdSet(set);renderBoss();if(isValidNotionId(cid))saveBossSettingForChar(cid,{silent:true});return}
         const toggle=e.target.closest('#toggleHiddenChars');
         if(toggle){showHiddenChars=!showHiddenChars;renderBoss();return}
         const localToggle=e.target.closest('#toggleLocalShortcuts');
