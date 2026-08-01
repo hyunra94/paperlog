@@ -209,7 +209,7 @@
       display:grid;
       place-items:center;
     }
-    .calendarTabs{margin-bottom:10px;grid-template-columns:1fr 1fr;position:relative;z-index:41}
+    .calendarTabs{margin-bottom:10px;grid-template-columns:1fr 1fr 1fr;position:relative;z-index:41}
     .app{position:relative}
     .app.pageDragActive{overflow-x:clip;overflow-anchor:none}
     .app.pageDragActive *{overflow-anchor:none}
@@ -218,12 +218,20 @@
     .calMenuBtn{position:relative}
     .calMenuBtn#calDisplayBtn{background:#d9ebf5}
     .calMenuBtn#calFilterBtn{background:#dcebd6}
-    .calMenuBtn#calDisplayBtn.on,.calMenuBtn#calFilterBtn.on{background:#f4e4a8}
+    .calMenuBtn#calSearchBtn{background:#e9dcf5}
+    .calMenuBtn#calDisplayBtn.on,.calMenuBtn#calFilterBtn.on,.calMenuBtn#calSearchBtn.on{background:#f4e4a8}
     .calMenuBtn.hasActive::after{content:"";position:absolute;top:6px;right:9px;width:6px;height:6px;border-radius:999px;background:#e08a8a;box-shadow:0 0 0 1.5px rgba(255,250,242,.95)}
     .calMenuBg{position:fixed;inset:0;z-index:40;background:transparent}
     .calMenuBg[hidden]{display:none}
     .calMenuPopover{position:fixed;z-index:65;min-width:210px;border:1.5px solid var(--cal-line);border-radius:16px;background:rgba(255,250,242,.98);box-shadow:0 10px 26px rgba(47,42,40,.16),3px 3px 0 rgba(47,42,40,.12);padding:11px 13px;display:flex;flex-direction:column;gap:10px}
     .calMenuPopover[hidden]{display:none}
+    .calSearchPopover{width:min(88vw,320px)}
+    .calSearchInput{width:100%;padding:9px 11px;border:1.4px solid var(--cal-line);border-radius:12px;background:#fffaf4;font-size:16px}
+    .calSearchResults{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto}
+    .calSearchItem{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;padding:7px 8px;border:1.2px solid rgba(47,42,40,.18);border-radius:12px;background:rgba(255,255,255,.5);cursor:pointer;font-size:12px}
+    .calSearchItem:hover{background:rgba(255,255,255,.85)}
+    .calSearchDate{font-family:'Gaegu';font-size:15px;color:var(--sub);white-space:nowrap}
+    .calSearchTitle{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .calMenuRow{position:relative;display:flex;align-items:center;gap:9px;font-size:14px;line-height:1.3;cursor:pointer}
     .calMenuRow .calCheckInput{position:absolute;opacity:0;width:19px;height:19px;margin:0;pointer-events:none}
     .calCheck{width:19px;height:19px;flex:0 0 auto;border:1.6px solid var(--line);border-radius:6px;background:var(--card);box-shadow:1.5px 1.5px 0 rgba(47,42,40,.14);display:inline-grid;place-items:center;transition:background .15s ease,transform .1s ease}
@@ -1363,6 +1371,7 @@
         <div class="tabs calendarTabs">
           <button class="tab calMenuBtn" id="calDisplayBtn" type="button">표시</button>
           <button class="tab calMenuBtn" id="calFilterBtn" type="button">필터</button>
+          <button class="tab calMenuBtn" id="calSearchBtn" type="button">🔍 검색</button>
         </div>
         <div class="calMenuBg" id="calMenuBg" hidden></div>
         <div class="calMenuPopover" id="calDisplayMenu" hidden>
@@ -1373,6 +1382,10 @@
           <label class="calMenuRow"><input type="checkbox" class="calCheckInput calTypeCheck" data-type="schedule" checked><span class="calCheck"></span> 일정</label>
           <label class="calMenuRow"><input type="checkbox" class="calCheckInput calTypeCheck" data-type="todo" checked><span class="calCheck"></span> 할 일</label>
           <label class="calMenuRow"><input type="checkbox" class="calCheckInput calTypeCheck" data-type="daily" checked><span class="calCheck"></span> 데일리 로그</label>
+        </div>
+        <div class="calMenuPopover calSearchPopover" id="calSearchMenu" hidden>
+          <input type="text" id="calSearchInput" class="calSearchInput" placeholder="제목/분류로 검색 (최근 1년~앞으로 1년)" autocomplete="off">
+          <div id="calSearchResults" class="calSearchResults"></div>
         </div>
         <p class="syncStatus" id="syncStatus">메뉴에서 Notion을 불러오거나 설정을 저장하면 자동으로 동기화됩니다.</p>
         <div class="calendarWide">
@@ -3258,10 +3271,69 @@
         document.querySelector('#calendar')?.scrollIntoView({behavior:'smooth',block:'start'});
       }
       $('#calendarGrid').onclick=e=>{const d=e.target.closest('.day');if(d){const picked=d.dataset.date;selected=picked;renderCal();if(!isTabletLayout()){const liveDay=$(`#calendarGrid .day[data-date="${picked}"]`);showSchedulePopup(picked,liveDay)}}};$('#monthTitle')?.addEventListener('click',()=>{document.querySelector('#calendar')?.scrollIntoView({behavior:'smooth',block:'start'});});$('#prevMonth').onclick=()=>moveCalendarMonth(-1);$('#nextMonth').onclick=()=>moveCalendarMonth(1);$('#calendarTodayBtn')&&($('#calendarTodayBtn').onclick=goCalendarToday);function positionCalMenu(pop,btn){const rect=btn.getBoundingClientRect();const margin=10,gap=6;const pw=pop.offsetWidth||210;let left=rect.left;let top=rect.bottom+gap;left=Math.min(Math.max(left,margin),window.innerWidth-pw-margin);if(top+((pop.offsetHeight||120))>window.innerHeight-margin)top=Math.max(margin,rect.top-gap-(pop.offsetHeight||120));pop.style.left=Math.round(left)+'px';pop.style.top=Math.round(top)+'px'}
-      function closeCalMenus(){['calDisplayMenu','calFilterMenu'].forEach(id=>{const el=$('#'+id);if(el)el.hidden=true});$('#calMenuBg')&&($('#calMenuBg').hidden=true);$('#calDisplayBtn')?.classList.remove('on');$('#calFilterBtn')?.classList.remove('on')}
+      function closeCalMenus(){['calDisplayMenu','calFilterMenu','calSearchMenu'].forEach(id=>{const el=$('#'+id);if(el)el.hidden=true});$('#calMenuBg')&&($('#calMenuBg').hidden=true);$('#calDisplayBtn')?.classList.remove('on');$('#calFilterBtn')?.classList.remove('on');$('#calSearchBtn')?.classList.remove('on')}
       function openCalMenu(menuId,btnId){const pop=$('#'+menuId),btn=$('#'+btnId);if(!pop||!btn)return;const wasOpen=!pop.hidden;closeCalMenus();if(wasOpen)return;pop.hidden=false;$('#calMenuBg')&&($('#calMenuBg').hidden=false);btn.classList.add('on');positionCalMenu(pop,btn)}
       $('#calDisplayBtn')?.addEventListener('click',()=>openCalMenu('calDisplayMenu','calDisplayBtn'));
       $('#calFilterBtn')?.addEventListener('click',()=>openCalMenu('calFilterMenu','calFilterBtn'));
+      $('#calSearchBtn')?.addEventListener('click',()=>{openCalMenu('calSearchMenu','calSearchBtn');setTimeout(()=>$('#calSearchInput')?.focus(),0)});
+      let calendarSearchIndex=null;
+      async function ensureCalendarSearchIndex(){
+        if(calendarSearchIndex&&Date.now()-calendarSearchIndex.loadedAt<5*60*1000)return calendarSearchIndex;
+        if(!hasPaperConfig())return null;
+        const from=key(new Date(today.getFullYear()-1,today.getMonth(),today.getDate()));
+        const to=key(new Date(today.getFullYear()+1,today.getMonth(),today.getDate()));
+        const qs=new URLSearchParams({from,to,includeCanceled:'true'});
+        const res=await window.paperLog.fetch(`/api/calendar?${qs.toString()}`);
+        const data=await res.json().catch(()=>({}));
+        if(!res.ok||data.ok===false)return null;
+        const normalized=normalizeCalendarData(data);
+        calendarSearchIndex={loadedAt:Date.now(),schedules:normalized.schedules,todos:normalized.todos};
+        return calendarSearchIndex;
+      }
+      function renderCalSearchResults(list){
+        const el=$('#calSearchResults');
+        if(!el)return;
+        if(!list.length){el.innerHTML='<p class="empty-msg">검색 결과가 없어요.</p>';return}
+        el.innerHTML=list.slice(0,30).map(item=>{
+          const typeTag=item.type==='todo'?'할 일':'일정';
+          const doneMark=item.type==='todo'&&item.done?' ✓':'';
+          return `<div class="calSearchItem" data-search-jump="${item.date}"><span class="calSearchDate">${item.date.slice(5)}</span><span class="calSearchTitle">${item.title}${doneMark}</span><span class="tag y">${typeTag}</span></div>`;
+        }).join('');
+      }
+      let calSearchDebounce;
+      $('#calSearchInput')?.addEventListener('input',e=>{
+        clearTimeout(calSearchDebounce);
+        const q=e.target.value.trim();
+        if(!q){renderCalSearchResults([]);return}
+        const el=$('#calSearchResults');if(el)el.innerHTML='<p class="empty-msg">검색 중...</p>';
+        calSearchDebounce=setTimeout(async()=>{
+          const idx=await ensureCalendarSearchIndex();
+          if(!idx){if(el)el.innerHTML='<p class="empty-msg">검색하려면 Notion 연결(설정)이 필요해요.</p>';return}
+          const norm=s=>String(s||'').toLowerCase();
+          const nq=norm(q);
+          const matches=[...idx.schedules.map(x=>({...x,type:'schedule'})),...idx.todos.map(x=>({...x,type:'todo'}))]
+            .filter(x=>norm(x.title).includes(nq)||norm(x.category).includes(nq))
+            .sort((a,b)=>a.date.localeCompare(b.date));
+          renderCalSearchResults(matches);
+        },250);
+      });
+      function jumpCalendarToDate(dateStr){
+        const d=new Date(dateStr+'T00:00:00');
+        view=new Date(d.getFullYear(),d.getMonth(),1);
+        selected=dateStr;
+        const hasCache=restoreCalendarMonthCache(calendarMonthKey());
+        if(!hasCache){clearCalendarForMonth()}
+        setTimeout(()=>loadCalendarFromWorker(true),60);
+        document.querySelector('#calendar')?.scrollIntoView({behavior:'smooth',block:'start'});
+        setTimeout(()=>{const liveDay=$(`#calendarGrid .day[data-date="${dateStr}"]`);if(liveDay&&!isTabletLayout())showSchedulePopup(dateStr,liveDay)},150);
+      }
+      $('#calSearchResults')?.addEventListener('click',e=>{
+        const item=e.target.closest('[data-search-jump]');
+        if(!item)return;
+        const dateStr=item.dataset.searchJump;
+        closeCalMenus();
+        jumpCalendarToDate(dateStr);
+      });
       $('#calMenuBg')?.addEventListener('click',closeCalMenus);
       function updateCalMenuIndicators(){$('#calDisplayBtn')?.classList.toggle('hasActive',state.showCanceled||state.dailyEmphasis);$('#calFilterBtn')?.classList.toggle('hasActive',Object.values(state.show).some(v=>!v))}
       $('#dailyEmphasisToggle')&&($('#dailyEmphasisToggle').onchange=()=>{
