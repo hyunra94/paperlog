@@ -2070,8 +2070,11 @@
           localStorage.setItem(LOW_BOSS_IDS_KEY,JSON.stringify(all));
         }catch(e){console.warn('미사용 보스 저장 실패',e)}
       }
+      function localShortcutAnchorCharId(){return chars.find(c=>c.name==='총합')?.id||''}
       function bossSettingMemoPayload(charId){
-        return JSON.stringify({low:[...getLowBossIdsSet(charId)],hidden:getHiddenCharIdSet().has(charId)});
+        const payload={low:[...getLowBossIdsSet(charId)],hidden:getHiddenCharIdSet().has(charId)};
+        if(charId&&charId===localShortcutAnchorCharId())payload.localShortcuts=getLocalShortcuts();
+        return JSON.stringify(payload);
       }
       function applySyncedBossSettingMemo(charId,memoText){
         let parsed=null;
@@ -2081,7 +2084,12 @@
         const hset=getHiddenCharIdSet();
         if(parsed.hidden)hset.add(charId);else hset.delete(charId);
         setHiddenCharIdSet(hset);
+        if(charId===localShortcutAnchorCharId()&&Array.isArray(parsed.localShortcuts))setLocalShortcuts(parsed.localShortcuts);
         return true;
+      }
+      function pushLocalShortcutsSync(){
+        const cid=localShortcutAnchorCharId();
+        if(cid&&isValidNotionId(cid))saveBossSettingForChar(cid,{silent:true});
       }
       async function syncBossSettingMemos(setups){
         const toMigrate=[];
@@ -3432,14 +3440,14 @@
         if(editLocal){
           const list=getLocalShortcuts();const item=list.find(s=>s.id===editLocal.dataset.editLocal);
           const next=prompt('바로가기 이름 수정',item?.name||'');
-          if(next&&next.trim()){item.name=next.trim();setLocalShortcuts(list);renderBoss()}
+          if(next&&next.trim()){item.name=next.trim();setLocalShortcuts(list);renderBoss();pushLocalShortcutsSync()}
           return;
         }
         const deleteLocal=e.target.closest('[data-delete-local]');
         if(deleteLocal){
           if(!confirm('이 바로가기를 삭제할까요?'))return;
           setLocalShortcuts(getLocalShortcuts().filter(s=>s.id!==deleteLocal.dataset.deleteLocal));
-          charLinkEditOpenId='';renderBoss();return;
+          charLinkEditOpenId='';renderBoss();pushLocalShortcutsSync();return;
         }
         const addRealChar=e.target.closest('#addBossCharacterShortcuts');
         if(addRealChar){addBossCharacterFlow();return}
@@ -3449,11 +3457,11 @@
         if(openSetting){charLinkEditOpenId='';openBossSheet(openSetting.dataset.openBossSetting);return}
         const addLocal=e.target.closest('#addLocalShortcut');
         if(addLocal){
-          const name=prompt('추가할 캐릭터명을 입력해줘 (Notion에는 저장되지 않아요)');
+          const name=prompt('추가할 캐릭터명을 입력해줘 (노션 캐릭터로는 안 남고, 기기 간에만 동기화돼요)');
           if(name&&name.trim()){
             const list=getLocalShortcuts();
             list.push({id:'local-'+Date.now(),name:name.trim()});
-            setLocalShortcuts(list);showLocalShortcuts=true;renderBoss();
+            setLocalShortcuts(list);showLocalShortcuts=true;renderBoss();pushLocalShortcutsSync();
           }
           return;
         }
