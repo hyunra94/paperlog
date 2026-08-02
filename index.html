@@ -209,7 +209,8 @@
       display:grid;
       place-items:center;
     }
-    .calendarTabs{margin-bottom:10px;grid-template-columns:1fr 1fr 1fr;position:relative;z-index:41}
+    .calendarTabs{margin-bottom:10px;grid-template-columns:1fr 1fr auto;position:relative;z-index:41}
+    .calSearchIconBtn{padding-inline:12px;font-size:16px;line-height:1}
     .app{position:relative}
     .app.pageDragActive{overflow-x:clip;overflow-anchor:none}
     .app.pageDragActive *{overflow-anchor:none}
@@ -1371,7 +1372,7 @@
         <div class="tabs calendarTabs">
           <button class="tab calMenuBtn" id="calDisplayBtn" type="button">표시</button>
           <button class="tab calMenuBtn" id="calFilterBtn" type="button">필터</button>
-          <button class="tab calMenuBtn" id="calSearchBtn" type="button">🔍 검색</button>
+          <button class="tab calMenuBtn calSearchIconBtn" id="calSearchBtn" type="button" aria-label="검색">🔍</button>
         </div>
         <div class="calMenuBg" id="calMenuBg" hidden></div>
         <div class="calMenuPopover" id="calDisplayMenu" hidden>
@@ -1384,7 +1385,7 @@
           <label class="calMenuRow"><input type="checkbox" class="calCheckInput calTypeCheck" data-type="daily" checked><span class="calCheck"></span> 데일리 로그</label>
         </div>
         <div class="calMenuPopover calSearchPopover" id="calSearchMenu" hidden>
-          <input type="text" id="calSearchInput" class="calSearchInput" placeholder="제목/분류로 검색 (최근 1년~앞으로 1년)" autocomplete="off">
+          <input type="text" id="calSearchInput" class="calSearchInput" placeholder="제목/분류로 검색 (최근 6개월~앞으로 6개월)" autocomplete="off">
           <div id="calSearchResults" class="calSearchResults"></div>
         </div>
         <p class="syncStatus" id="syncStatus">메뉴에서 Notion을 불러오거나 설정을 저장하면 자동으로 동기화됩니다.</p>
@@ -3312,16 +3313,20 @@
       let calendarSearchIndex=null;
       async function ensureCalendarSearchIndex(){
         if(calendarSearchIndex&&Date.now()-calendarSearchIndex.loadedAt<5*60*1000)return calendarSearchIndex;
-        if(!hasPaperConfig())return null;
-        const from=key(new Date(today.getFullYear()-1,today.getMonth(),today.getDate()));
-        const to=key(new Date(today.getFullYear()+1,today.getMonth(),today.getDate()));
-        const qs=new URLSearchParams({from,to,includeCanceled:'true'});
-        const res=await window.paperLog.fetch(`/api/calendar?${qs.toString()}`);
-        const data=await res.json().catch(()=>({}));
-        if(!res.ok||data.ok===false)return null;
-        const normalized=normalizeCalendarData(data);
-        calendarSearchIndex={loadedAt:Date.now(),schedules:normalized.schedules,todos:normalized.todos};
-        return calendarSearchIndex;
+        if(!hasPaperConfig())return {error:'설정 메뉴에서 Worker 주소와 SECRET Key를 먼저 저장해 주세요.'};
+        try{
+          const from=key(new Date(today.getFullYear(),today.getMonth()-6,today.getDate()));
+          const to=key(new Date(today.getFullYear(),today.getMonth()+6,today.getDate()));
+          const qs=new URLSearchParams({from,to,includeCanceled:'true'});
+          const res=await window.paperLog.fetch(`/api/calendar?${qs.toString()}`);
+          const data=await res.json().catch(()=>({}));
+          if(!res.ok||data.ok===false)return {error:data.message||data.error||'일정을 불러오지 못했어요.'};
+          const normalized=normalizeCalendarData(data);
+          calendarSearchIndex={loadedAt:Date.now(),schedules:normalized.schedules,todos:normalized.todos};
+          return calendarSearchIndex;
+        }catch(err){
+          return {error:err.message||'검색 중 오류가 발생했어요.'};
+        }
       }
       function renderCalSearchResults(list){
         const el=$('#calSearchResults');
@@ -3341,7 +3346,7 @@
         const el=$('#calSearchResults');if(el)el.innerHTML='<p class="empty-msg">검색 중...</p>';
         calSearchDebounce=setTimeout(async()=>{
           const idx=await ensureCalendarSearchIndex();
-          if(!idx){if(el)el.innerHTML='<p class="empty-msg">검색하려면 Notion 연결(설정)이 필요해요.</p>';return}
+          if(!idx||idx.error){if(el)el.innerHTML=`<p class="empty-msg">${(idx&&idx.error)||'검색 중 오류가 발생했어요.'}</p>`;return}
           const norm=s=>String(s||'').toLowerCase();
           const nq=norm(q);
           const matches=[...idx.schedules.map(x=>({...x,type:'schedule'})),...idx.todos.map(x=>({...x,type:'todo'}))]
