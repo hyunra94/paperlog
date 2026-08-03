@@ -13,7 +13,7 @@ export default {
 
     try {
       const url = new URL(request.url);
-      const clientKey = request.headers.get("x-paper-log-key");
+      const clientKey = request.headers.get("x-paper-log-key") || url.searchParams.get("key");
 
       if (clientKey !== env.SECRET_KEY) {
         return json({
@@ -163,6 +163,11 @@ export default {
       if (url.pathname === "/api/boss" && request.method === "GET") {
         const boss = await getBossData(request, env);
         return json({ ok: true, ...boss }, 200, cors);
+      }
+
+      if (url.pathname === "/api/widget/summary" && request.method === "GET") {
+        const summary = await getWidgetSummary(request, env);
+        return json({ ok: true, ...summary }, 200, cors);
       }
 
       if (url.pathname === "/api/boss/setup" && request.method === "POST") {
@@ -1712,6 +1717,174 @@ async function getBossData(request, env) {
   }
 
   return { characters, crystals, setups, records: dedupedRecords, bossMemos };
+}
+
+/* =========================
+   위젯 요약 API (KWGT 등 홈 화면 위젯용)
+========================= */
+
+function kstNowParts() {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(new Date());
+  const get = (type) => parts.find((p) => p.type === type)?.value;
+  return {
+    year: Number(get("year")),
+    month: Number(get("month")),
+    day: Number(get("day")),
+    hour: Number(get("hour")),
+    minute: Number(get("minute")),
+  };
+}
+function kstTodayKey() {
+  const p = kstNowParts();
+  return `${p.year}-${String(p.month).padStart(2, "0")}-${String(p.day).padStart(2, "0")}`;
+}
+function bossWeekStartFromDateWorker(dateValue) {
+  let base = new Date(dateValue);
+  const minimum = new Date("2026-06-18T00:00:00");
+  if (Number.isNaN(base.getTime()) || base.getFullYear() < 2026) base = new Date(minimum);
+  const diff = (base.getDay() + 3) % 7; // Thu=0 ... Wed=6
+  base.setDate(base.getDate() - diff);
+  base.setHours(0, 0, 0, 0);
+  if (base.getFullYear() < 2026) return new Date(minimum);
+  return base;
+}
+function currentBossWeekInfo() {
+  const p = kstNowParts();
+  const nowLocal = new Date(p.year, p.month - 1, p.day);
+  const base = bossWeekStartFromDateWorker(nowLocal);
+  const weekNo = Math.ceil(base.getDate() / 7);
+  const month = base.getMonth() + 1;
+  const start = `${base.getFullYear()}-${String(month).padStart(2, "0")}-${String(base.getDate()).padStart(2, "0")}`;
+  return {
+    weekKey: `${base.getFullYear()}-${String(month).padStart(2, "0")}-W${weekNo}`,
+    weekLabel: `${String(base.getFullYear()).slice(2)}년 ${month}월 ${weekNo}주`,
+    weekStart: start,
+  };
+}
+
+const MAPLE_KNOWN_EPIC_DUNGEONS = new Set(["하이마운틴", "앵글러 컴퍼니", "악몽선경"]);
+const MAPLE_MONSTER_PARK_FREE_RUNS = 2;
+function mapleNormalizeKey(s) { return (s || "").replace(/\s+/g, ""); }
+function mapleIsEpicContent(w) {
+  return w.content_name && (MAPLE_KNOWN_EPIC_DUNGEONS.has(w.content_name) || mapleNormalizeKey(w.content_name).includes("에픽던전"));
+}
+function mapleCleanEpicName(name) {
+  return String(name || "").replace(/^\s*에픽\s*던전\s*[:：]\s*/, "").trim();
+}
+function mapleTruthy(v) { return v === true || v === "true"; }
+function mapleContentDoneText(item) {
+  const isMonsterPark = item.content_name && mapleNormalizeKey(item.content_name).includes("몬스터파크");
+  if (isMonsterPark) return item.now_count >= MAPLE_MONSTER_PARK_FREE_RUNS ? "완료" : (item.now_count > 0 ? "진행중" : "미시작");
+  const isScoreBased = item.max_count > 1;
+  if (!isScoreBased && item.quest_state != null) return item.quest_state === "2" ? "완료" : (item.quest_state === "1" ? "진행중" : "미시작");
+  return (item.max_count > 0 && item.now_count >= item.max_count) ? "완료" : (item.now_count > 0 ? "진행중" : "미시작");
+}
+async function fetchMapleSchedulerState(charName) {
+  const base = "https://mapleboss.hyunra94.workers.dev";
+  const charRes = await fetch(`${base}/api/character?name=${encodeURIComponent(charName)}`);
+  if (!charRes.ok) return null;
+  const charData = await charRes.json();
+  if (!charData?.ocid) return null;
+  const schedRes = await fetch(`${base}/api/scheduler?ocid=${encodeURIComponent(charData.ocid)}`);
+  if (!schedRes.ok) return null;
+  const raw = await schedRes.json();
+  const weeklyRawRegistered = (raw.weeklyContents || []).filter((w) => mapleTruthy(w.registration_flag));
+  const epicRegistered = weeklyRawRegistered.filter(mapleIsEpicContent);
+  const dailyRegisteredAll = (raw.dailyContents || []).filter((d) => mapleTruthy(d.registration_flag));
+  const isMonsterParkContent = (d) => d.content_name && mapleNormalizeKey(d.content_name).includes("몬스터파크");
+  const monsterParkRaw = dailyRegisteredAll.find(isMonsterParkContent) || null;
+  return {
+    world: raw.world || charData.world,
+    epicItems: epicRegistered.map((w) => ({ name: mapleCleanEpicName(w.content_name), done: mapleContentDoneText(w) === "완료" })),
+    monsterPark: monsterParkRaw ? { nowCount: monsterParkRaw.now_count || 0, maxCount: monsterParkRaw.max_count || 0 } : null,
+  };
+}
+
+async function getWidgetSummary(request, env) {
+  const todayKey = kstTodayKey();
+  const weekInfo = currentBossWeekInfo();
+
+  const scheduleReq = new Request(`${request.url.split("?")[0]}?from=${todayKey}&to=${todayKey}`);
+  const todoReq = new Request(`${request.url.split("?")[0]}?from=${todayKey}&to=${todayKey}`);
+  const bossReq = new Request(
+    `${request.url.split("?")[0]}?weekKey=${encodeURIComponent(weekInfo.weekKey)}&weekLabel=${encodeURIComponent(weekInfo.weekLabel)}&weekStart=${encodeURIComponent(weekInfo.weekStart)}`
+  );
+
+  const [todaySchedules, todayTodos, bossData] = await Promise.all([
+    getSchedules(scheduleReq, env),
+    getTodos(todoReq, env),
+    getBossData(bossReq, env),
+  ]);
+
+  const noCrystal = (r) => String(r.name || "").includes("메이린") || String(r.family || "").includes("메이린");
+  const isLootChar = (r) => String(r.charName || "").includes("득템");
+  const bossDivisor = (r) => (r.partyType === "duo" ? 2 : r.partyType === "other" ? Number(r.otherParty || 3) : 1);
+  const bossRows = (bossData.records || []).filter((r) => !isLootChar(r));
+  const crystalRows = bossRows.filter((r) => !noCrystal(r));
+  const checkedRows = crystalRows.filter((r) => r.clear);
+  const expectedMeso = bossRows.reduce((a, r) => a + Math.floor(Number(r.price || 0) / bossDivisor(r)), 0);
+  const crystalMeso = checkedRows.reduce((a, r) => a + Math.floor(Number(r.price || 0) / bossDivisor(r)), 0);
+
+  const charNames = (bossData.characters || [])
+    .map((c) => c.name)
+    .filter((name) => name && !String(name).includes("득템"));
+
+  const epicMap = {};
+  const worldMap = {};
+  await Promise.all(charNames.map(async (name) => {
+    try {
+      const state = await fetchMapleSchedulerState(name);
+      if (!state) return;
+      (state.epicItems || []).forEach((it) => { epicMap[it.name] = epicMap[it.name] || it.done; });
+      if (state.monsterPark && state.world) {
+        const cur = worldMap[state.world] || { nowCount: 0, maxCount: 0 };
+        worldMap[state.world] = {
+          nowCount: Math.max(cur.nowCount, state.monsterPark.nowCount || 0),
+          maxCount: Math.max(cur.maxCount, state.monsterPark.maxCount || 0),
+        };
+      }
+    } catch (e) {
+      // 개별 캐릭터 조회 실패는 무시 (다른 계정/미등록 등)
+    }
+  }));
+
+  const epicList = Object.entries(epicMap);
+  const epicIncomplete = epicList.filter(([, done]) => !done);
+  const epicSummary = !epicList.length ? "정보 없음" : (epicIncomplete.length ? epicIncomplete.map(([n]) => `${n} 미시작`).join(", ") : "모두 완료");
+
+  const worldEntries = Object.entries(worldMap);
+  const parkSummary = !worldEntries.length ? "정보 없음" : worldEntries.map(([world, v]) => `${world} ${Math.min(v.nowCount, 2)}/2`).join(", ");
+
+  return {
+    updatedAt: new Date().toISOString(),
+    today: {
+      date: todayKey,
+      scheduleCount: todaySchedules.length,
+      todoCount: todayTodos.length,
+      todoDoneCount: todayTodos.filter((t) => t.done).length,
+      items: [
+        ...todaySchedules.map((s) => ({ type: "schedule", time: s.time || "", title: s.title, canceled: !!s.canceled })),
+        ...todayTodos.map((t) => ({ type: "todo", title: t.title, done: !!t.done, canceled: !!t.canceled })),
+      ],
+    },
+    boss: {
+      weekLabel: weekInfo.weekLabel,
+      bossDoneCount: checkedRows.length,
+      bossTotalCount: crystalRows.length,
+      expectedMeso,
+      crystalMeso,
+      epicSummary,
+      parkSummary,
+    },
+  };
 }
 
 /* =========================
