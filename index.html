@@ -751,6 +751,9 @@
     .bossSumV47>div:nth-child(4){background:rgba(191,216,184,.4)}
     .mapleBarFill{background:linear-gradient(90deg,var(--blue),var(--green))}
     #mapleTodoList .bossCard,#bossList .bossCard{background:rgba(255,255,255,.55)}
+    body.widgetMode .sticky,body.widgetMode .nav{display:none!important}
+    body.widgetMode .app{padding:10px!important;min-height:0!important;width:100%!important}
+    body.widgetMode .card{margin-bottom:8px}
   </style>
 
 
@@ -1693,6 +1696,7 @@
       const urlMode=urlParams.get('mode');
       const urlTab=urlParams.get('tab');
       const urlBossView=urlParams.get('boss');
+      if(urlParams.get('widget'))document.body.classList.add('widgetMode');
       let currentViewMode=(urlMode==='work'||urlMode==='company')?'work':(urlMode==='personal'?'personal':(localStorage.getItem(VIEW_MODE_KEY)||'personal'));
       const getStoredConfig=()=>{
         try{return JSON.parse(localStorage.getItem(PAPER_CONFIG_KEY)||'{}')}catch{return {}}
