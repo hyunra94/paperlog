@@ -1689,7 +1689,10 @@
       const PAPER_CONFIG_KEY='paperLogWorkerConfig';
       const PAPER_SECRET_KEY='paperLogSecretKey';
       const VIEW_MODE_KEY='paperLogViewMode';
-      const urlMode=new URLSearchParams(location.search).get('mode');
+      const urlParams=new URLSearchParams(location.search);
+      const urlMode=urlParams.get('mode');
+      const urlTab=urlParams.get('tab');
+      const urlBossView=urlParams.get('boss');
       let currentViewMode=(urlMode==='work'||urlMode==='company')?'work':(urlMode==='personal'?'personal':(localStorage.getItem(VIEW_MODE_KEY)||'personal'));
       const getStoredConfig=()=>{
         try{return JSON.parse(localStorage.getItem(PAPER_CONFIG_KEY)||'{}')}catch{return {}}
@@ -2165,7 +2168,7 @@
       function finalizePage(id,options={}){
         closeCalMenus();
         hideSchedulePopup();
-        localStorage.setItem(ACTIVE_PAGE_KEY,id);
+        if(options.persist!==false)localStorage.setItem(ACTIVE_PAGE_KEY,id);
         $$('.navBtn').forEach(b=>b.classList.toggle('on',b.dataset.target===id));
         if(options.scroll!==false)scrollTo({top:0,behavior:'smooth'});
         if(id==='calendar')setTimeout(()=>loadCalendarFromWorker(true),180);
@@ -3494,9 +3497,9 @@
           return;
         }
       });
-      function setBossView(view){
+      function setBossView(view,persist=true){
         bossActiveView=view;
-        try{localStorage.setItem(BOSS_VIEW_KEY,view)}catch{}
+        if(persist)try{localStorage.setItem(BOSS_VIEW_KEY,view)}catch{}
         $$('.bossIndexBtn').forEach(b=>b.classList.toggle('on',b.dataset.bossView===view));
         $$('.bossViewPanel').forEach(p=>p.hidden=p.dataset.bossPanel!==view);
       }
@@ -3947,8 +3950,10 @@
       renderHabitTracker();
       renderAnniversaries();
       renderCal();renderBoss();renderDashboard();restoreCalendarCache();applyViewMode(currentViewMode);
-      const savedPage=localStorage.getItem(ACTIVE_PAGE_KEY)||'dashboard';
-      page(savedPage,{scroll:false});
+      const isWidgetTabUrl=Boolean(urlTab&&document.getElementById(urlTab));
+      const savedPage=isWidgetTabUrl?urlTab:(localStorage.getItem(ACTIVE_PAGE_KEY)||'dashboard');
+      page(savedPage,{scroll:false,persist:!isWidgetTabUrl});
+      if(savedPage==='boss'&&urlBossView)setBossView(urlBossView,!isWidgetTabUrl);
       if(hasPaperConfig()){setTimeout(()=>{loadProjectsFromWorker(true);loadCalendarFromWorker(true);loadDashboardTodayFromWorker();loadBossFromWorker(true);loadAnniversariesFromWorker()},300)}else setTimeout(()=>openSettings(),250);window.addEventListener('resize',()=>{hideSchedulePopup();renderDetail()});console.assert($('#stickyMonthLabel'),'test: header month label exists');console.assert($$('.navBtn').length===4,'test: nav has 4 tabs');console.assert($('#calendarGrid'),'test: calendar grid exists');
     });
   </script>
