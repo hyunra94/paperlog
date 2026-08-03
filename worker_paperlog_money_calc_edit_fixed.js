@@ -170,6 +170,24 @@ export default {
         return json({ ok: true, ...summary }, 200, cors);
       }
 
+      if (url.pathname === "/api/widget/summary.txt" && request.method === "GET") {
+        const summary = await getWidgetSummary(request, env);
+        const text = formatWidgetSummaryText(summary);
+        return new Response(text, { status: 200, headers: { ...cors, "Content-Type": "text/plain; charset=utf-8" } });
+      }
+
+      if (url.pathname === "/api/widget/today.txt" && request.method === "GET") {
+        const summary = await getWidgetSummary(request, env);
+        const text = formatTodayText(summary);
+        return new Response(text, { status: 200, headers: { ...cors, "Content-Type": "text/plain; charset=utf-8" } });
+      }
+
+      if (url.pathname === "/api/widget/boss.txt" && request.method === "GET") {
+        const summary = await getWidgetSummary(request, env);
+        const text = formatBossText(summary);
+        return new Response(text, { status: 200, headers: { ...cors, "Content-Type": "text/plain; charset=utf-8" } });
+      }
+
       if (url.pathname === "/api/boss/setup" && request.method === "POST") {
         const result = await saveBossSetup(request, env);
         return json({ ok: true, page: result }, 200, cors);
@@ -1885,6 +1903,34 @@ async function getWidgetSummary(request, env) {
       parkSummary,
     },
   };
+}
+
+function formatMesoShort(n) {
+  const v = Number(n || 0) / 100000000;
+  const rounded = Math.round(v * 10) / 10;
+  return `${rounded}억`;
+}
+function formatTodayText(summary) {
+  const t = summary.today;
+  const lines = [`오늘(${t.date}) 일정 ${t.scheduleCount}건 · 할 일 ${t.todoCount}건(${t.todoDoneCount}완료)`];
+  t.items.slice(0, 6).forEach((it) => {
+    if (it.canceled) return;
+    if (it.type === "schedule") lines.push(`· ${it.time ? it.time + " " : ""}${it.title}`);
+    else lines.push(`· ${it.done ? "✓ " : ""}${it.title}`);
+  });
+  if (!t.items.length) lines.push("오늘 일정/할 일이 없어요.");
+  return lines.join("\n");
+}
+function formatBossText(summary) {
+  const b = summary.boss;
+  return [
+    `이번 주(${b.weekLabel}) 보스 ${b.bossDoneCount}/${b.bossTotalCount} · 예정메소 ${formatMesoShort(b.expectedMeso)}`,
+    `에픽던전: ${b.epicSummary}`,
+    `몬스터파크: ${b.parkSummary}`,
+  ].join("\n");
+}
+function formatWidgetSummaryText(summary) {
+  return `${formatTodayText(summary)}\n\n${formatBossText(summary)}`;
 }
 
 /* =========================
