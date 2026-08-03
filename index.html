@@ -1468,7 +1468,7 @@
       </div>
     </section>
 
-    <div class="sheetBg" id="entrySheet" hidden><section class="sheet"><div class="handle"></div><div class="sheetHead entrySheetHead"><h3 id="entrySheetTitle">기록 추가</h3><div class="entrySheetHeadActions"><button class="icon entryDeleteBtn" id="deleteEntry" type="button" hidden aria-label="기록 삭제">🗑</button><button class="icon" id="closeEntry" type="button">×</button></div></div><form class="entryForm" id="entryForm"><div class="typeToggle"><label class="typeChip"><input type="checkbox" id="addSchedule"> 일정 DB</label><label class="typeChip"><input type="checkbox" id="addTodo"> 할 일 DB</label><input type="checkbox" id="addDaily" hidden></div><div class="field"><label>제목</label><input id="entryTitle" placeholder="예: 교육 운영 회의"></div><div class="row2">
+    <div class="sheetBg" id="entrySheet" hidden><section class="sheet"><div class="handle"></div><div class="sheetHead entrySheetHead"><h3 id="entrySheetTitle">기록 추가</h3><div class="entrySheetHeadActions"><label class="cancelToggle" id="entryCancelWrap" hidden><input type="checkbox" id="entryCanceled"> 취소</label><button class="icon entryDeleteBtn" id="deleteEntry" type="button" hidden aria-label="기록 삭제">🗑</button><button class="icon" id="closeEntry" type="button">×</button></div></div><form class="entryForm" id="entryForm"><div class="typeToggle"><label class="typeChip"><input type="checkbox" id="addSchedule"> 일정 DB</label><label class="typeChip"><input type="checkbox" id="addTodo"> 할 일 DB</label><input type="checkbox" id="addDaily" hidden></div><div class="field"><label>제목</label><input id="entryTitle" placeholder="예: 교육 운영 회의"></div><div class="row2">
   <div class="field">
     <label>시작일</label>
     <input id="entryDate" type="date" required>
@@ -2277,10 +2277,11 @@
         try{
           if(editingCalendarRecord){
             const path=editingCalendarRecord.type==='schedule'?'/api/schedule':editingCalendarRecord.type==='todo'?'/api/todo':'/api/daily';
+            const canceled=$('#entryCanceled')?.checked||false;
             const body=editingCalendarRecord.type==='schedule'
-              ? {id:editingCalendarRecord.id,title:p.title,date:p.date,endDate:p.endDate,time:p.time,category:p.subject||'개인일정',projectPageId:p.projectPageId,memoTags:p.memoTags}
+              ? {id:editingCalendarRecord.id,title:p.title,date:p.date,endDate:p.endDate,time:p.time,category:p.subject||'개인일정',projectPageId:p.projectPageId,memoTags:p.memoTags,canceled}
               : editingCalendarRecord.type==='todo'
-                ? {id:editingCalendarRecord.id,title:p.title,date:p.date,endDate:p.endDate,done:false,memo:p.subject||'',category:p.todoKind==='personal'?'개인':'업무',projectPageId:getTodoProjectPageId()}
+                ? {id:editingCalendarRecord.id,title:p.title,date:p.date,endDate:p.endDate,done:false,memo:p.subject||'',category:p.todoKind==='personal'?'개인':'업무',projectPageId:getTodoProjectPageId(),canceled}
                 : {id:editingCalendarRecord.id,title:dailyTitle,date:p.date,mood:p.mood,text:p.dailyText};
             const res=await window.paperLog.fetch(path,{method:'PATCH',body:JSON.stringify(body)});
             const data=await res.json().catch(()=>({}));
@@ -2436,6 +2437,7 @@
         $('#entrySheetTitle')&&($('#entrySheetTitle').textContent='기록 추가');
         $('#entrySaveBtn')&&($('#entrySaveBtn').textContent='Notion에 추가하기');
         $('#deleteEntry')&&($('#deleteEntry').hidden=true);
+        $('#entryCancelWrap')&&($('#entryCancelWrap').hidden=true);
         updateEntryMode();
         $('#entrySheet').hidden=false;
       }
@@ -2463,6 +2465,8 @@
         $('#entrySheetTitle')&&($('#entrySheetTitle').textContent=type==='schedule'?'일정 수정':type==='todo'?'할 일 수정':'하루 기록 수정');
         $('#entrySaveBtn')&&($('#entrySaveBtn').textContent='Notion에 수정하기');
         $('#deleteEntry')&&($('#deleteEntry').hidden=false);
+        $('#entryCancelWrap')&&($('#entryCancelWrap').hidden=type==='daily');
+        $('#entryCanceled')&&($('#entryCanceled').checked=Boolean(item.canceled));
         $('#entryTitle')&&($('#entryTitle').value=item.title||'');
         $('#entryDate')&&($('#entryDate').value=item.originalDate||item.date||selected);
         $('#entryEndDate')&&($('#entryEndDate').value=(item.originalEndDate&&item.originalEndDate!==item.date)?item.originalEndDate:'');

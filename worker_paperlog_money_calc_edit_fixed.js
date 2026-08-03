@@ -841,6 +841,7 @@ async function updateTodo(request, env) {
   if (body.title !== undefined) properties[p.title] = { title: [{ text: { content: body.title || "제목 없음" } }] };
   if (body.date) properties[p.date] = { date: notionDatePayload(body) };
   if (body.done !== undefined) properties[p.check] = { checkbox: Boolean(body.done) };
+  if (body.canceled !== undefined) properties[p.cancel] = { checkbox: Boolean(body.canceled) };
   if (body.memo !== undefined) properties[p.memo] = { rich_text: [{ text: { content: body.memo || "" } }] };
 
   if (body.projectPageIds !== undefined || body.projectPageId !== undefined) {
@@ -959,6 +960,7 @@ async function updateSchedule(request, env) {
   if (body.title !== undefined) properties[p.title] = { title: [{ text: { content: body.title || "제목 없음" } }] };
   if (body.date) properties[p.date] = { date: notionDatePayload(body) };
   if (body.category !== undefined) properties[p.category] = body.category ? { select: { name: body.category } } : { select: null };
+  if (body.canceled !== undefined) properties[p.cancel] = { checkbox: Boolean(body.canceled) };
 
   if (body.memoTags !== undefined) {
     properties[p.memo] = { multi_select: Array.isArray(body.memoTags) ? body.memoTags.filter(Boolean).map(name => ({ name })) : [] };
