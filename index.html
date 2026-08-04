@@ -828,7 +828,7 @@
 
 
   <style id="bossSettingUXV52">
-    .bossSheetActions{display:flex;gap:8px;align-items:center}
+    .bossSheetActions{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin:0 0 8px}
     .bossLowEditAllBtn{border:1.6px solid var(--line);border-radius:999px;padding:8px 12px;font-family:'Gaegu';font-size:17px;background:#fffaf4;box-shadow:2px 2px 0 rgba(47,42,40,.1);white-space:nowrap}
     .bossLowEditAllBtn.on{background:rgba(47,42,40,.18)}
     .bossSettingSticky{
@@ -1667,7 +1667,7 @@
     </div>
 
 
-    <div class="sheetBg" id="bossSheet" hidden><section class="sheet"><div class="handle"></div><div class="sheetHead"><h3>기본 주간 보스 설정</h3><div class="bossSheetActions"><button class="bossLowEditAllBtn" id="bossLowEditAllBtn" type="button">미사용</button><button class="icon" id="closeBoss">×</button></div></div><div class="bossSettingSticky"><div class="bossSettingSummary" id="bossSettingSummary"></div><div style="margin-bottom:8px;font-family:'Gaegu';font-size:20px;color:var(--sub);" id="bossCharNameDisplay"></div><select id="bossCharSelect" hidden></select></div><div class="bossGrid" id="bossSettingGrid"></div><p class="sheetNote" id="bossSettingNote">선택하면 자동으로 저장됩니다.</p><div class="sheetActions"><button class="cancel" id="cancelBoss" type="button">닫기</button><button class="save" id="saveBoss" type="button">저장 후 닫기</button></div></section></div>
+    <div class="sheetBg" id="bossSheet" hidden><section class="sheet"><div class="handle"></div><div class="sheetHead"><h3>기본 주간 보스 설정</h3></div><div class="bossSettingSticky"><div class="bossSheetActions"><button class="bossLowEditAllBtn" id="bossLowEditAllBtn" type="button">미사용</button><button class="icon" id="closeBoss">×</button></div><div class="bossSettingSummary" id="bossSettingSummary"></div><div style="margin-bottom:8px;font-family:'Gaegu';font-size:20px;color:var(--sub);" id="bossCharNameDisplay"></div><select id="bossCharSelect" hidden></select></div><div class="bossGrid" id="bossSettingGrid"></div><p class="sheetNote" id="bossSettingNote">선택하면 자동으로 저장됩니다.</p><div class="sheetActions"><button class="cancel" id="cancelBoss" type="button">닫기</button><button class="save" id="saveBoss" type="button">저장 후 닫기</button></div></section></div>
 
     <div class="sheetBg" id="bossLootSheet" hidden>
       <section class="sheet">
