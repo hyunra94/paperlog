@@ -1984,7 +1984,12 @@
             const derived=deriveMapleSchedulerState(raw);
             mapleSchedulerCache[charName]={ocid,...derived,fetchedAt:Date.now(),v:MAPLE_SCHEDULER_CACHE_VERSION};
           }catch(schedErr){
-            mapleSchedulerCache[charName]={ocid,job,level,world,error:'스케줄러 조회 불가(다른 계정으로 추정)',fetchedAt:Date.now(),v:MAPLE_SCHEDULER_CACHE_VERSION};
+            const prev=mapleSchedulerCache[charName];
+            if(prev&&prev.states){
+              mapleSchedulerCache[charName]={...mapleResetEntryToIncomplete(prev),ocid,job,level,world,notice:'오늘 조회 실패 · 이전 목록 기준 미시작으로 표시',fetchedAt:Date.now(),v:MAPLE_SCHEDULER_CACHE_VERSION};
+            }else{
+              mapleSchedulerCache[charName]={ocid,job,level,world,error:'스케줄러 조회 불가(다른 계정으로 추정)',fetchedAt:Date.now(),v:MAPLE_SCHEDULER_CACHE_VERSION};
+            }
           }
           saveMapleSchedulerCache(mapleSchedulerCache);
         }catch(e){
@@ -2017,6 +2022,13 @@
       }
       function mapleLastDailyReset(now=new Date()){const d=new Date(now);d.setHours(0,0,0,0);return d.getTime()}
       function mapleLastWeeklyReset(now=new Date()){const d=new Date(now);d.setHours(0,0,0,0);const day=d.getDay();const diff=(day-4+7)%7;d.setDate(d.getDate()-diff);return d.getTime()}
+      function mapleResetEntryToIncomplete(entry){
+        const states=(entry.states||[]).map(s=>({...s,done:0,items:s.items.map(([n])=>[n,'미시작'])}));
+        const epicItems=(entry.epicItems||[]).map(it=>({...it,done:false}));
+        const monsterPark=entry.monsterPark?{...entry.monsterPark,nowCount:0}:entry.monsterPark;
+        const total=states.reduce((a,s)=>a+s.total,0);
+        return {...entry,states,epicItems,monsterPark,done:0,total};
+      }
       function mapleDisplayEntry(entry){
         if(!entry||entry.error)return entry;
         const dailyStale=(entry.fetchedAt||0)<mapleLastDailyReset();
@@ -2740,7 +2752,8 @@
           }).join('');
           doneAll+=charDone;totalAll+=charTotal;
           const pct=charTotal?Math.round(charDone/charTotal*100):0;
-          return `<div class="bossCard"><div class="bossTitle"><span>${name}${loading?' ⟳':''}</span><span class="tag y">Lv.${entry.level} ${entry.job} · ${charDone}/${charTotal}</span></div><div class="mapleBar"><div class="mapleBarFill" style="width:${pct}%"></div></div>${groupsHtml}</div>`;
+          const noticeHtml=entry.notice?`<p class="sheetNote">${entry.notice}</p>`:'';
+          return `<div class="bossCard"><div class="bossTitle"><span>${name}${loading?' ⟳':''}</span><span class="tag y">Lv.${entry.level} ${entry.job} · ${charDone}/${charTotal}</span></div><div class="mapleBar"><div class="mapleBarFill" style="width:${pct}%"></div></div>${noticeHtml}${groupsHtml}</div>`;
         }).join(''):'<p class="empty-msg">캐릭터가 없어요.</p>';
         const agg=aggregateMapleAccountWide();
         const epicKeyed=agg.epicList.map(([n,st])=>[`e:${n}`,n,st]);
