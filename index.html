@@ -3553,6 +3553,7 @@
         if(persist)try{localStorage.setItem(BOSS_VIEW_KEY,view)}catch{}
         $$('.bossIndexBtn').forEach(b=>b.classList.toggle('on',b.dataset.bossView===view));
         $$('.bossViewPanel').forEach(p=>p.hidden=p.dataset.bossPanel!==view);
+        if(view==='todo')refreshAllMapleScheduler();
       }
       $$('.bossIndexBtn').forEach(b=>b.addEventListener('click',()=>setBossView(b.dataset.bossView)));
       setBossView(bossActiveView);
