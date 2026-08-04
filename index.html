@@ -1813,6 +1813,19 @@
       const state={show:{schedule:true,todo:true,daily:true},showCanceled:false,dailyEmphasis:false,tasks:[{date:key(today),title:'수료증 발급 자동화 점검',subject:'중요',color:'task',done:false},{date:key(today),title:'교육 신청자 DB 확인',subject:'업무',color:'task',done:true}],schedules:[{date:key(today),time:'09:30',title:'주간 업무 체크',subject:'업무일정',color:'work'},{date:key(today),time:'13:30',title:'친구 약속',subject:'약속',color:'meeting'},{date:key(today),time:'18:30',title:'필라테스',subject:'개인일정',color:'personal'}],dailyLogs:[]};
       let editingCalendarRecord=null; let editingDailyRecord=null; let dashboardTodaySchedules=null; let dashboardTodayTodos=null; let projectOptions=[]; let entrySaving=false; let dailyLogSaving=false;
       window.paperLogDebug=(dateKey)=>({today:key(today),watchIcons:getWatchIcons(),tasks:dateKey?state.tasks.filter(x=>x.date===dateKey):state.tasks,hasMissedIcon:dateKey?hasMissedIcon(dateKey):null});
+      window.paperLogMapleDebug=(charName)=>{
+        const raw=mapleSchedulerCache[charName];
+        if(!raw)return{error:'해당 이름의 캐시 없음',cachedNames:Object.keys(mapleSchedulerCache)};
+        return{
+          fetchedAt:raw.fetchedAt?new Date(raw.fetchedAt).toString():null,
+          lastDailyReset:new Date(mapleLastDailyReset()).toString(),
+          lastWeeklyReset:new Date(mapleLastWeeklyReset()).toString(),
+          dailyStale:(raw.fetchedAt||0)<mapleLastDailyReset(),
+          weeklyStale:(raw.fetchedAt||0)<mapleLastWeeklyReset(),
+          rawEntry:raw,
+          displayedEntry:mapleDisplayEntry(raw)
+        };
+      };
       const CACHED_BOSS_CHARS_KEY='paperLogCachedBossChars';
       function getCachedBossChars(){try{const v=JSON.parse(localStorage.getItem(CACHED_BOSS_CHARS_KEY));return Array.isArray(v)&&v.length?v:null}catch{return null}}
       function saveCachedBossChars(list){try{localStorage.setItem(CACHED_BOSS_CHARS_KEY,JSON.stringify(list))}catch(e){console.warn('캐릭터 목록 캐시 저장 실패',e)}}
