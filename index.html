@@ -1937,6 +1937,7 @@
         if(isMonsterPark)return item.now_count>=MAPLE_MONSTER_PARK_FREE_RUNS?'완료':(item.now_count>0?'진행중':'미시작');
         const isScoreBased=item.max_count>1;
         if(!isScoreBased&&item.quest_state!=null)return item.quest_state==='2'?'완료':(item.quest_state==='1'?'진행중':'미시작');
+        if(!item.max_count&&item.quest_state==null)return item.now_count>0?'완료':'미시작';
         return (item.max_count>0&&item.now_count>=item.max_count)?'완료':(item.now_count>0?'진행중':'미시작');
       }
       const mapleTruthy=v=>v===true||v==='true';
