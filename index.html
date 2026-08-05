@@ -276,6 +276,7 @@
     .mapleBarFill{height:100%;background:var(--yellow);border-radius:99px}
     .mapleStateGroup{margin-top:10px;padding-top:8px;border-top:1px dashed rgba(47,42,40,.18)}
     .mapleStateGroupHead{display:flex;justify-content:space-between;align-items:center;font-family:'Gaegu';font-size:16px;margin-bottom:4px}
+    .mapleScoreLabel{font-family:'Gowun Dodum';font-size:12px;color:var(--sub);font-weight:400}
     .mapleStateItem{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:3px 0;font-size:12px;color:var(--sub)}
     .mapleStateItem .miniTag.mapleDone{background:var(--green);color:#2f5c2f}
     .mapleStateItem.mapleItemHidden{opacity:.45}
@@ -1957,11 +1958,16 @@
           const done=items.filter(i=>mapleContentDoneText(i)==='완료').length;
           return {title,done,total:items.length,items:items.map(i=>[i.content_name,mapleContentDoneText(i)])};
         };
-        const undergroundScoreGroup=(title,items)=>({title,done:0,total:items.length,items:items.map(i=>[i.content_name,String(i.now_count||0)])});
+        const undergroundGroup=(title,items)=>{
+          const statusItems=items.map(i=>[i.content_name,i.now_count>0?'완료':'미시작']);
+          const done=statusItems.filter(([,st])=>st==='완료').length;
+          const score=items.reduce((a,i)=>a+(i.now_count||0),0);
+          return {title,done,total:items.length,items:statusItems,score};
+        };
         const states=[
           {title:'월간보스',done:monthlyBossDoneCount,total:monthlyBossRegistered.length,items:monthlyBossRegistered.map(b=>[`${b.difficulty||''} ${b.content_name}`.trim(),mapleTruthy(b.complete_flag)?'완료':'미시작'])},
           toStateGroup('일퀘',dailyRegistered),
-          undergroundScoreGroup('지하수로',undergroundRegistered),
+          undergroundGroup('지하수로',undergroundRegistered),
         ].filter(s=>s.total>0);
         const done=states.reduce((a,s)=>a+s.done,0), total=states.reduce((a,s)=>a+s.total,0);
         const epicItems=epicRegistered.map(w=>({name:mapleCleanEpicName(w.content_name),done:mapleContentDoneText(w)==='완료'}));
@@ -2753,7 +2759,8 @@
             const doneCount=activeItems.filter(([,,st])=>st==='완료').length;
             charDone+=doneCount;charTotal+=activeItems.length;
             if(!activeItems.length&&!mapleTodoEditMode)return '';
-            return `<div class="mapleStateGroup"><div class="mapleStateGroupHead"><b>${s.title}</b><span>${doneCount}/${activeItems.length}</span></div>${keyed.map(([k,n,st])=>itemRow(k,n,st)).join('')}</div>`;
+            const scoreLabel=s.score!=null?` <span class="mapleScoreLabel">${s.score.toLocaleString()}점</span>`:'';
+            return `<div class="mapleStateGroup"><div class="mapleStateGroupHead"><b>${s.title}${scoreLabel}</b><span>${doneCount}/${activeItems.length}</span></div>${keyed.map(([k,n,st])=>itemRow(k,n,st)).join('')}</div>`;
           }).join('');
           doneAll+=charDone;totalAll+=charTotal;
           const pct=charTotal?Math.round(charDone/charTotal*100):0;
