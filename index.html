@@ -2908,7 +2908,14 @@
           })
         };
       }
-      async function saveBossWeeklyRecordForChar(charId,{silent=false}={}){
+      const bossWeeklyRecordSaveQueues={};
+      function saveBossWeeklyRecordForChar(charId,{silent=false}={}){
+        const prev=bossWeeklyRecordSaveQueues[charId]||Promise.resolve();
+        const run=prev.then(()=>saveBossWeeklyRecordForCharNow(charId,{silent}),()=>saveBossWeeklyRecordForCharNow(charId,{silent}));
+        bossWeeklyRecordSaveQueues[charId]=run.catch(()=>{});
+        return run;
+      }
+      async function saveBossWeeklyRecordForCharNow(charId,{silent=false}={}){
         if(!charId||!isValidNotionId(charId))return false;
         try{
           const payload=weeklyBossPayloadForChar(charId);
