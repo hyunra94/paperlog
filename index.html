@@ -1958,10 +1958,11 @@
           const done=items.filter(i=>mapleContentDoneText(i)==='완료').length;
           return {title,done,total:items.length,items:items.map(i=>[i.content_name,mapleContentDoneText(i)])};
         };
+        const undergroundScoreGroup=(title,items)=>({title,done:0,total:items.length,items:items.map(i=>[i.content_name,String(i.now_count||0)])});
         const states=[
           {title:'월간보스',done:monthlyBossDoneCount,total:monthlyBossRegistered.length,items:monthlyBossRegistered.map(b=>[`${b.difficulty||''} ${b.content_name}`.trim(),mapleTruthy(b.complete_flag)?'완료':'미시작'])},
           toStateGroup('일퀘',dailyRegistered),
-          toStateGroup('지하수로',undergroundRegistered),
+          undergroundScoreGroup('지하수로',undergroundRegistered),
         ].filter(s=>s.total>0);
         const done=states.reduce((a,s)=>a+s.done,0), total=states.reduce((a,s)=>a+s.total,0);
         const epicItems=epicRegistered.map(w=>({name:mapleCleanEpicName(w.content_name),done:mapleContentDoneText(w)==='완료'}));
