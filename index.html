@@ -2211,7 +2211,7 @@
       function finalizePage(id,options={}){
         closeCalMenus();
         hideSchedulePopup();
-        if(options.persist!==false)localStorage.setItem(ACTIVE_PAGE_KEY,id);
+        if(options.persist!==false)sessionStorage.setItem(ACTIVE_PAGE_KEY,id);
         $$('.navBtn').forEach(b=>b.classList.toggle('on',b.dataset.target===id));
         if(options.scroll!==false)scrollTo({top:0,behavior:'smooth'});
         if(id==='calendar')setTimeout(()=>loadCalendarFromWorker(true),180);
@@ -4035,7 +4035,7 @@
       renderAnniversaries();
       renderCal();renderBoss();renderDashboard();restoreCalendarCache();applyViewMode(currentViewMode);
       const isWidgetTabUrl=Boolean(urlTab&&document.getElementById(urlTab));
-      const savedPage=isWidgetTabUrl?urlTab:(localStorage.getItem(ACTIVE_PAGE_KEY)||'dashboard');
+      const savedPage=isWidgetTabUrl?urlTab:(sessionStorage.getItem(ACTIVE_PAGE_KEY)||'dashboard');
       page(savedPage,{scroll:false,persist:!isWidgetTabUrl});
       if(savedPage==='boss'&&urlBossView)setBossView(urlBossView,!isWidgetTabUrl);
       if(hasPaperConfig()){setTimeout(()=>{loadProjectsFromWorker(true);loadCalendarFromWorker(true);loadDashboardTodayFromWorker();loadBossFromWorker(true);loadAnniversariesFromWorker()},300)}else setTimeout(()=>openSettings(),250);window.addEventListener('resize',()=>{hideSchedulePopup();renderDetail()});console.assert($('#stickyMonthLabel'),'test: header month label exists');console.assert($$('.navBtn').length===4,'test: nav has 4 tabs');console.assert($('#calendarGrid'),'test: calendar grid exists');
