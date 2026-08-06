@@ -2695,6 +2695,30 @@
       }
       function charLootMemo(charId){return uniqueMemoLines(bossLootMemos[charId]||'').join('\n')}
       function charLootValue(charId){return parseBossLoot(charLootMemo(charId))}
+      function bossSummaryVisibleRows(){
+        const isLootChar=cid=>String(chars.find(c=>c.id===cid)?.name||'').includes('득템');
+        return bossRecords.filter(r=>!isLootChar(r.charId)&&(bossFilter==='all'||r.charId===bossFilter));
+      }
+      function showBossLootSummaryDetail(){
+        const rows=bossSummaryVisibleRows();
+        const visibleCharIds=[...new Set(rows.map(r=>r.charId))];
+        const lines=visibleCharIds.map(cid=>{
+          const charName=chars.find(c=>c.id===cid)?.name||'';
+          const memo=charLootMemo(cid);
+          return memo?`[${charName}]\n${memo}`:null;
+        }).filter(Boolean);
+        alert(lines.length?lines.join('\n\n'):'이번 주 등록된 득템 메모가 없어요.');
+      }
+      function showBossCrystalPendingDetail(){
+        const noCrystal=r=>String(r.name||'').includes('메이린')||String(r.family||'').includes('메이린');
+        const rows=bossSummaryVisibleRows().filter(r=>!noCrystal(r));
+        const pending=rows.filter(r=>!r.clear);
+        const lines=pending.map(r=>{
+          const charName=chars.find(c=>c.id===r.charId)?.name||'';
+          return `${charName} - ${r.name||bossFamilyName(r)||'보스'}`;
+        });
+        alert(lines.length?`아직 안 잡은 보스\n${lines.join('\n')}`:'이번 주 보스를 전부 잡았어요!');
+      }
       function appendBossMemoLine(current,bossName,text){
         const clean=String(text||'').trim();
         if(!clean)return String(current||'').trim();
@@ -2833,8 +2857,8 @@
         $('#mainBossExpectedTotal')&&($('#mainBossExpectedTotal').innerHTML=`<span class="bossMoneyBrief" data-moneylabel="예정 메소" data-moneyvalue="${expectedTotal}">${briefMoney(expectedTotal)}</span>`);
         $('#mainEpicSummary')&&($('#mainEpicSummary').textContent=mapleEpicSummaryText());
         $('#mainParkSummary')&&($('#mainParkSummary').textContent=mapleParkSummaryText());
-        $('#bossLootTotal')&&($('#bossLootTotal').innerHTML=`<span class="bossMoneyBrief" data-moneylabel="득템" data-moneyvalue="${lootTotal}">${briefMoney(lootTotal)}</span>`);
-        $('#bossCrystalTotal')&&($('#bossCrystalTotal').innerHTML=`<span class="bossMoneyBrief" data-moneylabel="결정석" data-moneyvalue="${crystalTotal}">${briefMoney(crystalTotal)}</span>`);
+        $('#bossLootTotal')&&($('#bossLootTotal').innerHTML=`<span class="bossMoneyBrief" data-bosslootsummary="1">${briefMoney(lootTotal)}</span>`);
+        $('#bossCrystalTotal')&&($('#bossCrystalTotal').innerHTML=`<span class="bossMoneyBrief" data-bosscrystalpending="1">${briefMoney(crystalTotal)}</span>`);
         renderDashboard();
         if(!rows.length){list.innerHTML='<p class="empty-msg">아직 생성된 보스가 없어요. “Notion 보스 불러오기” 또는 “이번 주 생성”을 눌러주세요.</p>';return}
         const groups={};rows.forEach(r=>(groups[r.charId]??=[]).push(r));
@@ -3589,6 +3613,14 @@
       }
       $$('.bossIndexBtn').forEach(b=>b.addEventListener('click',()=>setBossView(b.dataset.bossView)));
       setBossView(bossActiveView);
+      $('#boss')?.addEventListener('click',e=>{
+        const money=e.target.closest('[data-moneyvalue]');
+        if(money){moneyDetail(money.dataset.moneylabel||'금액',money.dataset.moneyvalue||0);return}
+        const loot=e.target.closest('[data-bosslootsummary]');
+        if(loot){showBossLootSummaryDetail();return}
+        const pending=e.target.closest('[data-bosscrystalpending]');
+        if(pending){showBossCrystalPendingDetail();return}
+      });
       $('#bossList').onclick=async e=>{
         const charToggle=e.target.closest('[data-boss-char-toggle]');
         if(charToggle){const cid=charToggle.dataset.bossCharToggle;bossCardOpenCharId=bossCardOpenCharId===cid?'':cid;renderBoss();return}
