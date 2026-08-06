@@ -2713,11 +2713,13 @@
         const noCrystal=r=>String(r.name||'').includes('메이린')||String(r.family||'').includes('메이린');
         const rows=bossSummaryVisibleRows().filter(r=>!noCrystal(r));
         const pending=rows.filter(r=>!r.clear);
-        const lines=pending.map(r=>{
-          const charName=chars.find(c=>c.id===r.charId)?.name||'';
-          return `${charName} - ${r.name||bossFamilyName(r)||'보스'}`;
+        const charIds=[...new Set(pending.map(r=>r.charId))];
+        const blocks=charIds.map(cid=>{
+          const charName=chars.find(c=>c.id===cid)?.name||'';
+          const bossNames=pending.filter(r=>r.charId===cid).map(r=>r.name||bossFamilyName(r)||'보스');
+          return `[${charName}]\n${bossNames.join('\n')}`;
         });
-        alert(lines.length?`아직 안 잡은 보스\n${lines.join('\n')}`:'이번 주 보스를 전부 잡았어요!');
+        alert(blocks.length?blocks.join('\n\n'):'이번 주 보스를 전부 잡았어요!');
       }
       function appendBossMemoLine(current,bossName,text){
         const clean=String(text||'').trim();
