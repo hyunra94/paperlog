@@ -277,6 +277,11 @@
     .mapleStateGroup{margin-top:10px;padding-top:8px;border-top:1px dashed rgba(47,42,40,.18)}
     .mapleStateGroupHead{display:flex;justify-content:space-between;align-items:center;font-family:'Gaegu';font-size:16px;margin-bottom:4px}
     .mapleScoreLabel{font-family:'Gowun Dodum';font-size:12px;color:var(--sub);font-weight:400}
+    .bossSummaryDetailBody{display:grid;gap:12px}
+    .bossSummaryGroup{border:1.4px solid var(--line);border-radius:16px;padding:10px 12px;background:rgba(255,255,255,.35)}
+    .bossSummaryGroupTitle{font-family:'Gaegu';font-size:20px;margin-bottom:6px}
+    .bossSummaryGroupList{margin:0;padding-left:18px;display:grid;gap:4px;font-size:14px;line-height:1.4}
+    .bossSummaryEmpty{margin:0;color:var(--sub);font-family:'Gaegu';font-size:18px;text-align:center;padding:12px 0}
     .mapleStateItem{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:3px 0;font-size:12px;color:var(--sub)}
     .mapleStateItem .miniTag.mapleDone{background:var(--green);color:#2f5c2f}
     .mapleStateItem.mapleItemHidden{opacity:.45}
@@ -1690,6 +1695,17 @@
         </form>
       </section>
     </div>
+
+    <div class="sheetBg" id="bossSummarySheet" hidden>
+      <section class="sheet">
+        <div class="handle"></div>
+        <div class="sheetHead">
+          <h3 id="bossSummarySheetTitle">상세</h3>
+          <button class="icon" id="closeBossSummarySheet" type="button">×</button>
+        </div>
+        <div id="bossSummarySheetBody" class="bossSummaryDetailBody"></div>
+      </section>
+    </div>
   </main>
 
   <nav class="nav"><button class="navBtn on" data-target="dashboard"><svg viewBox="0 0 24 24"><path d="M5 5.5h14v13H5z"/><path d="M8 9h8M8 12h5M8 15h7"/></svg><span>Home</span></button><button class="navBtn" data-target="calendar"><svg viewBox="0 0 24 24"><path d="M5 6h14v13H5z"/><path d="M8 4v4M16 4v4M5 10h14"/><path d="M8 13h2M12 13h2M16 13h2"/></svg><span>Calendar</span></button><button class="navBtn" data-target="budget"><svg viewBox="0 0 24 24"><path d="M5 8h14v10H5z"/><path d="M7 8V6h9v2"/><path d="M15.5 13.5h2"/></svg><span>Money</span></button><button class="navBtn" data-target="boss"><svg viewBox="0 0 24 24"><path d="M6 9l2-4 4 3 4-3 2 4"/><path d="M7 10h10l-1 8H8z"/><path d="M10 13h.1M14 13h.1"/></svg><span>Boss</span></button></nav>
@@ -2699,27 +2715,36 @@
         const isLootChar=cid=>String(chars.find(c=>c.id===cid)?.name||'').includes('득템');
         return bossRecords.filter(r=>!isLootChar(r.charId)&&(bossFilter==='all'||r.charId===bossFilter));
       }
+      function bossSummaryGroupsHtml(groups){
+        return groups.map(g=>`<div class="bossSummaryGroup"><div class="bossSummaryGroupTitle">${g.title}</div><ul class="bossSummaryGroupList">${g.items.map(i=>`<li>${i}</li>`).join('')}</ul></div>`).join('');
+      }
+      function openBossSummarySheet(title,bodyHtml){
+        const titleEl=$('#bossSummarySheetTitle');if(titleEl)titleEl.textContent=title;
+        const bodyEl=$('#bossSummarySheetBody');if(bodyEl)bodyEl.innerHTML=bodyHtml;
+        const sheet=$('#bossSummarySheet');if(sheet)sheet.hidden=false;
+      }
+      function closeBossSummarySheet(){const sheet=$('#bossSummarySheet');if(sheet)sheet.hidden=true}
       function showBossLootSummaryDetail(){
         const rows=bossSummaryVisibleRows();
         const visibleCharIds=[...new Set(rows.map(r=>r.charId))];
-        const lines=visibleCharIds.map(cid=>{
+        const groups=visibleCharIds.map(cid=>{
           const charName=chars.find(c=>c.id===cid)?.name||'';
-          const memo=charLootMemo(cid);
-          return memo?`[${charName}]\n${memo}`:null;
+          const memoLines=uniqueMemoLines(bossLootMemos[cid]||'');
+          return memoLines.length?{title:charName,items:memoLines}:null;
         }).filter(Boolean);
-        alert(lines.length?lines.join('\n\n'):'이번 주 등록된 득템 메모가 없어요.');
+        openBossSummarySheet('득템 메모',groups.length?bossSummaryGroupsHtml(groups):'<p class="bossSummaryEmpty">이번 주 등록된 득템 메모가 없어요.</p>');
       }
       function showBossCrystalPendingDetail(){
         const noCrystal=r=>String(r.name||'').includes('메이린')||String(r.family||'').includes('메이린');
         const rows=bossSummaryVisibleRows().filter(r=>!noCrystal(r));
         const pending=rows.filter(r=>!r.clear);
         const charIds=[...new Set(pending.map(r=>r.charId))];
-        const blocks=charIds.map(cid=>{
+        const groups=charIds.map(cid=>{
           const charName=chars.find(c=>c.id===cid)?.name||'';
           const bossNames=pending.filter(r=>r.charId===cid).map(r=>r.name||bossFamilyName(r)||'보스');
-          return `[${charName}]\n${bossNames.join('\n')}`;
+          return {title:charName,items:bossNames};
         });
-        alert(blocks.length?blocks.join('\n\n'):'이번 주 보스를 전부 잡았어요!');
+        openBossSummarySheet('아직 안 잡은 보스',groups.length?bossSummaryGroupsHtml(groups):'<p class="bossSummaryEmpty">이번 주 보스를 전부 잡았어요!</p>');
       }
       function appendBossMemoLine(current,bossName,text){
         const clean=String(text||'').trim();
@@ -3638,7 +3663,7 @@
           for(const cid of affectedCharIds)await saveBossWeeklyRecordForChar(cid);
           return;
         }
-        const charLoot=e.target.closest('[data-charloot]');if(charLoot){openBossLootMemo('char:'+charLoot.dataset.charloot);return}const money=e.target.closest('[data-moneyvalue]');if(money){moneyDetail(money.dataset.moneylabel||'금액',money.dataset.moneyvalue||0);return}const loot=e.target.closest('[data-bossloot]');if(loot){openBossLootMemo(loot.dataset.bossloot);return}const del=e.target.closest('[data-deleteboss]');if(del){const r=bossRecords.find(x=>x.key===del.dataset.deleteboss);const cid=r?.charId;bossRecords=bossRecords.filter(x=>x.key!==del.dataset.deleteboss);renderBoss();if(cid)await saveBossWeeklyRecordForChar(cid);return}const multUp=e.target.closest('[data-multiplier-up]');if(multUp){const key=multUp.dataset.multiplierUp;setBossMultiplier(key,getBossMultiplier(key)+1);renderBoss();return}const multDown=e.target.closest('[data-multiplier-down]');if(multDown){const key=multDown.dataset.multiplierDown;setBossMultiplier(key,getBossMultiplier(key)-1);renderBoss();return}const c=e.target.closest('[data-bosskey]');if(c){const r=bossRecords.find(x=>x.key===c.dataset.bosskey);if(r){r.clear=!r.clear;renderBoss();await saveBossWeeklyRecordForChar(r.charId)}}};$('#bossList').addEventListener('change',async e=>{const mode=e.target.closest('[data-partykey]');if(mode){const r=bossRecords.find(x=>x.key===mode.dataset.partykey);if(r){r.partyType=mode.value;if(r.partyType==='other'&&!r.otherParty)r.otherParty=3;saveBossPartyPref(r);renderBoss();if(r.clear)await saveBossWeeklyRecordForChar(r.charId)}return}const other=e.target.closest('[data-otherpartykey]');if(other){const r=bossRecords.find(x=>x.key===other.dataset.otherpartykey);if(r){r.otherParty=Number(other.value)||3;saveBossPartyPref(r);renderBoss();if(r.clear)await saveBossWeeklyRecordForChar(r.charId)}}});$('#bossLootMemo')&&($('#bossLootMemo').oninput=updateBossLootCalc);$('#bossLootForm')&&($('#bossLootForm').onsubmit=async e=>{e.preventDefault();const input=$('#bossLootMemo')?.value||'';if(String(editingBossLootKey||'').startsWith('char:')){const charId=String(editingBossLootKey).slice(5);bossLootMemos[charId]=uniqueMemoLines(input).join('\n');renderBoss();await saveBossWeeklyRecordForChar(charId,{silent:true})}else{const r=bossRecords.find(x=>x.key===editingBossLootKey);if(r&&String(input).trim()){bossLootMemos[r.charId]=appendBossMemoLine(bossLootMemos[r.charId]||'',r.name,input);renderBoss();await saveBossWeeklyRecordForChar(r.charId,{silent:true})}}closeBossLootSheet()});$('#clearBossLoot')&&($('#clearBossLoot').onclick=()=>{$('#bossLootMemo').value='';updateBossLootCalc()});$('#closeBossLoot')&&($('#closeBossLoot').onclick=closeBossLootSheet);const bossLootSheetBg=$('#bossLootSheet');if(bossLootSheetBg)bossLootSheetBg.addEventListener('click',e=>{if(e.target===bossLootSheetBg)closeBossLootSheet()});
+        const charLoot=e.target.closest('[data-charloot]');if(charLoot){openBossLootMemo('char:'+charLoot.dataset.charloot);return}const money=e.target.closest('[data-moneyvalue]');if(money){moneyDetail(money.dataset.moneylabel||'금액',money.dataset.moneyvalue||0);return}const loot=e.target.closest('[data-bossloot]');if(loot){openBossLootMemo(loot.dataset.bossloot);return}const del=e.target.closest('[data-deleteboss]');if(del){const r=bossRecords.find(x=>x.key===del.dataset.deleteboss);const cid=r?.charId;bossRecords=bossRecords.filter(x=>x.key!==del.dataset.deleteboss);renderBoss();if(cid)await saveBossWeeklyRecordForChar(cid);return}const multUp=e.target.closest('[data-multiplier-up]');if(multUp){const key=multUp.dataset.multiplierUp;setBossMultiplier(key,getBossMultiplier(key)+1);renderBoss();return}const multDown=e.target.closest('[data-multiplier-down]');if(multDown){const key=multDown.dataset.multiplierDown;setBossMultiplier(key,getBossMultiplier(key)-1);renderBoss();return}const c=e.target.closest('[data-bosskey]');if(c){const r=bossRecords.find(x=>x.key===c.dataset.bosskey);if(r){r.clear=!r.clear;renderBoss();await saveBossWeeklyRecordForChar(r.charId)}}};$('#bossList').addEventListener('change',async e=>{const mode=e.target.closest('[data-partykey]');if(mode){const r=bossRecords.find(x=>x.key===mode.dataset.partykey);if(r){r.partyType=mode.value;if(r.partyType==='other'&&!r.otherParty)r.otherParty=3;saveBossPartyPref(r);renderBoss();if(r.clear)await saveBossWeeklyRecordForChar(r.charId)}return}const other=e.target.closest('[data-otherpartykey]');if(other){const r=bossRecords.find(x=>x.key===other.dataset.otherpartykey);if(r){r.otherParty=Number(other.value)||3;saveBossPartyPref(r);renderBoss();if(r.clear)await saveBossWeeklyRecordForChar(r.charId)}}});$('#bossLootMemo')&&($('#bossLootMemo').oninput=updateBossLootCalc);$('#bossLootForm')&&($('#bossLootForm').onsubmit=async e=>{e.preventDefault();const input=$('#bossLootMemo')?.value||'';if(String(editingBossLootKey||'').startsWith('char:')){const charId=String(editingBossLootKey).slice(5);bossLootMemos[charId]=uniqueMemoLines(input).join('\n');renderBoss();await saveBossWeeklyRecordForChar(charId,{silent:true})}else{const r=bossRecords.find(x=>x.key===editingBossLootKey);if(r&&String(input).trim()){bossLootMemos[r.charId]=appendBossMemoLine(bossLootMemos[r.charId]||'',r.name,input);renderBoss();await saveBossWeeklyRecordForChar(r.charId,{silent:true})}}closeBossLootSheet()});$('#clearBossLoot')&&($('#clearBossLoot').onclick=()=>{$('#bossLootMemo').value='';updateBossLootCalc()});$('#closeBossLoot')&&($('#closeBossLoot').onclick=closeBossLootSheet);const bossLootSheetBg=$('#bossLootSheet');if(bossLootSheetBg)bossLootSheetBg.addEventListener('click',e=>{if(e.target===bossLootSheetBg)closeBossLootSheet()});$('#closeBossSummarySheet')&&($('#closeBossSummarySheet').onclick=closeBossSummarySheet);const bossSummarySheetBg=$('#bossSummarySheet');if(bossSummarySheetBg)bossSummarySheetBg.addEventListener('click',e=>{if(e.target===bossSummarySheetBg)closeBossSummarySheet()});
       const openSettingsBtn=$('#openSettings');if(openSettingsBtn)openSettingsBtn.onclick=openSettings;const closeSettingsBtn=$('#closeSettings');if(closeSettingsBtn)closeSettingsBtn.onclick=closeSettings;const settingsForm=$('#settingsForm');if(settingsForm)settingsForm.onsubmit=saveSettingsForm;const viewModeSelect=$('#settingViewMode');if(viewModeSelect)viewModeSelect.onchange=()=>setViewMode(viewModeSelect.value);const watchIconsInput=$('#settingWatchIcons');if(watchIconsInput)watchIconsInput.addEventListener('change',()=>{setWatchIcons(watchIconsInput.value);renderCal()});const settingLoadBtn=$('#settingLoadNotion');if(settingLoadBtn)settingLoadBtn.onclick=async()=>{await loadProjectsFromWorker(true);loadCalendarFromWorker(false)};const clearSettingsBtn=$('#clearSettings');if(clearSettingsBtn)clearSettingsBtn.onclick=()=>{clearPaperConfig();fillSettingsForm();const s=$('#settingsStatus');if(s)s.textContent='저장된 설정을 지웠어요.'};const cancelToggle=$('#showCanceledSchedules');if(cancelToggle){cancelToggle.checked=state.showCanceled;cancelToggle.onchange=()=>{state.showCanceled=cancelToggle.checked;updateCalMenuIndicators();loadCalendarFromWorker(false)}};const dateStripEl=$('#dateStrip');if(dateStripEl)dateStripEl.ondblclick=toggleWeekStrip;const stickyTopEl=$('#stickyTop');if(stickyTopEl)stickyTopEl.ondblclick=()=>{localStorage.setItem('paperWeekStripHidden','false');applyWeekStripHidden()};const currentMonthLabel=$('#stickyMonthLabel');if(currentMonthLabel)currentMonthLabel.textContent=`${today.getFullYear()}년 ${today.getMonth()+1}월`;$('#expenseDate').value=key(today);$('#incomeDate').value=key(today);$('#bossWeekTitle').textContent=weekKey();applyWeekStripHidden();dateStrip();      ['addSchedule','entrySubject'].forEach(id=>{const el=$('#'+id);if(el){el.addEventListener('input',updateAppointmentTargetVisibility);el.addEventListener('change',updateAppointmentTargetVisibility);}});
 // ── Habit Tracker ──────────────────────────────────────────────
       const HABIT_KEY='paperlog_habits_v1';
