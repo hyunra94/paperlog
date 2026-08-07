@@ -275,7 +275,6 @@
     .mapleBar{height:8px;background:var(--grid);border-radius:99px;margin-top:8px;overflow:hidden}
     .mapleBarFill{height:100%;background:var(--yellow);border-radius:99px}
     .mapleStateGroup{margin-top:10px;padding-top:8px;border-top:1px dashed rgba(47,42,40,.18)}
-    .mapleStateGroup.mapleCallout{margin-top:10px;padding:10px 12px;border:1.6px solid #c9a227;border-top:1.6px solid #c9a227;border-radius:14px;background:linear-gradient(180deg,rgba(244,217,139,.4),rgba(255,253,247,.92));box-shadow:2px 2px 0 rgba(47,42,40,.1)}
     .mapleStateGroup.mapleCallout .mapleStateGroupHead b{color:#8a6d1f}
     .mapleStateGroupHead{display:flex;justify-content:space-between;align-items:center;font-family:'Gaegu';font-size:16px;margin-bottom:4px}
     .mapleScoreLabel{font-family:'Gowun Dodum';font-size:12px;color:var(--sub);font-weight:400}
@@ -879,6 +878,8 @@
       background:rgba(255,255,255,.18);
     }
     .bossBucket:has(.bossEmpty){display:none}
+    .bossBucket.bossMonthlyCallout{border:1.6px solid #c9a227;background:linear-gradient(180deg,rgba(244,217,139,.4),rgba(255,253,247,.92));box-shadow:2px 2px 0 rgba(47,42,40,.1)}
+    .bossBucket.bossMonthlyCallout .bossBucketTitle span{color:#8a6d1f;font-weight:700}
     .bossChip .bossCalcLine{display:none!important}
     .bossMemoInput{display:none!important}
     .bossLootBtn{
@@ -2771,6 +2772,11 @@
         return `<div class="bossChip ${r.clear?'clear':''}"><button class="check ${r.clear?'done':''}" data-bosskey="${r.key}" type="button" aria-label="보스 격파 체크"></button><span class="bossChipName" data-bossloot="${r.key}" title="득템 메모 추가">${r.name}</span><select class="partyMode" data-partykey="${r.key}"><option value="solo" ${r.partyType==='solo'?'selected':''}>1인</option><option value="duo" ${r.partyType==='duo'?'selected':''}>2인</option><option value="other" ${r.partyType==='other'?'selected':''}>기타</option></select>${r.partyType==='other'?`<select class="otherParty" data-otherpartykey="${r.key}">${[3,4,5,6].map(n=>`<option value="${n}" ${Number(r.otherParty||3)===n?'selected':''}>${n}인</option>`).join('')}</select>`:''}<span class="price">${won(total)}</span><button class="bossDelete" data-deleteboss="${r.key}" type="button" aria-label="보스 삭제">×</button></div>${multiplierRow}`;
       }
       function sortBossRowsByCrystal(records){return [...records].sort((a,b)=>crystalValue(a)-crystalValue(b)||String(a.name||'').localeCompare(String(b.name||''),'ko'))}
+      function renderBossMonthlyCallout(records){
+        if(!records.length)return '';
+        const sorted=sortBossRowsByCrystal(records);
+        return `<div class="bossBucket bossMonthlyCallout"><div class="bossBucketTitle"><span>월간보스</span></div>${sorted.map(renderBossChip).join('')}</div>`;
+      }
       function renderBossBucket(label,type,records){
         if(!records.length)return '';
         const sorted=sortBossRowsByCrystal(records);
@@ -2897,9 +2903,12 @@
         if(!rows.length){list.innerHTML='<p class="empty-msg">아직 생성된 보스가 없어요. “Notion 보스 불러오기” 또는 “이번 주 생성”을 눌러주세요.</p>';return}
         const groups={};rows.forEach(r=>(groups[r.charId]??=[]).push(r));
         list.innerHTML=Object.entries(groups).sort((a,b)=>bossCharRank(chars.find(c=>c.id===a[0])?.name||a[1][0]?.charName)-bossCharRank(chars.find(c=>c.id===b[0])?.name||b[1][0]?.charName)).map(([cid,rs])=>{
-          const solo=rs.filter(r=>r.partyType==='solo');
-          const duo=rs.filter(r=>r.partyType==='duo');
-          const other=rs.filter(r=>r.partyType==='other');
+          const isMonthlyRow=r=>(r.cycle||bossCycleByName(r.name||r.family))==='monthly';
+          const monthlyRows=rs.filter(isMonthlyRow);
+          const regularRows=rs.filter(r=>!isMonthlyRow(r));
+          const solo=regularRows.filter(r=>r.partyType==='solo');
+          const duo=regularRows.filter(r=>r.partyType==='duo');
+          const other=regularRows.filter(r=>r.partyType==='other');
           const checkedSum=rs.filter(r=>r.clear&&!noCrystal(r)).reduce((a,b)=>a+crystalValue(b),0);
           const expectedSum=rs.filter(r=>!r.clear).reduce((a,b)=>a+crystalValue(b),0);
           const charName=chars.find(c=>c.id===cid)?.name||rs[0]?.charName||'캐릭터';
@@ -2907,7 +2916,7 @@
           const menuBtn=bossCardOpenCharId===cid
             ?`<button class="bossCharMenuBtn" data-open-boss-setting="${cid}" title="보스 설정" type="button" style="${menuBtnStyle}"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>`
             :'';
-          return `<div class="bossCard"><div class="bossTitle"><span style="display:flex;align-items:center;gap:6px;"><span data-boss-char-toggle="${cid}" style="cursor:pointer;user-select:none;">${charName}</span>${menuBtn}</span><span class="tag y">예정 ${won(expectedSum)} · 결정석 ${won(checkedSum)}</span></div>${renderLootBucket(cid)}${renderBossBucket('1인 파티','solo',solo)}${renderBossBucket('2인 파티','duo',duo)}${renderBossBucket('기타 인원','other',other)}</div>`;
+          return `<div class="bossCard"><div class="bossTitle"><span style="display:flex;align-items:center;gap:6px;"><span data-boss-char-toggle="${cid}" style="cursor:pointer;user-select:none;">${charName}</span>${menuBtn}</span><span class="tag y">예정 ${won(expectedSum)} · 결정석 ${won(checkedSum)}</span></div>${renderLootBucket(cid)}${renderBossMonthlyCallout(monthlyRows)}${renderBossBucket('1인 파티','solo',solo)}${renderBossBucket('2인 파티','duo',duo)}${renderBossBucket('기타 인원','other',other)}</div>`;
         }).join('');
       }
       function openBossLootMemo(keyValue){
