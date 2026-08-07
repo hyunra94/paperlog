@@ -275,12 +275,15 @@
     .mapleBar{height:8px;background:var(--grid);border-radius:99px;margin-top:8px;overflow:hidden}
     .mapleBarFill{height:100%;background:var(--yellow);border-radius:99px}
     .mapleStateGroup{margin-top:10px;padding-top:8px;border-top:1px dashed rgba(47,42,40,.18)}
+    .mapleStateGroup.mapleCallout{margin-top:10px;padding:10px 12px;border:1.6px solid #c9a227;border-top:1.6px solid #c9a227;border-radius:14px;background:linear-gradient(180deg,rgba(244,217,139,.4),rgba(255,253,247,.92));box-shadow:2px 2px 0 rgba(47,42,40,.1)}
+    .mapleStateGroup.mapleCallout .mapleStateGroupHead b{color:#8a6d1f}
     .mapleStateGroupHead{display:flex;justify-content:space-between;align-items:center;font-family:'Gaegu';font-size:16px;margin-bottom:4px}
     .mapleScoreLabel{font-family:'Gowun Dodum';font-size:12px;color:var(--sub);font-weight:400}
     .bossSummaryDetailBody{display:grid;gap:12px}
     .bossSummaryGroup{border:1.4px solid var(--line);border-radius:16px;padding:10px 12px;background:rgba(255,255,255,.35)}
     .bossSummaryGroupTitle{font-family:'Gaegu';font-size:20px;margin-bottom:6px}
     .bossSummaryGroupList{margin:0;padding-left:18px;display:grid;gap:4px;font-size:14px;line-height:1.4}
+    .bossSummaryInlineList{margin:0;font-size:14px;line-height:1.5;word-break:keep-all}
     .bossSummaryEmpty{margin:0;color:var(--sub);font-family:'Gaegu';font-size:18px;text-align:center;padding:12px 0}
     .mapleStateItem{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:3px 0;font-size:12px;color:var(--sub)}
     .mapleStateItem .miniTag.mapleDone{background:var(--green);color:#2f5c2f}
@@ -2718,6 +2721,9 @@
       function bossSummaryGroupsHtml(groups){
         return groups.map(g=>`<div class="bossSummaryGroup"><div class="bossSummaryGroupTitle">${g.title}</div><ul class="bossSummaryGroupList">${g.items.map(i=>`<li>${i}</li>`).join('')}</ul></div>`).join('');
       }
+      function bossSummaryGroupsHtmlInline(groups){
+        return groups.map(g=>`<div class="bossSummaryGroup"><div class="bossSummaryGroupTitle">${g.title}</div><p class="bossSummaryInlineList">${g.items.join(', ')}</p></div>`).join('');
+      }
       function openBossSummarySheet(title,bodyHtml){
         const titleEl=$('#bossSummarySheetTitle');if(titleEl)titleEl.textContent=title;
         const bodyEl=$('#bossSummarySheetBody');if(bodyEl)bodyEl.innerHTML=bodyHtml;
@@ -2744,7 +2750,7 @@
           const bossNames=pending.filter(r=>r.charId===cid).map(r=>r.name||bossFamilyName(r)||'보스');
           return {title:charName,items:bossNames};
         });
-        openBossSummarySheet('아직 안 잡은 보스',groups.length?bossSummaryGroupsHtml(groups):'<p class="bossSummaryEmpty">이번 주 보스를 전부 잡았어요!</p>');
+        openBossSummarySheet('아직 안 잡은 보스',groups.length?bossSummaryGroupsHtmlInline(groups):'<p class="bossSummaryEmpty">이번 주 보스를 전부 잡았어요!</p>');
       }
       function appendBossMemoLine(current,bossName,text){
         const clean=String(text||'').trim();
@@ -2811,7 +2817,8 @@
             charDone+=doneCount;charTotal+=activeItems.length;
             if(!activeItems.length&&!mapleTodoEditMode)return '';
             const scoreLabel=s.score!=null?` <span class="mapleScoreLabel">${s.score.toLocaleString()}점</span>`:'';
-            return `<div class="mapleStateGroup"><div class="mapleStateGroupHead"><b>${s.title}${scoreLabel}</b><span>${doneCount}/${activeItems.length}</span></div>${keyed.map(([k,n,st])=>itemRow(k,n,st)).join('')}</div>`;
+            const isCallout=s.title==='월간보스';
+            return `<div class="mapleStateGroup${isCallout?' mapleCallout':''}"><div class="mapleStateGroupHead"><b>${s.title}${scoreLabel}</b><span>${doneCount}/${activeItems.length}</span></div>${keyed.map(([k,n,st])=>itemRow(k,n,st)).join('')}</div>`;
           }).join('');
           doneAll+=charDone;totalAll+=charTotal;
           const pct=charTotal?Math.round(charDone/charTotal*100):0;
