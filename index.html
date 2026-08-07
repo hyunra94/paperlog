@@ -3504,7 +3504,7 @@
           const norm=s=>String(s||'').toLowerCase();
           const nq=norm(q);
           const matches=[...idx.schedules.map(x=>({...x,type:'schedule'})),...idx.todos.map(x=>({...x,type:'todo'}))]
-            .filter(x=>norm(x.title).includes(nq)||norm(x.category).includes(nq))
+            .filter(x=>norm(x.title).includes(nq)||norm(x.category).includes(nq)||norm(x.subject).includes(nq))
             .sort((a,b)=>a.date.localeCompare(b.date));
           renderCalSearchResults(matches);
         },250);
