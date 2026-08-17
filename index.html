@@ -1668,7 +1668,7 @@
             <button class="moneyTypeBtn" data-money-type="income" type="button">수입</button>
           </div>
           <div class="field"><label>내용</label><input id="moneyEntryTitle" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" required placeholder="예: 주유비, 5월 월급"></div>
-          <div class="row2"><div class="field"><label>날짜</label><input id="moneyEntryDate" type="date" required></div><div class="field"><label>금액</label><div class="moneyAmountControl"><input id="moneyEntryAmount" inputmode="decimal" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" required placeholder="12000"><button class="moneyCalcOpenBtn" id="openMoneyCalc" type="button" aria-label="계산기 열기" title="계산기"><img class="calcIconImg" src="./icons/calc-icon.png" alt=""></button></div></div></div>
+          <div class="row2"><div class="field" style="order:2"><label>금액</label><div class="moneyAmountControl"><input id="moneyEntryAmount" inputmode="decimal" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" required placeholder="12000"><button class="moneyCalcOpenBtn" id="openMoneyCalc" type="button" aria-label="계산기 열기" title="계산기"><img class="calcIconImg" src="./icons/calc-icon.png" alt=""></button></div></div><div class="field" style="order:1"><label>날짜</label><input id="moneyEntryDate" type="date" required></div></div>
           <div class="row2"><div class="field"><label>분류</label><select id="moneyEntrySubject"></select></div><div class="field"><label id="moneyCardLabel">결제수단</label><select id="moneyEntryCard"></select></div></div>
           <div class="field moneyIncomeOnly" hidden><label>기타</label><input id="moneyEntryMemo" placeholder="수입 메모"></div>
           <div class="moneyCheckRow moneyExpenseOnly">
@@ -5071,7 +5071,12 @@
 
           if(keepOpen && method!=='PATCH'){
             $('#moneySheetTitle')&&($('#moneySheetTitle').textContent='가계부 입력');
-            $('#moneyEntryTitle')&&($('#moneyEntryTitle').value='');
+            const titleInput=$('#moneyEntryTitle');
+            if(titleInput){
+              titleInput.value='';
+              titleInput.blur();
+              requestAnimationFrame(()=>titleInput.focus());
+            }
             $('#moneyEntryAmount')&&($('#moneyEntryAmount').value='');
             $('#moneyEntryMemo')&&($('#moneyEntryMemo').value='');
             $('#moneyEntryWaste')&&($('#moneyEntryWaste').checked=false);
