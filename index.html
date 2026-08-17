@@ -1361,10 +1361,7 @@
         <div class="grid2">
           <button class="mini jump" data-target="calendar"><h3><span class="blue">캘린더</span></h3><p id="dashCalendarSummary">오늘 일정/할 일 불러오는 중</p></button>
           <button class="mini jump" data-target="budget"><h3><span class="pink">가계부</span></h3><p id="dashMoneySummary">이번 달 가계부 불러오는 중</p></button>
-          <div class="mini" style="display:flex;align-items:center;justify-content:center;gap:22px;">
-            <button id="dashMemoBtn" type="button" style="display:flex;flex-direction:column;align-items:center;gap:6px;background:transparent;border:0;padding:0;"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#8a7d6a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15H6z"/><path d="M15 3v3h3"/><path d="M9 11h6M9 14h6M9 17h4"/></svg><span style="font-family:'Gaegu';font-size:19px;">메모</span></button>
-            <button id="dashHabitBtn" type="button" style="display:flex;flex-direction:column;align-items:center;gap:6px;background:transparent;border:0;padding:0;"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#8a7d6a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="6" height="6" rx="1.3"/><rect x="14.5" y="3.5" width="6" height="6" rx="1.3"/><rect x="3.5" y="14.5" width="6" height="6" rx="1.3"/><path d="M16 16.5l1.4 1.4L20.5 14.5"/></svg><span style="font-family:'Gaegu';font-size:19px;">해빗</span></button>
-          </div>
+          <button class="mini" id="dashHabitGridBtn" type="button"><h3><span class="green">해빗</span></h3><p id="dashHabitSummary">오늘 해빗 체크 요약</p></button>
           <button class="mini jump" data-target="boss"><h3><span class="purple">보스</span></h3><p id="dashBossSummary">이번 주 보스 요약</p></button>
         </div>
       </article>
@@ -1375,6 +1372,13 @@
       <article class="card" id="anniversaryBlock">
         <div class="divTitle" id="anniversaryTitle" style="cursor:pointer;user-select:none;">기념일 <span id="anniversaryTitleActions" style="display:none;gap:6px;align-items:center;margin-left:4px;"></span></div>
         <div id="anniversaryList"></div>
+      </article>
+      <article class="card">
+        <div class="divTitle">빠른 기록</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:36px;padding:4px 0;">
+          <button id="dashMemoBtn" type="button" style="display:flex;flex-direction:column;align-items:center;gap:6px;background:transparent;border:0;padding:0;"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#8a7d6a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15H6z"/><path d="M15 3v3h3"/><path d="M9 11h6M9 14h6M9 17h4"/></svg><span style="font-family:'Gaegu';font-size:19px;">메모</span></button>
+          <button id="dashHabitBtn" type="button" style="display:flex;flex-direction:column;align-items:center;gap:6px;background:transparent;border:0;padding:0;"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#8a7d6a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="6" height="6" rx="1.3"/><rect x="14.5" y="3.5" width="6" height="6" rx="1.3"/><rect x="3.5" y="14.5" width="6" height="6" rx="1.3"/><path d="M16 16.5l1.4 1.4L20.5 14.5"/></svg><span style="font-family:'Gaegu';font-size:19px;">해빗</span></button>
+        </div>
       </article>
     </section>
 
@@ -2258,6 +2262,9 @@
         const set=(id,text)=>{const el=$(id);if(el)el.innerHTML=text};
         set('#dashCalendarSummary',`오늘 일정 ${todaySchedules}개 / 할 일 ${todayTasks}개<br>누르면 캘린더로 이동`);
         // 가계부 요약은 실제 오늘 기준 월 데이터만 사용하므로 여기서 덮어쓰지 않음.
+        const habits=getHabits(), habitChecks=getHabitChecks();
+        const habitDone=habits.filter(h=>!!habitChecks[habitCheckKey(h.id,todayKey)]).length;
+        set('#dashHabitSummary',`오늘 ${habits.length}개 중 ${habitDone}개 완료<br>누르면 Habit 열기`);
         set('#dashBossSummary',`이번 주 보스 ${bossTotal}개 중 ${bossDone}개 완료<br>누르면 보스 탭으로 이동`);
         renderDashboardTodayList(todayKey);
       }
@@ -3907,6 +3914,7 @@
         checks[ck]=!checks[ck];
         saveHabitChecks(checks);
         renderHabitTracker();
+        renderDashboard();
       }
 
       let habitActionsOpen=false;
@@ -3963,6 +3971,7 @@
           const newHabits=rows.map(r=>({id:r.dataset.id,name:(r.querySelector('.habitEditInput')?.value||'').trim()})).filter(h=>h.name);
           saveHabits(newHabits);
           renderHabitTracker();
+          renderDashboard();
           sheet.remove();
           habitActionsOpen=false;
           const el=$('#habitTitleActions');if(el)el.style.display='none';
@@ -3975,6 +3984,7 @@
         Object.keys(checks).forEach(k=>{delete checks[k]});
         saveHabitChecks(checks);
         renderHabitTracker();
+        renderDashboard();
       }
 
       function openHabitSheet(){
@@ -3985,6 +3995,8 @@
       }
       const dashHabitBtn=$('#dashHabitBtn');
       if(dashHabitBtn)dashHabitBtn.onclick=openHabitSheet;
+      const dashHabitGridBtn=$('#dashHabitGridBtn');
+      if(dashHabitGridBtn)dashHabitGridBtn.onclick=openHabitSheet;
       const closeHabitSheetBtn=$('#closeHabitSheet');
       if(closeHabitSheetBtn)closeHabitSheetBtn.onclick=()=>{$('#habitSheet').hidden=true;};
       const habitSheetBg=$('#habitSheet');
