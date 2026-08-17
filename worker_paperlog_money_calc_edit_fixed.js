@@ -34,6 +34,7 @@ export default {
           hasIncomeDb: Boolean(env.NOTION_INCOME_DB_ID),
           hasExpenseDb: Boolean(env.NOTION_EXPENSE_DB_ID),
           hasDailyLogDb: Boolean(env.NOTION_DAILY_LOG_DB_ID),
+          hasMemoDb: Boolean(env.NOTION_MEMO_DB_ID),
           hasBossRecordDb: Boolean(env.NOTION_BOSS_RECORD_DB_ID),
           hasBossThisWeekDb: Boolean(env.NOTION_BOSS_THIS_WEEK_DB_ID),
           hasBossCharacterDb: Boolean(env.NOTION_BOSS_CHARACTER_DB_ID),
@@ -47,6 +48,7 @@ export default {
             "/api/schedule",
             "/api/daily",
             "/api/anniversary",
+            "/api/memo",
             "/api/boss",
             "POST /api/boss/setup",
             "/api/money",
@@ -159,6 +161,25 @@ export default {
         return json({ ok: true, page: result }, 200, cors);
       }
 
+      if (url.pathname === "/api/memo" && request.method === "GET") {
+        const memos = await getMemos(request, env);
+        return json({ ok: true, memos }, 200, cors);
+      }
+
+      if (url.pathname === "/api/memo" && request.method === "POST") {
+        const result = await createMemo(request, env);
+        return json({ ok: true, page: result }, 200, cors);
+      }
+
+      if (url.pathname === "/api/memo" && request.method === "PATCH") {
+        const result = await updateMemo(request, env);
+        return json({ ok: true, page: result }, 200, cors);
+      }
+
+      if (url.pathname === "/api/memo" && request.method === "DELETE") {
+        const result = await deleteCalendarPage(request, env);
+        return json({ ok: true, page: result }, 200, cors);
+      }
 
       if (url.pathname === "/api/boss" && request.method === "GET") {
         const boss = await getBossData(request, env);
@@ -185,6 +206,24 @@ export default {
       if (url.pathname === "/api/widget/boss.txt" && request.method === "GET") {
         const summary = await getWidgetSummary(request, env);
         const text = formatBossText(summary);
+        return new Response(text, { status: 200, headers: { ...cors, "Content-Type": "text/plain; charset=utf-8" } });
+      }
+
+      const widgetFieldRoutes = {
+        "/api/widget/boss/count.txt": (s) => `${s.boss.bossDoneCount}/${s.boss.bossTotalCount}`,
+        "/api/widget/boss/meso.txt": (s) => formatMesoShort(s.boss.expectedMeso),
+        "/api/widget/boss/epic.txt": (s) => s.boss.epicSummary,
+        "/api/widget/boss/park.txt": (s) => s.boss.parkSummary,
+        "/api/widget/boss/week.txt": (s) => s.boss.weekLabel,
+        "/api/widget/today/count.txt": (s) => `일정 ${s.today.scheduleCount}건 · 할일 ${s.today.todoCount}건(${s.today.todoDoneCount}완료)`,
+        "/api/widget/today/schedule-count.txt": (s) => String(s.today.scheduleCount),
+        "/api/widget/today/todo-count.txt": (s) => String(s.today.todoCount),
+        "/api/widget/today/todo-done-count.txt": (s) => String(s.today.todoDoneCount),
+        "/api/widget/today/list.txt": (s) => s.today.items.filter((it) => !it.canceled).map((it) => it.type === "schedule" ? `${it.time ? it.time + " " : ""}${it.title}` : `${it.done ? "✓ " : "· "}${it.title}`).join(" | ") || "오늘 일정/할 일이 없어요.",
+      };
+      if (widgetFieldRoutes[url.pathname] && request.method === "GET") {
+        const summary = await getWidgetSummary(request, env);
+        const text = widgetFieldRoutes[url.pathname](summary);
         return new Response(text, { status: 200, headers: { ...cors, "Content-Type": "text/plain; charset=utf-8" } });
       }
 
@@ -1175,6 +1214,83 @@ async function updateDailyLog(request, env) {
   if (body.date) properties[p.date] = { date: { start: body.date } };
   if (body.mood !== undefined) properties[p.mood] = body.mood ? { select: { name: body.mood } } : { select: null };
   if (body.text !== undefined) properties[p.text] = { rich_text: [{ text: { content: body.text || "" } }] };
+
+  return notionUpdatePage(env, body.id, properties);
+}
+
+
+/* =========================
+   메모 DB (전용, 날짜별 메모)
+========================= */
+
+function memoProps(env) {
+  return {
+    title: env.MEMO_TITLE_PROP || "제목",
+    date: env.MEMO_DATE_PROP || "날짜",
+    text: env.MEMO_TEXT_PROP || "내용",
+  };
+}
+
+async function getMemos(request, env) {
+  if (!env.NOTION_MEMO_DB_ID) return [];
+
+  const url = new URL(request.url);
+  const from = url.searchParams.get("from");
+  const to = url.searchParams.get("to");
+  const p = memoProps(env);
+
+  const filter = makeDateRangeFilter(p.date, from, to);
+  const body = { sorts: [{ property: p.date, direction: "descending" }] };
+  if (filter) body.filter = filter;
+
+  const notionData = await notionQuery(env, env.NOTION_MEMO_DB_ID, body);
+
+  return notionData.results
+    .map(page => {
+      const props = page.properties || {};
+      const dateInfo = readDateRange(props, p.date);
+
+      return {
+        id: page.id,
+        url: page.url,
+        date: dateInfo.date,
+        text: readRichText(props, p.text),
+      };
+    })
+    .filter(item => item.date);
+}
+
+async function createMemo(request, env) {
+  const body = await request.json();
+  const p = memoProps(env);
+
+  if (!body.date) throw new Error("date is required");
+
+  const text = typeof body.text === "string" ? body.text : "";
+
+  const properties = {
+    [p.title]: { title: [{ text: { content: text.slice(0, 80) || "메모" } }] },
+    [p.date]: { date: { start: body.date } },
+    [p.text]: { rich_text: [{ text: { content: text } }] },
+  };
+
+  return notionCreatePage(env, env.NOTION_MEMO_DB_ID, properties);
+}
+
+async function updateMemo(request, env) {
+  const body = await request.json();
+  const p = memoProps(env);
+
+  if (!body.id) throw new Error("memo page id is required");
+
+  const properties = {};
+
+  if (body.date) properties[p.date] = { date: { start: body.date } };
+  if (body.text !== undefined) {
+    const text = body.text || "";
+    properties[p.text] = { rich_text: [{ text: { content: text } }] };
+    properties[p.title] = { title: [{ text: { content: text.slice(0, 80) || "메모" } }] };
+  }
 
   return notionUpdatePage(env, body.id, properties);
 }
