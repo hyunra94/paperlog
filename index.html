@@ -3654,7 +3654,7 @@
         jumpCalendarToDate(dateStr);
       });
       $('#calMenuBg')?.addEventListener('click',closeCalMenus);
-      function updateCalMenuIndicators(){$('#calDisplayBtn')?.classList.toggle('hasActive',state.showCanceled||state.dailyEmphasis);$('#calFilterBtn')?.classList.toggle('hasActive',Object.values(state.show).some(v=>!v))}
+      function updateCalMenuIndicators(){$('#calDisplayBtn')?.classList.toggle('hasActive',state.showCanceled||state.dailyEmphasis);$('#calFilterBtn')?.classList.toggle('hasActive',['schedule','todo','daily'].some(k=>!state.show[k]))}
       $('#dailyEmphasisToggle')&&($('#dailyEmphasisToggle').onchange=()=>{
         state.dailyEmphasis=$('#dailyEmphasisToggle').checked;
         document.body.classList.toggle('dailyEmphasis',state.dailyEmphasis);
