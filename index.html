@@ -1493,11 +1493,11 @@
     <div class="sheetBg" id="entrySheet" hidden><section class="sheet"><div class="handle"></div><div class="sheetHead entrySheetHead"><h3 id="entrySheetTitle">기록 추가</h3><div class="entrySheetHeadActions"><button type="button" class="icon entryCancelBtn" id="entryCancelToggle" hidden aria-label="취소 표시 토글" title="취소 표시">🚫</button><button class="icon entryDeleteBtn" id="deleteEntry" type="button" hidden aria-label="기록 삭제">🗑</button><button class="icon" id="closeEntry" type="button">×</button></div></div><form class="entryForm" id="entryForm"><div class="typeToggle"><label class="typeChip"><input type="checkbox" id="addSchedule"> 일정 DB</label><label class="typeChip"><input type="checkbox" id="addTodo"> 할 일 DB</label><input type="checkbox" id="addDaily" hidden></div><div class="field"><label>제목</label><input id="entryTitle" placeholder="예: 교육 운영 회의"></div><div class="row2">
   <div class="field">
     <label>시작일</label>
-    <input id="entryDate" type="date" required>
+    <input id="entryDate" type="date" lang="en-GB" required>
   </div>
   <div class="field">
     <label>종료일</label>
-    <input id="entryEndDate" type="date">
+    <input id="entryEndDate" type="date" lang="en-GB">
   </div>
 </div>
 
@@ -1542,7 +1542,7 @@
         <form class="entryForm" id="dailyForm">
           <div class="field">
             <label>날짜</label>
-            <input id="dailyDate" type="date" required>
+            <input id="dailyDate" type="date" lang="en-GB" required>
           </div>
           <div class="field">
             <label>Mood</label>
@@ -1584,7 +1584,7 @@
         <form class="entryForm" id="memoForm">
           <div class="field">
             <label>날짜</label>
-            <input id="memoDate" type="date" required>
+            <input id="memoDate" type="date" lang="en-GB" required>
           </div>
           <div class="field">
             <label>내용</label>
@@ -1672,7 +1672,7 @@
             <button class="moneyTypeBtn" data-money-type="income" type="button">수입</button>
           </div>
           <div class="field"><label>내용</label><input id="moneyEntryTitle" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" required placeholder="예: 주유비, 5월 월급"></div>
-          <div class="row2"><div class="field" style="order:2"><label>금액</label><div class="moneyAmountControl"><input id="moneyEntryAmount" inputmode="decimal" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" required placeholder="12000"><button class="moneyCalcOpenBtn" id="openMoneyCalc" type="button" aria-label="계산기 열기" title="계산기"><img class="calcIconImg" src="./icons/calc-icon.png" alt=""></button></div></div><div class="field" style="order:1"><label>날짜</label><input id="moneyEntryDate" type="date" required></div></div>
+          <div class="row2"><div class="field" style="order:2"><label>금액</label><div class="moneyAmountControl"><input id="moneyEntryAmount" inputmode="decimal" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" required placeholder="12000"><button class="moneyCalcOpenBtn" id="openMoneyCalc" type="button" aria-label="계산기 열기" title="계산기"><img class="calcIconImg" src="./icons/calc-icon.png" alt=""></button></div></div><div class="field" style="order:1"><label>날짜</label><input id="moneyEntryDate" type="date" lang="en-GB" required></div></div>
           <div class="row2"><div class="field"><label>분류</label><select id="moneyEntrySubject"></select></div><div class="field"><label id="moneyCardLabel">결제수단</label><select id="moneyEntryCard"></select></div></div>
           <div class="field moneyIncomeOnly" hidden><label>기타</label><input id="moneyEntryMemo" placeholder="수입 메모"></div>
           <div class="moneyCheckRow moneyExpenseOnly">
@@ -4181,7 +4181,7 @@
               <input class="annivNameInput" value="${(a.name||'').replace(/"/g,'&quot;')}" placeholder="이름 (예: 우리 연애)" style="${iStyle}border-radius:10px;padding:7px 10px;">
               <button class="annivDelBtn" type="button" style="width:26px;height:26px;flex:0 0 26px;border:1.2px solid rgba(47,42,40,.25);border-radius:50%;background:#faecec;color:#9f4f4f;font-size:14px;display:grid;place-items:center;">✕</button>
             </div>
-            <div style="margin-bottom:7px;"><label style="font-family:'Gaegu';font-size:15px;color:var(--sub);display:block;margin-bottom:3px;">시작일</label><input class="annivStartDateInput" type="date" value="${a.startDate||''}" style="${iStyle}border-radius:10px;padding:7px 10px;"></div>
+            <div style="margin-bottom:7px;"><label style="font-family:'Gaegu';font-size:15px;color:var(--sub);display:block;margin-bottom:3px;">시작일</label><input class="annivStartDateInput" type="date" lang="en-GB" value="${a.startDate||''}" style="${iStyle}border-radius:10px;padding:7px 10px;"></div>
             <div><label style="font-family:'Gaegu';font-size:15px;color:var(--sub);display:block;margin-bottom:4px;">마일스톤</label><div class="annivMstoneWrap" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:5px;">${chips}</div><input class="annivMstoneCustom" placeholder="직접 입력 (쉼표로 구분, 예: 777, 1500)" value="${customVals}" style="${iStyle}border-radius:10px;padding:7px 10px;font-size:13px;"></div>
           </div>`;
         }else{
@@ -4195,7 +4195,7 @@
               <button class="annivDelBtn" type="button" style="width:26px;height:26px;flex:0 0 26px;border:1.2px solid rgba(47,42,40,.25);border-radius:50%;background:#faecec;color:#9f4f4f;font-size:14px;display:grid;place-items:center;">✕</button>
             </div>
             <div style="display:flex;gap:8px;align-items:center;">
-              <input class="annivDateInput" type="date" value="${fullDate}" style="${iStyle}border-radius:10px;padding:7px 10px;flex:1;">
+              <input class="annivDateInput" type="date" lang="en-GB" value="${fullDate}" style="${iStyle}border-radius:10px;padding:7px 10px;flex:1;">
               <label style="display:flex;align-items:center;gap:5px;white-space:nowrap;font-family:'Gaegu';font-size:16px;cursor:pointer;"><input type="checkbox" class="annivRepeatInput"${repeat?' checked':''} style="width:16px;height:16px;"> 매년</label>
             </div>
           </div>`;
