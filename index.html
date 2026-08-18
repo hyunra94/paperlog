@@ -1420,7 +1420,7 @@
           <label class="calMenuRow"><input type="checkbox" class="calCheckInput calTypeCheck" data-type="schedule" checked><span class="calCheck"></span> 일정</label>
           <label class="calMenuRow"><input type="checkbox" class="calCheckInput calTypeCheck" data-type="todo" checked><span class="calCheck"></span> 할 일</label>
           <label class="calMenuRow"><input type="checkbox" class="calCheckInput calTypeCheck" data-type="daily" checked><span class="calCheck"></span> 데일리 로그</label>
-          <label class="calMenuRow"><input type="checkbox" class="calCheckInput calTypeCheck" data-type="magic"><span class="calCheck"></span> Magic</label>
+          <label class="calMenuRow"><input type="checkbox" class="calCheckInput calTypeCheck" data-type="magic"><span class="calCheck"></span> 으르렁데이</label>
         </div>
         <div class="calMenuPopover calSearchPopover" id="calSearchMenu" hidden>
           <input type="text" id="calSearchInput" class="calSearchInput" placeholder="제목/분류로 검색 (최근 6개월~앞으로 6개월)" autocomplete="off">
@@ -1529,7 +1529,7 @@
       <option value="개인일정">개인일정</option>
       <option value="기념일">기념일</option>
       <option value="공휴일">공휴일</option>
-      <option value="Magic">Magic</option>
+      <option value="으르렁데이">으르렁데이</option>
       <option value="__custom">직접 입력</option>
     </select>
   </div>
@@ -2347,8 +2347,8 @@
       function moodIconHTML(mood,cls=''){const m=moodKey(mood);return m?`<img class="moodIcon ${cls}" src="./icons/mood-${m}.png" alt="${MOOD_LABELS[m]||m}">`:''}
       function moodBgAttr(mood){const m=moodKey(mood);return m?` style="--mood-bg:url('./icons/mood-${m}.png')"`:''}
 
-      function visible(k){return{schedule:state.show.schedule?state.schedules.filter(x=>x.date===k&&(state.show.magic||x.subject!=='Magic')):[],todo:state.show.todo?state.tasks.filter(x=>x.date===k):[],daily:state.show.daily&&state.dailyLogs?state.dailyLogs.filter(x=>x.date===k):[]}}
-      function scheduleColor(subject){if(subject==='취소')return 'canceled';if(subject==='약속')return 'meeting';if(subject==='개인일정')return 'personal';if(subject==='뇽')return 'nyong';if(subject==='기념일')return 'anniversary';if(subject==='공휴일')return 'holiday';if(subject==='Magic')return 'magic';return 'work'}
+      function visible(k){return{schedule:state.show.schedule?state.schedules.filter(x=>x.date===k&&(state.show.magic||x.subject!=='으르렁데이')):[],todo:state.show.todo?state.tasks.filter(x=>x.date===k):[],daily:state.show.daily&&state.dailyLogs?state.dailyLogs.filter(x=>x.date===k):[]}}
+      function scheduleColor(subject){if(subject==='취소')return 'canceled';if(subject==='약속')return 'meeting';if(subject==='개인일정')return 'personal';if(subject==='뇽')return 'nyong';if(subject==='기념일')return 'anniversary';if(subject==='공휴일')return 'holiday';if(subject==='으르렁데이')return 'magic';return 'work'}
       function isHolidaySchedule(x){return !x.canceled&&(x.color||scheduleColor(x.subject))==='holiday'}
       function calendarMarkers(v){const markers=[];v.schedule.forEach(x=>{const c=x.canceled?'canceled':scheduleColor(x.subject);if(c!=='holiday')markers.push(c)});if(v.todo.length)markers.push('task');markers.sort((a,b)=>(a==='anniversary'?-1:b==='anniversary'?1:0));return markers.slice(0,4)}
       function hasMissedIcon(dateKey){return Boolean(dateKey&&dateKey<key(today)&&state.tasks.some(x=>x.date===dateKey&&!x.done&&!x.canceled&&hasWatchIcon(x.title)))}
@@ -2403,7 +2403,7 @@
         const p=projectOptions.find(p=>String(p.title||'').trim()==='뇽')||projectOptions.find(p=>String(p.title||'').includes('뇽'));
         if(p){sel.value=p.id;return true}return false;
       }
-      const CATEGORY_PRESETS=['약속','업무일정','개인일정','기념일','공휴일','Magic'];
+      const CATEGORY_PRESETS=['약속','업무일정','개인일정','기념일','공휴일','으르렁데이'];
       function getCategoryValue(){
         const sel=$('#entryCategorySelect');if(!sel)return '';
         return sel.value==='__custom'?($('#entryCategoryCustom')?.value||'').trim():sel.value;
