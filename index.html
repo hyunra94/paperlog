@@ -165,15 +165,20 @@
       .calendarCard{padding:16px;}
       #calendar .calendarTabs{position:sticky;top:calc(var(--sticky-h) + 100px);z-index:42;background:rgba(255,253,247,.97);}
       .calendarWide{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,.75fr);gap:14px;align-items:start;}
-      .calendarWide .calendarMain{position:sticky;top:calc(var(--sticky-h) + 156px);max-height:calc(100svh - var(--sticky-h) - 156px - var(--nav) - 20px);overflow:auto;}
+      .calendarWide .calendarMain{position:sticky;top:calc(var(--sticky-h) + 156px);max-height:calc(100svh - var(--sticky-h) - 156px - var(--nav) - 20px);overflow:auto;scrollbar-width:thin;}
+      .calendarWide .calendarMain::-webkit-scrollbar{width:6px;}
+      .calendarWide .calendarMain::-webkit-scrollbar-thumb{background:rgba(47,42,40,.25);border-radius:999px;}
       .calendarWide .detail{margin-top:0;}
       .day{min-height:108px;}
-      #dashboard.page.on,#budget.page.on,#boss.page.on{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start;}
+      #dashboard.page.on,#budget.page.on{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start;}
       #dashboard .title,#budget .title,#boss .title,#calendar .title{grid-column:1/-1;margin-bottom:0;}
       #dashboard .card,#budget .card,#boss .card{margin-bottom:0;}.moneyTopBar{grid-column:1/-1;}
-      #dashboard #anniversaryBlock,#budget article:last-child,#boss article:last-child{grid-column:1/-1;}
+      #dashboard #anniversaryBlock,#budget article:last-child{grid-column:1/-1;}
       .moneyTabs{margin-top:12px;}
       .chips{grid-template-columns:repeat(6,minmax(0,1fr));}
+      /* 보스 탭: 실제 카드는 .bossViewPanel 안에 있어서 그 레벨에서 2열 배치 */
+      #boss .bossViewPanel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start;}
+      #boss .bossViewPanel article:only-child{grid-column:1/-1;}
     }
 
     @media (min-width:1180px){
@@ -477,12 +482,15 @@
     .statsIconImg{width:28px;height:28px;display:block;object-fit:contain;filter:drop-shadow(1px 1px 0 rgba(255,255,255,.65))}
     .calcBtn.span2{grid-column:span 2}
     @media (min-width:960px){
-      #budget.page.on{display:grid!important;grid-template-columns:minmax(280px,.75fr) minmax(0,1.25fr);column-gap:14px;row-gap:8px;align-items:start}
-      #budget.page.on>.title,#budget.page.on>.moneyTopBar{grid-column:1/-1;width:auto}
-      /* 왼쪽: 캘린더 고정, 오른쪽: 요약 고정 + 기록 스크롤 */
-      #budget.page.on>article:nth-of-type(1){grid-column:2;flex:none;width:auto;position:sticky;top:calc(var(--sticky-h) + 79px);z-index:5}
-      #budget.page.on>article:nth-of-type(2){grid-column:1;flex:none;width:auto;position:sticky;top:calc(var(--sticky-h) + 79px);max-height:calc(100svh - var(--sticky-h) - 79px - var(--nav) - 20px);overflow:auto}
-      #budget.page.on>article:nth-of-type(3){grid-column:2;flex:none;width:auto}
+      #budget.page.on{display:grid!important;grid-template-columns:minmax(280px,.75fr) minmax(0,1.25fr);column-gap:0;row-gap:8px;align-items:start}
+      #budget.page.on>.title{grid-column:1/-1;grid-row:1;width:auto}
+      #budget.page.on>.moneyTopBar{grid-column:1/-1;grid-row:2;width:auto}
+      /* 왼쪽: 캘린더가 오른쪽(요약+기록) 전체 높이만큼 채우며 고정, 오른쪽은 그대로 스크롤 */
+      #budget.page.on>article:nth-of-type(1){grid-column:2;grid-row:3;flex:none;width:auto}
+      #budget.page.on>article:nth-of-type(2){grid-column:1;grid-row:3 / span 2;align-self:stretch;flex:none;width:auto;position:sticky;top:calc(var(--sticky-h) + 79px);max-height:calc(100svh - var(--sticky-h) - 79px - var(--nav) - 20px);overflow:auto;scrollbar-width:thin;}
+      #budget.page.on>article:nth-of-type(2)::-webkit-scrollbar{width:6px;}
+      #budget.page.on>article:nth-of-type(2)::-webkit-scrollbar-thumb{background:rgba(47,42,40,.25);border-radius:999px;}
+      #budget.page.on>article:nth-of-type(3){grid-column:2;grid-row:4;flex:none;width:auto}
     }
     @media (min-width:1180px){
       #budget.page.on{grid-template-columns:minmax(310px,.65fr) minmax(0,1.35fr)}
