@@ -163,8 +163,10 @@
       :root{--app-max:960px;--sheet-max:760px;--nav-max:720px;--sticky-h:142px;}
       .app{padding-top:calc(var(--sticky-h) + 24px + env(safe-area-inset-top));}
       .calendarCard{padding:16px;}
+      #calendar .calendarTabs{position:sticky;top:calc(var(--sticky-h) + 100px);z-index:42;background:rgba(255,253,247,.97);}
       .calendarWide{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(280px,.75fr);gap:14px;align-items:start;}
-      .calendarWide .detail{margin-top:0;position:sticky;top:calc(var(--sticky-h) + 16px);max-height:calc(100svh - var(--sticky-h) - var(--nav) - 58px);overflow:auto;}
+      .calendarWide .calendarMain{position:sticky;top:calc(var(--sticky-h) + 156px);max-height:calc(100svh - var(--sticky-h) - 156px - var(--nav) - 20px);overflow:auto;}
+      .calendarWide .detail{margin-top:0;}
       .day{min-height:108px;}
       #dashboard.page.on,#budget.page.on,#boss.page.on{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start;}
       #dashboard .title,#budget .title,#boss .title,#calendar .title{grid-column:1/-1;margin-bottom:0;}
@@ -475,14 +477,15 @@
     .statsIconImg{width:28px;height:28px;display:block;object-fit:contain;filter:drop-shadow(1px 1px 0 rgba(255,255,255,.65))}
     .calcBtn.span2{grid-column:span 2}
     @media (min-width:960px){
-      #budget.page.on{display:flex!important;flex-wrap:wrap;row-gap:8px;column-gap:14px;align-items:flex-start}
-      #budget.page.on>.title,#budget.page.on>.moneyTopBar{width:100%}
-      /* 요약: 전폭, 캘린더+기록: 나란히 */
-      #budget.page.on>article:nth-of-type(1){flex:0 0 100%;width:100%}
-      #budget.page.on>article:nth-of-type(2),#budget.page.on>article:nth-of-type(3){flex:0 0 calc(50% - 7px);width:calc(50% - 7px);align-self:flex-start}
+      #budget.page.on{display:grid!important;grid-template-columns:minmax(280px,.75fr) minmax(0,1.25fr);column-gap:14px;row-gap:8px;align-items:start}
+      #budget.page.on>.title,#budget.page.on>.moneyTopBar{grid-column:1/-1;width:auto}
+      /* 왼쪽: 캘린더 고정, 오른쪽: 요약 고정 + 기록 스크롤 */
+      #budget.page.on>article:nth-of-type(1){grid-column:2;flex:none;width:auto;position:sticky;top:calc(var(--sticky-h) + 79px);z-index:5}
+      #budget.page.on>article:nth-of-type(2){grid-column:1;flex:none;width:auto;position:sticky;top:calc(var(--sticky-h) + 79px);max-height:calc(100svh - var(--sticky-h) - 79px - var(--nav) - 20px);overflow:auto}
+      #budget.page.on>article:nth-of-type(3){grid-column:2;flex:none;width:auto}
     }
     @media (min-width:1180px){
-      #budget.page.on>article:nth-of-type(2),#budget.page.on>article:nth-of-type(3){flex-basis:calc(50% - 8px);width:calc(50% - 8px)}
+      #budget.page.on{grid-template-columns:minmax(310px,.65fr) minmax(0,1.35fr)}
     }
     /* 모바일: 카드 간격 축소 */
     #budget .card{margin-bottom:8px}
@@ -2352,7 +2355,7 @@
       function isHolidaySchedule(x){return !x.canceled&&(x.color||scheduleColor(x.subject))==='holiday'}
       function calendarMarkers(v){const markers=[];v.schedule.forEach(x=>{const c=x.canceled?'canceled':scheduleColor(x.subject);if(c!=='holiday')markers.push(c)});if(v.todo.length)markers.push('task');markers.sort((a,b)=>(a==='anniversary'?-1:b==='anniversary'?1:0));return markers.slice(0,4)}
       function hasMissedIcon(dateKey){return Boolean(dateKey&&dateKey<key(today)&&state.tasks.some(x=>x.date===dateKey&&!x.done&&!x.canceled&&hasWatchIcon(x.title)))}
-      function monthRange(){const from=new Date(view.getFullYear(),view.getMonth(),1),to=new Date(view.getFullYear(),view.getMonth()+1,0);return{from:key(from),to:key(to)}}
+      function monthRange(){const first=new Date(view.getFullYear(),view.getMonth(),1),from=new Date(first);from.setDate(first.getDate()-((first.getDay()+6)%7));const to=new Date(from);to.setDate(from.getDate()+41);return{from:key(from),to:key(to)}}
       const CALENDAR_CACHE_KEY='paperlog_calendar_cache_v3';
       let calendarLoadSeq=0, projectsLoadedOnce=false;
       function calendarMonthKey(){return `${view.getFullYear()}-${String(view.getMonth()+1).padStart(2,'0')}`}
