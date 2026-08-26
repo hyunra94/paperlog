@@ -1960,6 +1960,9 @@
         {id:'b04',name:'하드 카링',family:'카링',cycle:'weekly',price:1830000000},
         {id:'b05',name:'노멀 카링',family:'카링',cycle:'weekly',price:714000000},
         {id:'b06',name:'이지 카링',family:'카링',cycle:'weekly',price:419000000},
+        {id:'b52',name:'하드 벨로나',family:'벨로나',cycle:'weekly',price:2350000000},
+        {id:'b53',name:'노멀 벨로나',family:'벨로나',cycle:'weekly',price:850000000},
+        {id:'b54',name:'이지 벨로나',family:'벨로나',cycle:'weekly',price:440000000},
         {id:'b07',name:'익스트림 최초의 대적자',family:'최초의 대적자',cycle:'weekly',price:4960000000},
         {id:'b08',name:'하드 최초의 대적자',family:'최초의 대적자',cycle:'weekly',price:1510000000},
         {id:'b09',name:'노멀 최초의 대적자',family:'최초의 대적자',cycle:'weekly',price:589000000},
@@ -2272,7 +2275,7 @@
           await saveBossSettingForChar(cid,{silent:true});
         }
       }
-      const BOSS_FAMILY_ORDER=['벨룸','파풀라투스','스우','데미안','가디언 엔젤 슬라임','윌','루시드','더스크','듄켈','진 힐라','선택받은 세렌','감시자 칼로스','최초의 대적자','카링','찬란한 흉성','림보','발드릭스','유피테르','검은 마법사','매그너스','피에르','반반','블러디 퀸','자쿰','시그너스','핑크빈','힐라'];
+      const BOSS_FAMILY_ORDER=['벨룸','파풀라투스','스우','데미안','가디언 엔젤 슬라임','윌','루시드','더스크','듄켈','진 힐라','선택받은 세렌','감시자 칼로스','최초의 대적자','카링','벨로나','찬란한 흉성','림보','발드릭스','유피테르','검은 마법사','매그너스','피에르','반반','블러디 퀸','자쿰','시그너스','핑크빈','힐라'];
       function bossCharRank(name){const n=String(name||'').trim();const i=BOSS_CHAR_ORDER.findIndex(x=>n.includes(x));return i===-1?999:i}
       function orderBossChars(list){return [...list].sort((a,b)=>bossCharRank(a.name)-bossCharRank(b.name)||String(a.name||'').localeCompare(String(b.name||''),'ko'))}
       function normalizeBossFamilyText(name){
