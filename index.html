@@ -2055,7 +2055,7 @@
       const MAPLE_DIFFICULTY_KO={easy:'이지',normal:'노말',hard:'하드',chaos:'카오스',extreme:'익스트림'};
       function mapleToKoreanDifficulty(d){if(!d)return d;return MAPLE_DIFFICULTY_KO[String(d).trim().toLowerCase()]||d}
       function mapleNormalizeKey(s){return (s||'').replace(/\s+/g,'')}
-      function mapleIsMonthlyBoss(b){return MAPLE_KNOWN_MONTHLY_BOSSES.has(b.content_name)||/월간|먼슬리|monthly/i.test(b.cycle||'')}
+      function mapleIsMonthlyBoss(b){return [...MAPLE_KNOWN_MONTHLY_BOSSES].some(n=>mapleNormalizeKey(b.content_name||'').includes(mapleNormalizeKey(n)))||/월간|먼슬리|monthly/i.test(b.cycle||'')}
       function mapleIsDailyBoss(b){return MAPLE_KNOWN_DAILY_BOSSES.has(`${b.content_name}_${b.difficulty||''}`)||/일일|매일|daily/i.test(b.cycle||'')}
       const MAPLE_KNOWN_EPIC_DUNGEONS=new Set(['하이마운틴','앵글러 컴퍼니','악몽선경']);
       function mapleIsEpicContent(w){return w.content_name&&(MAPLE_KNOWN_EPIC_DUNGEONS.has(w.content_name)||mapleNormalizeKey(w.content_name).includes('에픽던전'))}
