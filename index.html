@@ -2678,12 +2678,12 @@
         $('#entryDone')&&($('#entryDone').value=type==='todo'?inferTodoKindFromProjectIds(item.projectIds||[]):'work');
         $('#entryMood')&&($('#entryMood').value=moodKey(item.mood)||'happy');
         $('#entryDailyText')&&($('#entryDailyText').value=item.text||'');
-        const projectSel=$('#entryProject');
-        if(projectSel)projectSel.value=(item.projectIds&&item.projectIds[0])||'';
         $('#addSchedule').checked=type==='schedule';
         $('#addTodo').checked=type==='todo';
         $('#addDaily').checked=type==='daily';
         updateEntryMode();
+        const projectSel=$('#entryProject');
+        if(projectSel)projectSel.value=(item.projectIds&&item.projectIds[0])||'';
         $('#entrySheet').hidden=false;
         hideSchedulePopup();
       }
