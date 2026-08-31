@@ -43,6 +43,7 @@ export default {
           routes: [
             "/api/projects",
             "/api/calendar",
+            "POST /api/content-check",
             "/api/todo",
             "/api/todo/check",
             "/api/schedule",
@@ -72,6 +73,13 @@ export default {
         const todos = await getTodos(request, env);
         const dailyLogs = await getDailyLogs(request, env);
         return json({ ok: true, schedules, todos, dailyLogs }, 200, cors);
+      }
+
+      if (url.pathname === "/api/content-check" && request.method === "POST") {
+        const body = await request.json();
+        const ids = Array.isArray(body.ids) ? body.ids.filter(Boolean).slice(0, 50) : [];
+        const content = await checkPagesHaveContent(env, ids);
+        return json({ ok: true, content }, 200, cors);
       }
 
       if (url.pathname === "/api/todo" && request.method === "GET") {
@@ -544,6 +552,36 @@ async function notionUpdatePage(env, pageId, properties) {
   }
 
   return JSON.parse(text);
+}
+
+async function notionRetrieveBlock(env, blockId) {
+  const res = await fetch(`https://api.notion.com/v1/blocks/${blockId}`, {
+    headers: {
+      "Authorization": `Bearer ${env.NOTION_TOKEN}`,
+      "Notion-Version": NOTION_VERSION,
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Notion block retrieve failed ${res.status}`);
+  }
+
+  return res.json();
+}
+
+async function checkPagesHaveContent(env, ids) {
+  const entries = await Promise.all(
+    ids.map(async (id) => {
+      try {
+        const block = await notionRetrieveBlock(env, id);
+        return [id, Boolean(block.has_children)];
+      } catch (err) {
+        return [id, false];
+      }
+    })
+  );
+
+  return Object.fromEntries(entries);
 }
 
 async function notionArchivePage(env, pageId) {
