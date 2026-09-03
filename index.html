@@ -2280,7 +2280,7 @@
         }
       }
       const BOSS_FAMILY_ORDER=['벨룸','파풀라투스','스우','데미안','가디언 엔젤 슬라임','윌','루시드','더스크','듄켈','진 힐라','선택받은 세렌','감시자 칼로스','최초의 대적자','카링','벨로나','찬란한 흉성','림보','발드릭스','유피테르','검은 마법사','매그너스','피에르','반반','블러디 퀸','자쿰','시그너스','핑크빈','힐라'];
-      function bossCharRank(name){const n=String(name||'').trim();const i=BOSS_CHAR_ORDER.findIndex(x=>n.includes(x));return i===-1?999:i}
+      function bossCharRank(name){const n=String(name||'').trim();if(n==='총합')return Infinity;const i=BOSS_CHAR_ORDER.findIndex(x=>n.includes(x));return i===-1?999:i}
       function orderBossChars(list){return [...list].sort((a,b)=>bossCharRank(a.name)-bossCharRank(b.name)||String(a.name||'').localeCompare(String(b.name||''),'ko'))}
       function normalizeBossFamilyText(name){
         const n=String(name||'');
