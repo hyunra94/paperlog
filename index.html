@@ -2135,7 +2135,7 @@
         }
       }
       function mapleSchedulerCharNames(){
-        return orderBossChars(chars.filter(c=>c.id!=='all'&&!isHiddenBossCharacterName(c.name)&&!String(c.name||'').includes('득템'))).map(c=>c.name);
+        return orderBossChars(chars.filter(c=>c.id!=='all'&&!isHiddenBossCharacterName(c.name)&&!String(c.name||'').includes('득템')&&c.name!=='총합')).map(c=>c.name);
       }
       function mapleSchedulerAllNames(){
         const realNames=mapleSchedulerCharNames();
@@ -2926,7 +2926,7 @@
       }
       function renderBossChip(r){
         const total=crystalValue(r);
-        const multiplierRow=isTotalCharRecord(r)?`<div class="bossMultiplierRow"><span>파풀돌이 캐릭터 수</span><span class="multiplierStepper"><button class="multiplierBtn" data-multiplier-down="${bossMultiplierKey(r)}" type="button">−</button><span class="multiplierValue">×${getBossMultiplier(bossMultiplierKey(r))}</span><button class="multiplierBtn" data-multiplier-up="${bossMultiplierKey(r)}" type="button">+</button></span></div>`:'';
+        const multiplierRow=isTotalCharRecord(r)?`<div class="bossMultiplierRow"><span>${r.name||bossFamilyName(r)} 인원 수</span><span class="multiplierStepper"><button class="multiplierBtn" data-multiplier-down="${bossMultiplierKey(r)}" type="button">−</button><span class="multiplierValue">×${getBossMultiplier(bossMultiplierKey(r))}</span><button class="multiplierBtn" data-multiplier-up="${bossMultiplierKey(r)}" type="button">+</button></span></div>`:'';
         return `<div class="bossChip ${r.clear?'clear':''}"><button class="check ${r.clear?'done':''}" data-bosskey="${r.key}" type="button" aria-label="보스 격파 체크"></button><span class="bossChipName" data-bossloot="${r.key}" title="득템 메모 추가">${r.name}</span><select class="partyMode" data-partykey="${r.key}"><option value="solo" ${r.partyType==='solo'?'selected':''}>1인</option><option value="duo" ${r.partyType==='duo'?'selected':''}>2인</option><option value="other" ${r.partyType==='other'?'selected':''}>기타</option></select>${r.partyType==='other'?`<select class="otherParty" data-otherpartykey="${r.key}">${[3,4,5,6].map(n=>`<option value="${n}" ${Number(r.otherParty||3)===n?'selected':''}>${n}인</option>`).join('')}</select>`:''}<span class="price">${won(total)}</span><button class="bossDelete" data-deleteboss="${r.key}" type="button" aria-label="보스 삭제">×</button></div>${multiplierRow}`;
       }
       function sortBossRowsByCrystal(records){return [...records].sort((a,b)=>crystalValue(a)-crystalValue(b)||String(a.name||'').localeCompare(String(b.name||''),'ko'))}

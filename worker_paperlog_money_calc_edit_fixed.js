@@ -1359,7 +1359,7 @@ function isValidNotionPageId(id) {
 
 function isHiddenBossCharacterName(name) {
   const n = String(name || "").replace(/\s/g, "");
-  return n.includes("총하빙") || n.includes("총합") || n.includes("쌀먹");
+  return n.includes("총하빙") || n.includes("쌀먹");
 }
 
 async function saveBossSetup(request, env) {
