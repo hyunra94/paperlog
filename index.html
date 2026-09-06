@@ -139,6 +139,12 @@
     .calendarWide{display:block;}
     .calendarMain{min-width:0;}
     .calendarSide{min-width:0;}
+    .calendarSideHead{display:flex;justify-content:flex-end;margin-bottom:6px}
+    .calMonthListToggle{border:1.2px solid var(--line);border-radius:999px;background:var(--card);padding:5px 11px;font-size:12px;font-family:'Gowun Dodum',sans-serif;box-shadow:1px 1px 0 rgba(47,42,40,.1);cursor:pointer}
+    .calMonthListToggle.on{background:var(--yellow)}
+    .monthListDay{margin-bottom:14px;padding-bottom:10px;border-bottom:1px dashed rgba(47,42,40,.18)}
+    .monthListDay:last-child{border-bottom:0;margin-bottom:0}
+    .monthListDayHead{font-family:'Gaegu';font-size:19px;margin-bottom:4px;cursor:pointer}
     .dateStrip{justify-content:safe center;}
 
     @media (min-width:700px){
@@ -1447,6 +1453,7 @@
             <div class="cal" id="calendarGrid"></div>
           </div>
           <aside class="calendarSide">
+            <div class="calendarSideHead"><button class="calMonthListToggle" id="toggleMonthList" type="button">이번 달 전체보기</button></div>
             <div class="detail" id="calendarDetail"></div>
           </aside>
         </div>
@@ -1934,7 +1941,7 @@
       const wk=['sun','mon','tue','wed','thu','fri','sat'], wkMon=['mon','tue','wed','thu','fri','sat','sun'];
       const nowKST=()=>{const p=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()).split('-').map(Number);return new Date(p[0],p[1]-1,p[2])};
       const key=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-      const today=nowKST(); let view=new Date(today.getFullYear(),today.getMonth(),1), selected=key(today);
+      const today=nowKST(); let view=new Date(today.getFullYear(),today.getMonth(),1), selected=key(today), calendarMonthListMode=false;
       const HOLIDAYS_KR={'2026-01-01':'신정','2026-02-16':'설날 연휴','2026-02-17':'설날','2026-02-18':'설날 연휴','2026-03-01':'삼일절','2026-03-02':'삼일절 대체공휴일','2026-05-05':'어린이날','2026-05-24':'부처님오신날','2026-05-25':'부처님오신날 대체공휴일','2026-06-06':'현충일','2026-08-15':'광복절','2026-08-17':'광복절 대체공휴일','2026-09-24':'추석 연휴','2026-09-25':'추석','2026-09-26':'추석 연휴','2026-10-03':'개천절','2026-10-05':'개천절 대체공휴일','2026-10-09':'한글날','2026-12-25':'성탄절'};
       const isWeekend=d=>d.getDay()===0||d.getDay()===6, isHoliday=d=>Boolean(HOLIDAYS_KR[key(d)]);
       const state={show:{schedule:true,todo:true,daily:true,magic:false,work:true,personal:true},showCanceled:false,dailyEmphasis:false,tasks:[{date:key(today),title:'수료증 발급 자동화 점검',subject:'중요',color:'task',done:false},{date:key(today),title:'교육 신청자 DB 확인',subject:'업무',color:'task',done:true}],schedules:[{date:key(today),time:'09:30',title:'주간 업무 체크',subject:'업무일정',color:'work'},{date:key(today),time:'13:30',title:'친구 약속',subject:'약속',color:'meeting'},{date:key(today),time:'18:30',title:'필라테스',subject:'개인일정',color:'personal'}],dailyLogs:[]};
@@ -2536,7 +2543,38 @@
       function isTabletLayout(){return window.matchMedia('(min-width:960px)').matches}
       function scheduleRows(list){return [...list].sort((a,b)=>Number(isHolidaySchedule(b))-Number(isHolidaySchedule(a))).map(x=>`<div class="scheduleItem" data-calendar-edit="${x.id||''}" data-calendar-type="schedule"><span class="time ${x.time?'':'empty'}">${x.time||'종일'}</span><span>${x.title} <span class="tag ${x.color||scheduleColor(x.subject)}">${x.subject||'일정'}</span>${x.canceled?'<span class="tag canceled">취소</span>':''}</span>${x.url?`<a class="goLink" href="${x.url}" target="_blank" rel="noopener noreferrer">↗</a>`:`<span class="goLink disabled">↗</span>`}</div>`).join('')}
       function todoRows(list){return list.map(x=>`<li class="${x.done?'todoDoneItem':''}" data-calendar-edit="${x.id||''}" data-calendar-type="todo"><button class="check ${x.done?'done':''}" data-todo-id="${x.id||''}" data-todo-done="${x.done?'true':'false'}" type="button" aria-label="할 일 체크"></button><div class="todoContent"><span class="${x.done?'todoDoneText':''}">${x.title}</span>${x.memo?`<div class="todoMemo">${String(x.memo).replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`:''}</div>${x.url?`<a class="goLink" href="${x.url}" target="_blank" rel="noopener noreferrer">↗</a>`:`<span class="goLink disabled">↗</span>`}</li>`).join('')}
+      function setCalendarMonthListMode(on){
+        calendarMonthListMode=on;
+        const btn=$('#toggleMonthList');
+        if(btn){btn.textContent=on?'선택한 날짜 보기':'이번 달 전체보기';btn.classList.toggle('on',on)}
+      }
+      function renderMonthFullList(){
+        const box=$('#calendarDetail');
+        const year=view.getFullYear(), month=view.getMonth();
+        const daysInMonth=new Date(year,month+1,0).getDate();
+        const rows=[];
+        for(let day=1;day<=daysInMonth;day++){
+          const dt=new Date(year,month,day);
+          const k=key(dt);
+          const v=visible(k);
+          const sortedTodos=[...(v.todo||[])].sort((a,b)=>Number(a.done)-Number(b.done));
+          if(!v.schedule.length&&!sortedTodos.length)continue;
+          rows.push({dt,v,sortedTodos});
+        }
+        if(!rows.length){
+          box.innerHTML=`<h4>${month+1}월 전체 기록</h4><p class="empty-msg">이번 달 기록이 없어요.</p>`;
+          return;
+        }
+        box.innerHTML=`<h4>${month+1}월 전체 기록 (${rows.length}일)</h4>`+rows.map(({dt,v,sortedTodos})=>{
+          const k=key(dt);
+          const scheduleHtml=v.schedule.length?`<div class="group"><p class="groupT"><span class="blue">일정</span></p>${scheduleRows(v.schedule)}</div>`:'';
+          const todoHtml=sortedTodos.length?`<div class="group"><p class="groupT"><span class="green">할 일</span></p><ul class="list">${todoRows(sortedTodos)}</ul></div>`:'';
+          return `<div class="monthListDay"><div class="monthListDayHead" data-jump-date="${k}">${dt.getMonth()+1}/${dt.getDate()} ${wk[dt.getDay()]}</div>${scheduleHtml}${todoHtml}</div>`;
+        }).join('');
+        annotateNotionContentDots(box,rows.flatMap(({v,sortedTodos})=>[...v.schedule,...sortedTodos]));
+      }
       function renderDetail(){
+        if(calendarMonthListMode){renderMonthFullList();return}
         const box=$('#calendarDetail'), d=new Date(selected+'T00:00:00'), v=visible(selected);
         const sortedTodos=[...(v.todo||[])].sort((a,b)=>Number(a.done)-Number(b.done));
         const dailyRows=(v.daily||[]).map(x=>`<div class="dailyLogBox" data-calendar-edit="${x.id||''}" data-calendar-type="daily">${moodIconHTML(x.mood)}<div class="dailyLogText">${x.text||'한줄 일기가 비어 있어요.'}</div></div>`).join('');
@@ -3637,7 +3675,8 @@
         setTimeout(()=>loadCalendarFromWorker(true),60);
         document.querySelector('#calendar')?.scrollIntoView({behavior:'smooth',block:'start'});
       }
-      $('#calendarGrid').onclick=e=>{const d=e.target.closest('.day');if(d){const picked=d.dataset.date;selected=picked;renderCal();if(!isTabletLayout()){const liveDay=$(`#calendarGrid .day[data-date="${picked}"]`);showSchedulePopup(picked,liveDay)}}};$('#monthTitle')?.addEventListener('click',()=>{document.querySelector('#calendar')?.scrollIntoView({behavior:'smooth',block:'start'});});$('#prevMonth').onclick=()=>moveCalendarMonth(-1);$('#nextMonth').onclick=()=>moveCalendarMonth(1);$('#calendarTodayBtn')&&($('#calendarTodayBtn').onclick=goCalendarToday);function positionCalMenu(pop,btn){const rect=btn.getBoundingClientRect();const margin=10,gap=6;const pw=pop.offsetWidth||210;let left=rect.left;let top=rect.bottom+gap;left=Math.min(Math.max(left,margin),window.innerWidth-pw-margin);if(top+((pop.offsetHeight||120))>window.innerHeight-margin)top=Math.max(margin,rect.top-gap-(pop.offsetHeight||120));pop.style.left=Math.round(left)+'px';pop.style.top=Math.round(top)+'px'}
+      $('#calendarGrid').onclick=e=>{const d=e.target.closest('.day');if(d){const picked=d.dataset.date;selected=picked;setCalendarMonthListMode(false);renderCal();if(!isTabletLayout()){const liveDay=$(`#calendarGrid .day[data-date="${picked}"]`);showSchedulePopup(picked,liveDay)}}};
+      $('#toggleMonthList')?.addEventListener('click',()=>{setCalendarMonthListMode(!calendarMonthListMode);renderDetail()});$('#monthTitle')?.addEventListener('click',()=>{document.querySelector('#calendar')?.scrollIntoView({behavior:'smooth',block:'start'});});$('#prevMonth').onclick=()=>moveCalendarMonth(-1);$('#nextMonth').onclick=()=>moveCalendarMonth(1);$('#calendarTodayBtn')&&($('#calendarTodayBtn').onclick=goCalendarToday);function positionCalMenu(pop,btn){const rect=btn.getBoundingClientRect();const margin=10,gap=6;const pw=pop.offsetWidth||210;let left=rect.left;let top=rect.bottom+gap;left=Math.min(Math.max(left,margin),window.innerWidth-pw-margin);if(top+((pop.offsetHeight||120))>window.innerHeight-margin)top=Math.max(margin,rect.top-gap-(pop.offsetHeight||120));pop.style.left=Math.round(left)+'px';pop.style.top=Math.round(top)+'px'}
       function closeCalMenus(){['calDisplayMenu','calFilterMenu','calSearchMenu'].forEach(id=>{const el=$('#'+id);if(el)el.hidden=true});$('#calMenuBg')&&($('#calMenuBg').hidden=true);$('#calDisplayBtn')?.classList.remove('on');$('#calFilterBtn')?.classList.remove('on');$('#calSearchBtn')?.classList.remove('on')}
       function openCalMenu(menuId,btnId){const pop=$('#'+menuId),btn=$('#'+btnId);if(!pop||!btn)return;const wasOpen=!pop.hidden;closeCalMenus();if(wasOpen)return;pop.hidden=false;$('#calMenuBg')&&($('#calMenuBg').hidden=false);btn.classList.add('on');positionCalMenu(pop,btn)}
       $('#calDisplayBtn')?.addEventListener('click',()=>openCalMenu('calDisplayMenu','calDisplayBtn'));
@@ -3718,7 +3757,7 @@
         updateCalMenuIndicators();
       });
       $$('.calTypeCheck').forEach(cb=>cb.onchange=()=>{const type=cb.dataset.type,on=Object.values(state.show).filter(Boolean).length;if(!cb.checked&&state.show[type]&&on===1){cb.checked=true;return}state.show[type]=cb.checked;renderCal();updateCalMenuIndicators()});
-      updateCalMenuIndicators();$('#openEntry').onclick=openEntry;$('#closeEntry').onclick=()=>{editingCalendarRecord=null;$('#entrySheet').hidden=true;};const entrySheetBg=$('#entrySheet');if(entrySheetBg)entrySheetBg.addEventListener('click',e=>{if(e.target===entrySheetBg){editingCalendarRecord=null;entrySheetBg.hidden=true;}});$('#closeDailyLog')&&( $('#closeDailyLog').onclick=closeDailySheet );$('#dailyForm')&&($('#dailyForm').onsubmit=saveDailyLog);$('#deleteDailyLog')?.addEventListener('click',deleteDailyLog);$('#deleteEntry')?.addEventListener('click',deleteCalendarEntry);$('#entryCancelToggle')?.addEventListener('click',toggleEntryCanceled);$('#addSchedule').onchange=updateEntryMode;$('#addTodo').onchange=()=>{updateEntryMode();handleTodoKindChange()};$('#addDaily').onchange=updateEntryMode;$('#entryDone')&&($('#entryDone').onchange=handleTodoKindChange);$('#entryForm').onsubmit=saveEntry;$('#entrySubject')?.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.ctrlKey){e.preventDefault();const el=e.currentTarget;const start=el.selectionStart??el.value.length,end=el.selectionEnd??el.value.length;el.value=el.value.slice(0,start)+'\n'+el.value.slice(end);el.selectionStart=el.selectionEnd=start+1;}});$('#calendarDetail').addEventListener('click',e=>{if(e.target.closest('a'))return;const addDaily=e.target.closest('[data-daily-add]');if(addDaily){openDailyEntry(addDaily.dataset.dailyAdd||selected);return}const btn=e.target.closest('[data-todo-id]');if(btn&&btn.dataset.todoId){toggleTodoCheck(btn.dataset.todoId);return}const edit=e.target.closest('[data-calendar-edit]');if(edit&&edit.dataset.calendarEdit){openCalendarEdit(edit.dataset.calendarType,edit.dataset.calendarEdit);return}const open=e.target.closest('[data-open-schedule-popup]');if(open){const dayEl=$(`#calendarGrid .day[data-date="${selected}"]`);showSchedulePopup(selected,dayEl)}});const dashList=$('#dashboardTodayList');if(dashList)dashList.addEventListener('click',e=>{const btn=e.target.closest('[data-todo-id]');if(btn&&btn.dataset.todoId)toggleTodoCheck(btn.dataset.todoId)});const schedulePopupBg=$('#schedulePopupBg');if(schedulePopupBg)schedulePopupBg.addEventListener('click',e=>{if(e.target===schedulePopupBg)hideSchedulePopup()});const schedulePopupClose=$('#schedulePopupClose');if(schedulePopupClose)schedulePopupClose.onclick=hideSchedulePopup;const schedulePopupContent=$('#schedulePopupContent');if(schedulePopupContent)schedulePopupContent.addEventListener('click',e=>{if(e.target.closest('a'))return;const edit=e.target.closest('[data-calendar-edit]');if(edit&&edit.dataset.calendarEdit)openCalendarEdit(edit.dataset.calendarType,edit.dataset.calendarEdit)});document.addEventListener('click',e=>{const bg=$('#schedulePopupBg');if(!bg||bg.hidden||isTabletLayout())return;if(e.target.closest('#schedulePopup')||e.target.closest('.day')||e.target.closest('[data-open-schedule-popup]'))return;hideSchedulePopup()});$$('.moneyTab').forEach(t=>t.onclick=()=>{$$('.moneyTab').forEach(x=>x.classList.toggle('on',x===t));$('#expenseForm').classList.toggle('on',t.dataset.type==='expense');$('#incomeForm').classList.toggle('on',t.dataset.type==='income')});$('#generateBoss').onclick=generateBoss;$('#loadBossNotion')&&($('#loadBossNotion').onclick=()=>loadBossFromWorker(false));$('#bossPrevWeek')&&($('#bossPrevWeek').onclick=()=>moveBossWeek(-1));$('#bossNextWeek')&&($('#bossNextWeek').onclick=()=>moveBossWeek(1));$('#bossTodayWeek')&&($('#bossTodayWeek').onclick=resetBossWeekToToday);async function addBossCharacterFlow(){
+      updateCalMenuIndicators();$('#openEntry').onclick=openEntry;$('#closeEntry').onclick=()=>{editingCalendarRecord=null;$('#entrySheet').hidden=true;};const entrySheetBg=$('#entrySheet');if(entrySheetBg)entrySheetBg.addEventListener('click',e=>{if(e.target===entrySheetBg){editingCalendarRecord=null;entrySheetBg.hidden=true;}});$('#closeDailyLog')&&( $('#closeDailyLog').onclick=closeDailySheet );$('#dailyForm')&&($('#dailyForm').onsubmit=saveDailyLog);$('#deleteDailyLog')?.addEventListener('click',deleteDailyLog);$('#deleteEntry')?.addEventListener('click',deleteCalendarEntry);$('#entryCancelToggle')?.addEventListener('click',toggleEntryCanceled);$('#addSchedule').onchange=updateEntryMode;$('#addTodo').onchange=()=>{updateEntryMode();handleTodoKindChange()};$('#addDaily').onchange=updateEntryMode;$('#entryDone')&&($('#entryDone').onchange=handleTodoKindChange);$('#entryForm').onsubmit=saveEntry;$('#entrySubject')?.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.ctrlKey){e.preventDefault();const el=e.currentTarget;const start=el.selectionStart??el.value.length,end=el.selectionEnd??el.value.length;el.value=el.value.slice(0,start)+'\n'+el.value.slice(end);el.selectionStart=el.selectionEnd=start+1;}});$('#calendarDetail').addEventListener('click',e=>{if(e.target.closest('a'))return;const jumpDate=e.target.closest('[data-jump-date]');if(jumpDate){selected=jumpDate.dataset.jumpDate;setCalendarMonthListMode(false);renderCal();return}const addDaily=e.target.closest('[data-daily-add]');if(addDaily){openDailyEntry(addDaily.dataset.dailyAdd||selected);return}const btn=e.target.closest('[data-todo-id]');if(btn&&btn.dataset.todoId){toggleTodoCheck(btn.dataset.todoId);return}const edit=e.target.closest('[data-calendar-edit]');if(edit&&edit.dataset.calendarEdit){openCalendarEdit(edit.dataset.calendarType,edit.dataset.calendarEdit);return}const open=e.target.closest('[data-open-schedule-popup]');if(open){const dayEl=$(`#calendarGrid .day[data-date="${selected}"]`);showSchedulePopup(selected,dayEl)}});const dashList=$('#dashboardTodayList');if(dashList)dashList.addEventListener('click',e=>{const btn=e.target.closest('[data-todo-id]');if(btn&&btn.dataset.todoId)toggleTodoCheck(btn.dataset.todoId)});const schedulePopupBg=$('#schedulePopupBg');if(schedulePopupBg)schedulePopupBg.addEventListener('click',e=>{if(e.target===schedulePopupBg)hideSchedulePopup()});const schedulePopupClose=$('#schedulePopupClose');if(schedulePopupClose)schedulePopupClose.onclick=hideSchedulePopup;const schedulePopupContent=$('#schedulePopupContent');if(schedulePopupContent)schedulePopupContent.addEventListener('click',e=>{if(e.target.closest('a'))return;const edit=e.target.closest('[data-calendar-edit]');if(edit&&edit.dataset.calendarEdit)openCalendarEdit(edit.dataset.calendarType,edit.dataset.calendarEdit)});document.addEventListener('click',e=>{const bg=$('#schedulePopupBg');if(!bg||bg.hidden||isTabletLayout())return;if(e.target.closest('#schedulePopup')||e.target.closest('.day')||e.target.closest('[data-open-schedule-popup]'))return;hideSchedulePopup()});$$('.moneyTab').forEach(t=>t.onclick=()=>{$$('.moneyTab').forEach(x=>x.classList.toggle('on',x===t));$('#expenseForm').classList.toggle('on',t.dataset.type==='expense');$('#incomeForm').classList.toggle('on',t.dataset.type==='income')});$('#generateBoss').onclick=generateBoss;$('#loadBossNotion')&&($('#loadBossNotion').onclick=()=>loadBossFromWorker(false));$('#bossPrevWeek')&&($('#bossPrevWeek').onclick=()=>moveBossWeek(-1));$('#bossNextWeek')&&($('#bossNextWeek').onclick=()=>moveBossWeek(1));$('#bossTodayWeek')&&($('#bossTodayWeek').onclick=resetBossWeekToToday);async function addBossCharacterFlow(){
         const name=prompt('추가할 캐릭터명을 입력해줘 (Notion 캐릭터 DB에 새로 생성돼요)');
         if(!name||!name.trim())return;
         try{
