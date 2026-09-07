@@ -3905,6 +3905,12 @@
             applyCalendarShowSnapshot(calendarShowSnapshotBeforeWidget);
             calendarShowSnapshotBeforeWidget=null;
           }
+          try{
+            const url=new URL(location.href);
+            if(on){url.searchParams.set('widget','1');url.searchParams.set('tab','calendar')}
+            else{url.searchParams.delete('widget')}
+            history.replaceState(null,'',url);
+          }catch(err){console.warn('URL 상태 동기화 실패:',err)}
         };
         if(document.startViewTransition)document.startViewTransition(apply);
         else apply();
