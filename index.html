@@ -149,7 +149,7 @@
     .dateStrip{justify-content:safe center;}
     .dayEvents{display:none}
     .dayAddBtn{display:none}
-    .dayEventChip{font-size:10.5px;line-height:1.3;padding:1px 4px;border-radius:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid rgba(47,42,40,.18)}
+    .dayEventChip{flex-shrink:0;font-size:10.5px;line-height:1.3;padding:1px 4px;border-radius:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid rgba(47,42,40,.18)}
     .dayEventChip.work{background:#b9dced}
     .dayEventChip.meeting{background:#e7c3c8}
     .dayEventChip.personal{background:#d8cdeb}
@@ -161,7 +161,7 @@
     .dayEventChip.canceled{background:var(--cal-red);color:#fff;text-decoration:line-through}
     .dayEventChip.done{opacity:.55;text-decoration:line-through}
     .dayEventTime{font-weight:700}
-    .dayEventMore{font-size:9.5px;color:var(--sub);padding-left:2px}
+    .dayEventMore{flex-shrink:0;font-size:10.5px;line-height:1.3;color:var(--sub);padding:1px 4px;border:1px solid transparent;box-sizing:border-box}
 
     @media (min-width:700px){
       :root{--app-max:720px;--sheet-max:680px;--nav-max:620px;--sticky-h:138px;}
@@ -815,6 +815,7 @@
       top:auto!important;
       left:auto!important;
       flex:0 0 auto;
+      align-self:flex-start!important;
       display:flex!important;
       align-items:center;
       justify-content:center;
@@ -836,6 +837,7 @@
       overflow:hidden;
     }
     body.widgetMode .dayEventChip{font-size:9.5px;padding:1px 3px}
+    body.widgetMode .dayEventMore{font-size:9.5px;padding:1px 3px}
     body.widgetMode .dayAddBtn{display:none}
     body.widgetMode .day.sel .dayAddBtn{
       display:grid;
@@ -856,6 +858,7 @@
     @media (min-width:700px){
       body.widgetMode #calendar .day{padding:6px!important}
       body.widgetMode .dayEventChip{font-size:10.5px;padding:1px 4px}
+      body.widgetMode .dayEventMore{font-size:10.5px;padding:1px 4px}
       body.widgetMode .day.sel .dayAddBtn{width:22px;height:22px;font-size:15px}
     }
     @media (min-width:960px){
@@ -3870,10 +3873,18 @@
         }
       };
       $('#toggleMonthList')?.addEventListener('click',()=>{setCalendarMonthListMode(!calendarMonthListMode);renderDetail()});
+      let calendarShowSnapshotBeforeWidget=null;
       function setInAppWidgetMode(on){
         const apply=()=>{
           document.body.classList.toggle('widgetMode',on);
           document.body.classList.toggle('widgetModeInApp',on);
+          if(on){
+            calendarShowSnapshotBeforeWidget={...state.show};
+            applyScheduleOnlyFilter();
+          }else if(calendarShowSnapshotBeforeWidget){
+            applyCalendarShowSnapshot(calendarShowSnapshotBeforeWidget);
+            calendarShowSnapshotBeforeWidget=null;
+          }
         };
         if(document.startViewTransition)document.startViewTransition(apply);
         else apply();
@@ -3970,7 +3981,17 @@
         updateCalMenuIndicators();
       });
       $$('.calTypeCheck').forEach(cb=>cb.onchange=()=>{const type=cb.dataset.type,on=Object.values(state.show).filter(Boolean).length;if(!cb.checked&&state.show[type]&&on===1){cb.checked=true;return}state.show[type]=cb.checked;renderCal();updateCalMenuIndicators()});
-      updateCalMenuIndicators();$('#openEntry').onclick=openEntry;$('#closeEntry').onclick=()=>{editingCalendarRecord=null;$('#entrySheet').hidden=true;};const entrySheetBg=$('#entrySheet');if(entrySheetBg)entrySheetBg.addEventListener('click',e=>{if(e.target===entrySheetBg){editingCalendarRecord=null;entrySheetBg.hidden=true;}});$('#closeDailyLog')&&( $('#closeDailyLog').onclick=closeDailySheet );$('#dailyForm')&&($('#dailyForm').onsubmit=saveDailyLog);$('#deleteDailyLog')?.addEventListener('click',deleteDailyLog);$('#deleteEntry')?.addEventListener('click',deleteCalendarEntry);$('#entryCancelToggle')?.addEventListener('click',toggleEntryCanceled);$('#addSchedule').onchange=updateEntryMode;$('#addTodo').onchange=()=>{updateEntryMode();handleTodoKindChange()};$('#addDaily').onchange=updateEntryMode;$('#entryDone')&&($('#entryDone').onchange=handleTodoKindChange);$('#entryForm').onsubmit=saveEntry;$('#entrySubject')?.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.ctrlKey){e.preventDefault();const el=e.currentTarget;const start=el.selectionStart??el.value.length,end=el.selectionEnd??el.value.length;el.value=el.value.slice(0,start)+'\n'+el.value.slice(end);el.selectionStart=el.selectionEnd=start+1;}});$('#calendarDetail').addEventListener('click',e=>{if(e.target.closest('a'))return;const jumpDate=e.target.closest('[data-jump-date]');if(jumpDate){selected=jumpDate.dataset.jumpDate;setCalendarMonthListMode(false);renderCal();return}const addDaily=e.target.closest('[data-daily-add]');if(addDaily){openDailyEntry(addDaily.dataset.dailyAdd||selected);return}const btn=e.target.closest('[data-todo-id]');if(btn&&btn.dataset.todoId){toggleTodoCheck(btn.dataset.todoId);return}const edit=e.target.closest('[data-calendar-edit]');if(edit&&edit.dataset.calendarEdit){openCalendarEdit(edit.dataset.calendarType,edit.dataset.calendarEdit);return}const open=e.target.closest('[data-open-schedule-popup]');if(open){const dayEl=$(`#calendarGrid .day[data-date="${selected}"]`);showSchedulePopup(selected,dayEl)}});const dashList=$('#dashboardTodayList');if(dashList)dashList.addEventListener('click',e=>{const btn=e.target.closest('[data-todo-id]');if(btn&&btn.dataset.todoId)toggleTodoCheck(btn.dataset.todoId)});const schedulePopupBg=$('#schedulePopupBg');if(schedulePopupBg)schedulePopupBg.addEventListener('click',e=>{if(e.target===schedulePopupBg)hideSchedulePopup()});const schedulePopupClose=$('#schedulePopupClose');if(schedulePopupClose)schedulePopupClose.onclick=hideSchedulePopup;const schedulePopupContent=$('#schedulePopupContent');if(schedulePopupContent)schedulePopupContent.addEventListener('click',e=>{if(e.target.closest('a'))return;const edit=e.target.closest('[data-calendar-edit]');if(edit&&edit.dataset.calendarEdit)openCalendarEdit(edit.dataset.calendarType,edit.dataset.calendarEdit)});document.addEventListener('click',e=>{const bg=$('#schedulePopupBg');if(!bg||bg.hidden||isTabletLayout())return;if(e.target.closest('#schedulePopup')||e.target.closest('.day')||e.target.closest('[data-open-schedule-popup]'))return;hideSchedulePopup()});$$('.moneyTab').forEach(t=>t.onclick=()=>{$$('.moneyTab').forEach(x=>x.classList.toggle('on',x===t));$('#expenseForm').classList.toggle('on',t.dataset.type==='expense');$('#incomeForm').classList.toggle('on',t.dataset.type==='income')});$('#generateBoss').onclick=generateBoss;$('#loadBossNotion')&&($('#loadBossNotion').onclick=()=>loadBossFromWorker(false));$('#bossPrevWeek')&&($('#bossPrevWeek').onclick=()=>moveBossWeek(-1));$('#bossNextWeek')&&($('#bossNextWeek').onclick=()=>moveBossWeek(1));$('#bossTodayWeek')&&($('#bossTodayWeek').onclick=resetBossWeekToToday);async function addBossCharacterFlow(){
+      function applyCalendarShowSnapshot(snapshot){
+        Object.assign(state.show,snapshot);
+        ['schedule','todo','daily','work','personal','magic'].forEach(type=>{
+          $$(`.calTypeCheck[data-type="${type}"]`).forEach(cb=>cb.checked=state.show[type]);
+        });
+        renderCal();
+        updateCalMenuIndicators();
+      }
+      function applyScheduleOnlyFilter(){applyCalendarShowSnapshot({schedule:true,todo:false,daily:false})}
+      updateCalMenuIndicators();
+      if(urlParams.get('widget'))applyScheduleOnlyFilter();$('#openEntry').onclick=openEntry;$('#closeEntry').onclick=()=>{editingCalendarRecord=null;$('#entrySheet').hidden=true;};const entrySheetBg=$('#entrySheet');if(entrySheetBg)entrySheetBg.addEventListener('click',e=>{if(e.target===entrySheetBg){editingCalendarRecord=null;entrySheetBg.hidden=true;}});$('#closeDailyLog')&&( $('#closeDailyLog').onclick=closeDailySheet );$('#dailyForm')&&($('#dailyForm').onsubmit=saveDailyLog);$('#deleteDailyLog')?.addEventListener('click',deleteDailyLog);$('#deleteEntry')?.addEventListener('click',deleteCalendarEntry);$('#entryCancelToggle')?.addEventListener('click',toggleEntryCanceled);$('#addSchedule').onchange=updateEntryMode;$('#addTodo').onchange=()=>{updateEntryMode();handleTodoKindChange()};$('#addDaily').onchange=updateEntryMode;$('#entryDone')&&($('#entryDone').onchange=handleTodoKindChange);$('#entryForm').onsubmit=saveEntry;$('#entrySubject')?.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.ctrlKey){e.preventDefault();const el=e.currentTarget;const start=el.selectionStart??el.value.length,end=el.selectionEnd??el.value.length;el.value=el.value.slice(0,start)+'\n'+el.value.slice(end);el.selectionStart=el.selectionEnd=start+1;}});$('#calendarDetail').addEventListener('click',e=>{if(e.target.closest('a'))return;const jumpDate=e.target.closest('[data-jump-date]');if(jumpDate){selected=jumpDate.dataset.jumpDate;setCalendarMonthListMode(false);renderCal();return}const addDaily=e.target.closest('[data-daily-add]');if(addDaily){openDailyEntry(addDaily.dataset.dailyAdd||selected);return}const btn=e.target.closest('[data-todo-id]');if(btn&&btn.dataset.todoId){toggleTodoCheck(btn.dataset.todoId);return}const edit=e.target.closest('[data-calendar-edit]');if(edit&&edit.dataset.calendarEdit){openCalendarEdit(edit.dataset.calendarType,edit.dataset.calendarEdit);return}const open=e.target.closest('[data-open-schedule-popup]');if(open){const dayEl=$(`#calendarGrid .day[data-date="${selected}"]`);showSchedulePopup(selected,dayEl)}});const dashList=$('#dashboardTodayList');if(dashList)dashList.addEventListener('click',e=>{const btn=e.target.closest('[data-todo-id]');if(btn&&btn.dataset.todoId)toggleTodoCheck(btn.dataset.todoId)});const schedulePopupBg=$('#schedulePopupBg');if(schedulePopupBg)schedulePopupBg.addEventListener('click',e=>{if(e.target===schedulePopupBg)hideSchedulePopup()});const schedulePopupClose=$('#schedulePopupClose');if(schedulePopupClose)schedulePopupClose.onclick=hideSchedulePopup;const schedulePopupContent=$('#schedulePopupContent');if(schedulePopupContent)schedulePopupContent.addEventListener('click',e=>{if(e.target.closest('a'))return;const edit=e.target.closest('[data-calendar-edit]');if(edit&&edit.dataset.calendarEdit)openCalendarEdit(edit.dataset.calendarType,edit.dataset.calendarEdit)});document.addEventListener('click',e=>{const bg=$('#schedulePopupBg');if(!bg||bg.hidden||isTabletLayout())return;if(e.target.closest('#schedulePopup')||e.target.closest('.day')||e.target.closest('[data-open-schedule-popup]'))return;hideSchedulePopup()});$$('.moneyTab').forEach(t=>t.onclick=()=>{$$('.moneyTab').forEach(x=>x.classList.toggle('on',x===t));$('#expenseForm').classList.toggle('on',t.dataset.type==='expense');$('#incomeForm').classList.toggle('on',t.dataset.type==='income')});$('#generateBoss').onclick=generateBoss;$('#loadBossNotion')&&($('#loadBossNotion').onclick=()=>loadBossFromWorker(false));$('#bossPrevWeek')&&($('#bossPrevWeek').onclick=()=>moveBossWeek(-1));$('#bossNextWeek')&&($('#bossNextWeek').onclick=()=>moveBossWeek(1));$('#bossTodayWeek')&&($('#bossTodayWeek').onclick=resetBossWeekToToday);async function addBossCharacterFlow(){
         const name=prompt('추가할 캐릭터명을 입력해줘 (Notion 캐릭터 DB에 새로 생성돼요)');
         if(!name||!name.trim())return;
         try{
