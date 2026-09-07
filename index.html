@@ -2576,7 +2576,7 @@
       }
       function hasMissedIcon(dateKey){return Boolean(dateKey&&dateKey<key(today)&&state.tasks.some(x=>x.date===dateKey&&!x.done&&!x.canceled&&hasWatchIcon(x.title)))}
       function monthRange(){const first=new Date(view.getFullYear(),view.getMonth(),1),from=new Date(first);from.setDate(first.getDate()-((first.getDay()+6)%7));const to=new Date(from);to.setDate(from.getDate()+41);return{from:key(from),to:key(to)}}
-      const CALENDAR_CACHE_KEY='paperlog_calendar_cache_v3';
+      const CALENDAR_CACHE_KEY='paperlog_calendar_cache_v4';
       let calendarLoadSeq=0, projectsLoadedOnce=false;
       function calendarMonthKey(){return `${view.getFullYear()}-${String(view.getMonth()+1).padStart(2,'0')}`}
       function uniqueByIdDate(items){const seen=new Set();return items.filter(item=>{const k=`${item.id||item.title}_${item.date}_${item.type||''}`;if(seen.has(k))return false;seen.add(k);return true})}
