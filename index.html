@@ -148,6 +148,7 @@
     .monthListDayHead{font-family:'Gaegu';font-size:19px;margin-bottom:4px;cursor:pointer}
     .dateStrip{justify-content:safe center;}
     .dayEvents{display:none}
+    .dayAddBtn{display:none}
     .dayEventChip{font-size:10.5px;line-height:1.3;padding:1px 4px;border-radius:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border:1px solid rgba(47,42,40,.18)}
     .dayEventChip.work{background:#b9dced}
     .dayEventChip.meeting{background:#e7c3c8}
@@ -215,7 +216,7 @@
     .schedulePopup .scheduleItem{grid-template-columns:50px 1fr auto;}
     .schedulePopupClose{position:absolute;top:8px;right:8px;width:28px;height:28px;border:1.2px solid var(--line);border-radius:999px;background:var(--card);font-family:'Gaegu';font-size:18px;line-height:1;}
     .schedulePopup{transform-origin:top left;}
-    @media (min-width:960px){.schedulePopupBg{display:none!important}}
+    @media (min-width:960px){body:not(.widgetMode) .schedulePopupBg{display:none!important}}
   </style>
 
 
@@ -725,46 +726,118 @@
   </style>
 
   <style id="widgetModeBigCalendarV99">
+    body.widgetMode{overflow:hidden}
     body.widgetMode .title,
     body.widgetMode .syncStatus,
-    body.widgetMode .calendarSide{
+    body.widgetMode .calendarSide,
+    body.widgetMode .calendarFab{
       display:none!important;
     }
+    body.widgetMode .app{
+      height:100svh!important;
+      min-height:0!important;
+      display:flex!important;
+      flex-direction:column;
+      overflow:hidden;
+    }
+    body.widgetMode #calendar.page.on{
+      flex:1 1 auto;
+      min-height:0;
+      display:flex!important;
+      flex-direction:column;
+    }
+    body.widgetMode .calendarTopBar{flex:0 0 auto}
+    body.widgetMode .calendarCard{
+      flex:1 1 auto;
+      min-height:0;
+      display:flex;
+      flex-direction:column;
+      margin-bottom:0;
+    }
     body.widgetMode #calendar .calendarTabs{
+      flex:0 0 auto;
       position:static!important;
       top:auto!important;
     }
     body.widgetMode .calendarWide{
-      display:block!important;
+      display:flex!important;
+      flex-direction:column;
+      align-items:stretch!important;
+      flex:1 1 auto;
+      min-height:0;
     }
     body.widgetMode .calendarWide .calendarMain{
       position:static!important;
       max-height:none!important;
       overflow:visible!important;
+      flex:1 1 auto;
+      min-height:0;
+      display:flex;
+      flex-direction:column;
+    }
+    body.widgetMode #calendar .cal{
+      flex:1 1 auto;
+      min-height:0;
+      grid-template-rows:auto repeat(6,minmax(0,1fr));
     }
     body.widgetMode #calendar .day{
       height:auto!important;
-      min-height:64px!important;
+      min-height:0!important;
       padding:4px 5px 5px!important;
+      display:flex!important;
+      flex-direction:column;
+      align-items:stretch;
+    }
+    body.widgetMode #calendar .day .num{
+      position:relative!important;
+      top:auto!important;
+      left:auto!important;
+      flex:0 0 auto;
+      display:flex!important;
+      align-items:center;
+      justify-content:center;
+      min-height:22px;
+      margin:0!important;
+    }
+    body.widgetMode #calendar .day:not(.today):not(.sel) .num{
+      justify-content:flex-start;
     }
     body.widgetMode .dayEvents{
       display:flex!important;
+      flex:1 1 auto;
+      min-height:0;
       flex-direction:column;
       gap:2px;
       margin-top:2px;
       position:relative;
       z-index:2;
+      overflow:hidden;
     }
     body.widgetMode .dayEventChip{font-size:9.5px;padding:1px 3px}
+    body.widgetMode .dayAddBtn{display:none}
+    body.widgetMode .day.sel .dayAddBtn{
+      display:grid;
+      place-items:center;
+      position:absolute;
+      top:3px;
+      right:3px;
+      width:18px;
+      height:18px;
+      border-radius:50%;
+      border:1.2px solid var(--line);
+      background:var(--yellow);
+      font-size:13px;
+      line-height:1;
+      z-index:3;
+      cursor:pointer;
+    }
     @media (min-width:700px){
-      body.widgetMode #calendar .day{min-height:88px!important;padding:6px!important}
+      body.widgetMode #calendar .day{padding:6px!important}
       body.widgetMode .dayEventChip{font-size:10.5px;padding:1px 4px}
+      body.widgetMode .day.sel .dayAddBtn{width:22px;height:22px;font-size:15px}
     }
     @media (min-width:960px){
-      body.widgetMode #calendar .day{min-height:118px!important;padding:6px 7px 7px!important}
-    }
-    @media (min-width:1180px){
-      body.widgetMode #calendar .day{min-height:130px!important}
+      body.widgetMode #calendar .day{padding:6px 7px 7px!important}
     }
   </style>
 
@@ -2437,8 +2510,9 @@
       function isHolidaySchedule(x){return !x.canceled&&(x.color||scheduleColor(x.subject))==='holiday'}
       function calendarMarkers(v){const markers=[];v.schedule.forEach(x=>{const c=x.canceled?'canceled':scheduleColor(x.subject);if(c!=='holiday')markers.push(c)});if(v.todo.length)markers.push('task');markers.sort((a,b)=>(a==='anniversary'?-1:b==='anniversary'?1:0));return markers.slice(0,4)}
       function dayEventsHtml(v){
+        const sortedSchedule=[...v.schedule].sort((a,b)=>Number(isHolidaySchedule(b))-Number(isHolidaySchedule(a)));
         const items=[
-          ...v.schedule.map(x=>({title:x.title,time:x.time||'',cls:x.canceled?'canceled':scheduleColor(x.subject),done:false})),
+          ...sortedSchedule.map(x=>({title:x.title,time:x.time||'',cls:x.canceled?'canceled':scheduleColor(x.subject),done:false})),
           ...v.todo.map(x=>({title:x.title,time:'',cls:'task',done:!!x.done}))
         ];
         if(!items.length)return '';
@@ -2608,7 +2682,7 @@
           entrySaving=false;
         }
       }
-      function renderCal(){const grid=$('#calendarGrid'), title=$('#monthTitle');grid.innerHTML='';title.textContent=`${view.getFullYear()}년 ${view.getMonth()+1}월`;wkMon.forEach(x=>grid.insertAdjacentHTML('beforeend',`<div class="wd ${x==='sat'||x==='sun'?'weekend':''}">${x}</div>`));const first=new Date(view.getFullYear(),view.getMonth(),1), start=new Date(first);start.setDate(first.getDate()-((first.getDay()+6)%7));for(let i=0;i<42;i++){const d=new Date(start);d.setDate(start.getDate()+i);const k=key(d),v=visible(k),markers=calendarMarkers(v),dayIsHoliday=isHoliday(d)||v.schedule.some(isHolidaySchedule);grid.insertAdjacentHTML('beforeend',`<button class="day ${d.getMonth()!==view.getMonth()?'mute':''} ${k===key(today)?'today':''} ${k===selected?'sel':''} ${isWeekend(d)?'weekend':''} ${dayIsHoliday?'holiday':''} ${v.daily&&v.daily[0]?'hasMoodBg':''}" data-date="${k}" title="${HOLIDAYS_KR[k]||''}"${(v.daily&&v.daily[0])?moodBgAttr(v.daily[0].mood):''}>${hasMissedIcon(k)?'<span class="missedDot"></span>':''}<span class="num">${d.getDate()}</span><div class="dots">${markers.map(m=>m==='anniversary'?`<svg class="dot anniversary" viewBox="0 0 9 9" width="9" height="9" xmlns="http://www.w3.org/2000/svg"><rect x=".8" y="4" width="7.4" height="4.5" rx="1.2" fill="#f0a0b5" stroke="rgba(47,42,40,.4)" stroke-width=".7"/><line x1="1.2" y1="4" x2="7.8" y2="4" stroke="rgba(47,42,40,.25)" stroke-width=".5"/><rect x="3.7" y="2" width="1.6" height="2.2" rx=".4" fill="#f5d07a"/><ellipse cx="4.5" cy="1.6" rx=".9" ry="1.1" fill="#f07050"/></svg>`:`<span class="dot ${m}"></span>`).join('')}</div>${dayEventsHtml(v)}</button>`)}
+      function renderCal(){const grid=$('#calendarGrid'), title=$('#monthTitle');grid.innerHTML='';title.textContent=`${view.getFullYear()}년 ${view.getMonth()+1}월`;wkMon.forEach(x=>grid.insertAdjacentHTML('beforeend',`<div class="wd ${x==='sat'||x==='sun'?'weekend':''}">${x}</div>`));const first=new Date(view.getFullYear(),view.getMonth(),1), start=new Date(first);start.setDate(first.getDate()-((first.getDay()+6)%7));for(let i=0;i<42;i++){const d=new Date(start);d.setDate(start.getDate()+i);const k=key(d),v=visible(k),markers=calendarMarkers(v),dayIsHoliday=isHoliday(d)||v.schedule.some(isHolidaySchedule);grid.insertAdjacentHTML('beforeend',`<button class="day ${d.getMonth()!==view.getMonth()?'mute':''} ${k===key(today)?'today':''} ${k===selected?'sel':''} ${isWeekend(d)?'weekend':''} ${dayIsHoliday?'holiday':''} ${v.daily&&v.daily[0]?'hasMoodBg':''}" data-date="${k}" title="${HOLIDAYS_KR[k]||''}"${(v.daily&&v.daily[0])?moodBgAttr(v.daily[0].mood):''}>${hasMissedIcon(k)?'<span class="missedDot"></span>':''}<span class="num">${d.getDate()}</span><span class="dayAddBtn" data-add-date="${k}" role="button" aria-label="이 날짜에 추가">＋</span><div class="dots">${markers.map(m=>m==='anniversary'?`<svg class="dot anniversary" viewBox="0 0 9 9" width="9" height="9" xmlns="http://www.w3.org/2000/svg"><rect x=".8" y="4" width="7.4" height="4.5" rx="1.2" fill="#f0a0b5" stroke="rgba(47,42,40,.4)" stroke-width=".7"/><line x1="1.2" y1="4" x2="7.8" y2="4" stroke="rgba(47,42,40,.25)" stroke-width=".5"/><rect x="3.7" y="2" width="1.6" height="2.2" rx=".4" fill="#f5d07a"/><ellipse cx="4.5" cy="1.6" rx=".9" ry="1.1" fill="#f07050"/></svg>`:`<span class="dot ${m}"></span>`).join('')}</div>${dayEventsHtml(v)}</button>`)}
                            
                            renderDetail()}
       function isTabletLayout(){return window.matchMedia('(min-width:960px)').matches}
@@ -2679,17 +2753,21 @@
         }catch(err){console.warn('Notion 본문 확인 실패:',err)}
       }
       function showSchedulePopup(dateKeyValue,anchorEl){
-        if(isTabletLayout())return;
+        const widgetMode=document.body.classList.contains('widgetMode');
+        if(isTabletLayout()&&!widgetMode)return;
         const v=visible(dateKeyValue);
         const schedules=v.schedule||[];
-        if(!schedules.length){hideSchedulePopup();return}
+        const sortedTodos=[...(v.todo||[])].sort((a,b)=>Number(a.done)-Number(b.done));
+        if(!schedules.length&&!sortedTodos.length){hideSchedulePopup();return}
 
         const bg=$('#schedulePopupBg'), pop=$('#schedulePopup'), content=$('#schedulePopupContent');
         if(!bg||!pop||!content)return;
 
         const d=new Date(dateKeyValue+'T00:00:00');
-        content.innerHTML=`<h4>${d.getMonth()+1}/${d.getDate()} ${wk[d.getDay()]} 일정</h4>${scheduleRows(schedules)}`;
-        annotateNotionContentDots(content,schedules);
+        const scheduleHtml=schedules.length?`<div class="group"><p class="groupT"><span class="blue">일정</span></p>${scheduleRows(schedules)}</div>`:'';
+        const todoHtml=sortedTodos.length?`<div class="group"><p class="groupT"><span class="green">할 일</span></p><ul class="list">${todoRows(sortedTodos)}</ul></div>`:'';
+        content.innerHTML=`<h4>${d.getMonth()+1}/${d.getDate()} ${wk[d.getDay()]}</h4>${scheduleHtml}${todoHtml}`;
+        annotateNotionContentDots(content,[...schedules,...sortedTodos]);
 
         bg.hidden=false;
         pop.style.visibility='hidden';
@@ -3746,7 +3824,21 @@
         setTimeout(()=>loadCalendarFromWorker(true),60);
         document.querySelector('#calendar')?.scrollIntoView({behavior:'smooth',block:'start'});
       }
-      $('#calendarGrid').onclick=e=>{const d=e.target.closest('.day');if(d){const picked=d.dataset.date;selected=picked;setCalendarMonthListMode(false);renderCal();if(!isTabletLayout()){const liveDay=$(`#calendarGrid .day[data-date="${picked}"]`);showSchedulePopup(picked,liveDay)}}};
+      $('#calendarGrid').onclick=e=>{
+        const addBtn=e.target.closest('.dayAddBtn');
+        if(addBtn){selected=addBtn.dataset.addDate||selected;openEntry();return}
+        const d=e.target.closest('.day');
+        if(d){
+          const picked=d.dataset.date;
+          selected=picked;
+          setCalendarMonthListMode(false);
+          renderCal();
+          if(!isTabletLayout()||document.body.classList.contains('widgetMode')){
+            const liveDay=$(`#calendarGrid .day[data-date="${picked}"]`);
+            showSchedulePopup(picked,liveDay);
+          }
+        }
+      };
       $('#toggleMonthList')?.addEventListener('click',()=>{setCalendarMonthListMode(!calendarMonthListMode);renderDetail()});
       $('#openBigCalendarWidget')?.addEventListener('click',()=>{window.open(`${location.pathname}?tab=calendar&widget=1`,'_blank','noopener')});$('#monthTitle')?.addEventListener('click',()=>{document.querySelector('#calendar')?.scrollIntoView({behavior:'smooth',block:'start'});});$('#prevMonth').onclick=()=>moveCalendarMonth(-1);$('#nextMonth').onclick=()=>moveCalendarMonth(1);$('#calendarTodayBtn')&&($('#calendarTodayBtn').onclick=goCalendarToday);function positionCalMenu(pop,btn){const rect=btn.getBoundingClientRect();const margin=10,gap=6;const pw=pop.offsetWidth||210;let left=rect.left;let top=rect.bottom+gap;left=Math.min(Math.max(left,margin),window.innerWidth-pw-margin);if(top+((pop.offsetHeight||120))>window.innerHeight-margin)top=Math.max(margin,rect.top-gap-(pop.offsetHeight||120));pop.style.left=Math.round(left)+'px';pop.style.top=Math.round(top)+'px'}
       function closeCalMenus(){['calDisplayMenu','calFilterMenu','calSearchMenu'].forEach(id=>{const el=$('#'+id);if(el)el.hidden=true});$('#calMenuBg')&&($('#calMenuBg').hidden=true);$('#calDisplayBtn')?.classList.remove('on');$('#calFilterBtn')?.classList.remove('on');$('#calSearchBtn')?.classList.remove('on')}
