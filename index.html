@@ -2571,9 +2571,7 @@
         const overflow=items.length-shown.length;
         return `<div class="dayEvents">${shown.map(it=>{
           const rangeCls=it.isRange?` rangeItem${it.isStart?' rangeStart':''}${it.isEnd?' rangeEnd':''}`:'';
-          const arrow=it.isRange&&!it.isStart?'◂ ':'';
-          const tail=it.isRange&&!it.isEnd?' ▸':'';
-          return `<div class="dayEventChip ${it.cls}${it.done?' done':''}${rangeCls}">${arrow}${it.time?`<span class="dayEventTime">${it.time}</span> `:''}${escapeHTML(it.title||'(제목 없음)')}${tail}</div>`;
+          return `<div class="dayEventChip ${it.cls}${it.done?' done':''}${rangeCls}">${it.time?`<span class="dayEventTime">${it.time}</span> `:''}${escapeHTML(it.title||'(제목 없음)')}</div>`;
         }).join('')}${overflow>0?`<div class="dayEventMore">+${overflow}개 더</div>`:''}</div>`;
       }
       function hasMissedIcon(dateKey){return Boolean(dateKey&&dateKey<key(today)&&state.tasks.some(x=>x.date===dateKey&&!x.done&&!x.canceled&&hasWatchIcon(x.title)))}
