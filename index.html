@@ -139,8 +139,9 @@
     .calendarWide{display:block;}
     .calendarMain{min-width:0;}
     .calendarSide{min-width:0;}
-    .calendarSideHead{display:flex;justify-content:flex-end;margin-bottom:6px}
+    .calendarSideHead{display:flex;justify-content:flex-end;align-items:center;gap:6px;margin-bottom:6px}
     .calMonthListToggle{border:1.2px solid var(--line);border-radius:999px;background:var(--card);padding:5px 11px;font-size:12px;font-family:'Gowun Dodum',sans-serif;box-shadow:1px 1px 0 rgba(47,42,40,.1);cursor:pointer}
+    .calWidgetOpenBtn{width:26px;height:26px;flex:0 0 auto;display:grid;place-items:center;border:1.2px solid var(--line);border-radius:50%;background:var(--card);box-shadow:1px 1px 0 rgba(47,42,40,.1);cursor:pointer;color:var(--ink)}
     .calMonthListToggle.on{background:var(--yellow)}
     .monthListDay{margin-bottom:14px;padding-bottom:10px;border-bottom:1px dashed rgba(47,42,40,.18)}
     .monthListDay:last-child{border-bottom:0;margin-bottom:0}
@@ -724,20 +725,43 @@
   </style>
 
   <style id="widgetModeBigCalendarV99">
+    body.widgetMode .title,
+    body.widgetMode .syncStatus,
+    body.widgetMode .calendarSide{
+      display:none!important;
+    }
+    body.widgetMode #calendar .calendarTabs{
+      position:static!important;
+      top:auto!important;
+    }
+    body.widgetMode .calendarWide{
+      display:block!important;
+    }
+    body.widgetMode .calendarWide .calendarMain{
+      position:static!important;
+      max-height:none!important;
+      overflow:visible!important;
+    }
+    body.widgetMode #calendar .day{
+      height:auto!important;
+      min-height:64px!important;
+      padding:4px 5px 5px!important;
+    }
+    body.widgetMode .dayEvents{
+      display:flex!important;
+      flex-direction:column;
+      gap:2px;
+      margin-top:2px;
+      position:relative;
+      z-index:2;
+    }
+    body.widgetMode .dayEventChip{font-size:9.5px;padding:1px 3px}
+    @media (min-width:700px){
+      body.widgetMode #calendar .day{min-height:88px!important;padding:6px!important}
+      body.widgetMode .dayEventChip{font-size:10.5px;padding:1px 4px}
+    }
     @media (min-width:960px){
-      body.widgetMode #calendar .day{
-        height:auto!important;
-        min-height:118px!important;
-        padding:6px 7px 7px!important;
-      }
-      body.widgetMode .dayEvents{
-        display:flex!important;
-        flex-direction:column;
-        gap:2px;
-        margin-top:3px;
-        position:relative;
-        z-index:2;
-      }
+      body.widgetMode #calendar .day{min-height:118px!important;padding:6px 7px 7px!important}
     }
     @media (min-width:1180px){
       body.widgetMode #calendar .day{min-height:130px!important}
@@ -1113,10 +1137,8 @@
         bottom:4px!important;
       }
     }
-    @media(min-width:960px){
-      body.widgetMode #calendar .day .dots{
-        display:none!important;
-      }
+    body.widgetMode #calendar .day .dots{
+      display:none!important;
     }
   </style>
 
@@ -1491,7 +1513,7 @@
             <div class="cal" id="calendarGrid"></div>
           </div>
           <aside class="calendarSide">
-            <div class="calendarSideHead"><button class="calMonthListToggle" id="toggleMonthList" type="button">이번 달 전체보기</button></div>
+            <div class="calendarSideHead"><button class="calMonthListToggle" id="toggleMonthList" type="button">이번 달 전체보기</button><button class="calWidgetOpenBtn" id="openBigCalendarWidget" type="button" title="큰 캘린더 새 창으로 열기" aria-label="큰 캘린더 새 창으로 열기"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg></button></div>
             <div class="detail" id="calendarDetail"></div>
           </aside>
         </div>
@@ -3725,7 +3747,8 @@
         document.querySelector('#calendar')?.scrollIntoView({behavior:'smooth',block:'start'});
       }
       $('#calendarGrid').onclick=e=>{const d=e.target.closest('.day');if(d){const picked=d.dataset.date;selected=picked;setCalendarMonthListMode(false);renderCal();if(!isTabletLayout()){const liveDay=$(`#calendarGrid .day[data-date="${picked}"]`);showSchedulePopup(picked,liveDay)}}};
-      $('#toggleMonthList')?.addEventListener('click',()=>{setCalendarMonthListMode(!calendarMonthListMode);renderDetail()});$('#monthTitle')?.addEventListener('click',()=>{document.querySelector('#calendar')?.scrollIntoView({behavior:'smooth',block:'start'});});$('#prevMonth').onclick=()=>moveCalendarMonth(-1);$('#nextMonth').onclick=()=>moveCalendarMonth(1);$('#calendarTodayBtn')&&($('#calendarTodayBtn').onclick=goCalendarToday);function positionCalMenu(pop,btn){const rect=btn.getBoundingClientRect();const margin=10,gap=6;const pw=pop.offsetWidth||210;let left=rect.left;let top=rect.bottom+gap;left=Math.min(Math.max(left,margin),window.innerWidth-pw-margin);if(top+((pop.offsetHeight||120))>window.innerHeight-margin)top=Math.max(margin,rect.top-gap-(pop.offsetHeight||120));pop.style.left=Math.round(left)+'px';pop.style.top=Math.round(top)+'px'}
+      $('#toggleMonthList')?.addEventListener('click',()=>{setCalendarMonthListMode(!calendarMonthListMode);renderDetail()});
+      $('#openBigCalendarWidget')?.addEventListener('click',()=>{window.open(`${location.pathname}?tab=calendar&widget=1`,'_blank','noopener')});$('#monthTitle')?.addEventListener('click',()=>{document.querySelector('#calendar')?.scrollIntoView({behavior:'smooth',block:'start'});});$('#prevMonth').onclick=()=>moveCalendarMonth(-1);$('#nextMonth').onclick=()=>moveCalendarMonth(1);$('#calendarTodayBtn')&&($('#calendarTodayBtn').onclick=goCalendarToday);function positionCalMenu(pop,btn){const rect=btn.getBoundingClientRect();const margin=10,gap=6;const pw=pop.offsetWidth||210;let left=rect.left;let top=rect.bottom+gap;left=Math.min(Math.max(left,margin),window.innerWidth-pw-margin);if(top+((pop.offsetHeight||120))>window.innerHeight-margin)top=Math.max(margin,rect.top-gap-(pop.offsetHeight||120));pop.style.left=Math.round(left)+'px';pop.style.top=Math.round(top)+'px'}
       function closeCalMenus(){['calDisplayMenu','calFilterMenu','calSearchMenu'].forEach(id=>{const el=$('#'+id);if(el)el.hidden=true});$('#calMenuBg')&&($('#calMenuBg').hidden=true);$('#calDisplayBtn')?.classList.remove('on');$('#calFilterBtn')?.classList.remove('on');$('#calSearchBtn')?.classList.remove('on')}
       function openCalMenu(menuId,btnId){const pop=$('#'+menuId),btn=$('#'+btnId);if(!pop||!btn)return;const wasOpen=!pop.hidden;closeCalMenus();if(wasOpen)return;pop.hidden=false;$('#calMenuBg')&&($('#calMenuBg').hidden=false);btn.classList.add('on');positionCalMenu(pop,btn)}
       $('#calDisplayBtn')?.addEventListener('click',()=>openCalMenu('calDisplayMenu','calDisplayBtn'));
