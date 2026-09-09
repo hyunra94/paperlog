@@ -28,8 +28,8 @@
     {
       "name": "캘린더",
       "short_name": "캘린더",
-      "description": "캘린더 탭 바로 열기",
-      "url": "./?tab=calendar",
+      "description": "큰 캘린더 화면 바로 열기",
+      "url": "./?tab=calendar&widget=1",
       "icons": [
         {
           "src": "./icons/icon-192.png",

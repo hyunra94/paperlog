@@ -2010,7 +2010,7 @@
       const urlTab=urlParams.get('tab');
       const urlBossView=urlParams.get('boss');
       const urlSettings=urlParams.get('settings');
-      if(urlParams.get('widget'))document.body.classList.add('widgetMode');
+      if(urlParams.get('widget')){document.body.classList.add('widgetMode');document.body.classList.add('widgetModeInApp')}
       let currentViewMode=(urlMode==='work'||urlMode==='company')?'work':(urlMode==='personal'?'personal':(localStorage.getItem(VIEW_MODE_KEY)||'personal'));
       const getStoredConfig=()=>{
         try{return JSON.parse(localStorage.getItem(PAPER_CONFIG_KEY)||'{}')}catch{return {}}
