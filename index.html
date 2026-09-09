@@ -49,8 +49,6 @@
     .dot.magic{background:#d98bb0}
     .tag.leave{background:#f0d478;color:#6b5010}
     .dot.leave{background:#f0d478}
-    .tag.duty{background:#8fcfc7;color:#1f4a45}
-    .dot.duty{background:#8fcfc7}
     input[type="date"][readonly]{cursor:pointer;background:var(--card)}
     #dateMiniPickerBg{position:fixed;inset:0;z-index:70;background:transparent}
     .dateMiniPicker{position:fixed;width:266px;border:1.8px solid var(--line);border-radius:18px;background:var(--card);box-shadow:0 8px 24px rgba(47,42,40,.18);padding:10px;visibility:hidden}
@@ -106,9 +104,9 @@
     .calendarTools .toolBtn{border:1.5px solid var(--cal-line);border-radius:999px;background:#fffaf4;padding:8px 10px;font-family:'Gaegu';font-size:18px;box-shadow:2px 2px 0 rgba(47,42,40,.08)}
     .entryCancelBtn.active{background:var(--cal-red);border-color:var(--cal-red);color:#fff}
     .syncStatus{grid-column:1/-1;margin:-2px 2px 0;color:var(--sub);font-size:12px;line-height:1.45}
-    .dot.canceled{background:var(--cal-red)}
+    .dot.canceled{background:#8a857c}
     .missedDot{position:absolute;right:6px;top:6px;width:7px;height:7px;border:1px solid rgba(47,42,40,.45);border-radius:999px;background:#c0392b;z-index:4}
-    .tag.canceled{background:var(--cal-red);color:#fff}
+    .tag.canceled{background:#8a857c;color:#fff}
     @media(max-width:360px){.calendarTools{grid-template-columns:1fr}}
   </style>
 
@@ -164,8 +162,7 @@
     .dayEventChip.holiday{background:var(--cal-red);color:#fff}
     .dayEventChip.magic{background:#eab8d0;color:#7a3a5a}
     .dayEventChip.leave{background:#f0d478;color:#6b5010}
-    .dayEventChip.duty{background:#8fcfc7;color:#1f4a45}
-    .dayEventChip.canceled{background:var(--cal-red);color:#fff;text-decoration:line-through}
+    .dayEventChip.canceled{background:#8a857c;color:#fff;text-decoration:line-through}
     .dayEventChip.done{opacity:.55;text-decoration:line-through}
     .dayEventChip.rangeItem{border-radius:0;box-shadow:inset 0 -3px 0 0 rgba(47,42,40,.55)}
     .dayEventChip.rangeItem.rangeStart{border-top-left-radius:5px;border-bottom-left-radius:5px}
@@ -2581,7 +2578,7 @@
         return String(x.title||'').toLowerCase().includes(q)||String(x.category||x.subject||'').toLowerCase().includes(q);
       }
       function visible(k){return{schedule:state.show.schedule?state.schedules.filter(x=>x.date===k&&(state.show.magic||x.subject!=='으르렁데이')&&(state.show.work||x.subject!=='업무일정')&&(state.show.personal||x.subject!=='개인일정')&&(state.show.anniversary||x.subject!=='기념일')&&matchesCalendarSearchFilter(x)):[],todo:state.show.todo?state.tasks.filter(x=>x.date===k&&matchesCalendarSearchFilter(x)):[],daily:state.show.daily&&state.dailyLogs?state.dailyLogs.filter(x=>x.date===k):[]}}
-      function scheduleColor(subject){if(subject==='취소')return 'canceled';if(subject==='약속')return 'meeting';if(subject==='개인일정')return 'personal';if(subject==='뇽')return 'nyong';if(subject==='기념일')return 'anniversary';if(subject==='공휴일')return 'holiday';if(subject==='으르렁데이')return 'magic';if(subject==='연차')return 'leave';if(subject==='근무')return 'duty';return 'work'}
+      function scheduleColor(subject){if(subject==='취소')return 'canceled';if(subject==='약속')return 'meeting';if(subject==='개인일정')return 'personal';if(subject==='뇽')return 'nyong';if(subject==='기념일')return 'anniversary';if(subject==='공휴일')return 'holiday';if(subject==='으르렁데이')return 'magic';if(subject==='연차')return 'leave';if(subject==='근무')return 'leave';return 'work'}
       function isHolidaySchedule(x){return !x.canceled&&(x.color||scheduleColor(x.subject))==='holiday'}
       function calendarMarkers(v){const markers=[];v.schedule.forEach(x=>{const c=x.canceled?'canceled':scheduleColor(x.subject);if(c!=='holiday')markers.push(c)});if(v.todo.length)markers.push('task');markers.sort((a,b)=>(a==='anniversary'?-1:b==='anniversary'?1:0));return markers.slice(0,4)}
       function rangeInfo(x){
