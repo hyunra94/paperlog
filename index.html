@@ -2831,7 +2831,7 @@
         if(isTabletLayout()&&!widgetMode)return;
         const v=visible(dateKeyValue);
         const schedules=v.schedule||[];
-        const sortedTodos=[...(v.todo||[])].sort((a,b)=>Number(a.done)-Number(b.done));
+        const sortedTodos=widgetMode?[...(v.todo||[])].sort((a,b)=>Number(a.done)-Number(b.done)):[];
         if(!schedules.length&&!sortedTodos.length){hideSchedulePopup();return}
 
         const bg=$('#schedulePopupBg'), pop=$('#schedulePopup'), content=$('#schedulePopupContent');
