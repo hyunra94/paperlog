@@ -281,7 +281,7 @@
     .calMenuBtn#calSearchBtn{background:#e9dcf5}
     .calMenuBtn#calDisplayBtn.on,.calMenuBtn#calFilterBtn.on,.calMenuBtn#calSearchBtn.on{background:#f4e4a8}
     .calMenuBtn.hasActive::after{content:"";position:absolute;top:6px;right:9px;width:6px;height:6px;border-radius:999px;background:#e08a8a;box-shadow:0 0 0 1.5px rgba(255,250,242,.95)}
-    .calFilterResetBtn{position:absolute;top:8px;right:9px;width:20px;height:20px;padding:0;display:grid;place-items:center;border:1.1px solid var(--line);border-radius:50%;background:var(--card);font-size:12px;line-height:1;color:var(--ink);cursor:pointer}
+    .calFilterResetBtn{position:absolute;top:8px;right:9px;z-index:2;width:20px;height:20px;padding:0;display:grid;place-items:center;border:1.1px solid var(--line);border-radius:50%;background:var(--card);font-size:12px;line-height:1;color:var(--ink);cursor:pointer}
     .calFilterResetBtn:active{background:var(--yellow)}
     .calMenuBg{position:fixed;inset:0;z-index:40;background:transparent}
     .calMenuBg[hidden]{display:none}
@@ -2577,7 +2577,7 @@
         const q=calendarSearchFilterQuery;
         return String(x.title||'').toLowerCase().includes(q)||String(x.category||x.subject||'').toLowerCase().includes(q);
       }
-      function visible(k){return{schedule:state.show.schedule?state.schedules.filter(x=>x.date===k&&(state.show.magic||x.subject!=='으르렁데이')&&(state.show.work||x.subject!=='업무일정')&&(state.show.personal||x.subject!=='개인일정')&&(state.show.anniversary||x.subject!=='기념일')&&matchesCalendarSearchFilter(x)):[],todo:state.show.todo?state.tasks.filter(x=>x.date===k&&matchesCalendarSearchFilter(x)):[],daily:state.show.daily&&state.dailyLogs?state.dailyLogs.filter(x=>x.date===k):[]}}
+      function visible(k){return{schedule:state.show.schedule?state.schedules.filter(x=>x.date===k&&(state.show.magic||x.subject!=='으르렁데이')&&(state.show.work||(x.color||scheduleColor(x.subject))!=='work')&&(state.show.personal||x.subject!=='개인일정')&&(state.show.anniversary||x.subject!=='기념일')&&matchesCalendarSearchFilter(x)):[],todo:state.show.todo?state.tasks.filter(x=>x.date===k&&matchesCalendarSearchFilter(x)):[],daily:state.show.daily&&state.dailyLogs?state.dailyLogs.filter(x=>x.date===k):[]}}
       function scheduleColor(subject){if(subject==='취소')return 'canceled';if(subject==='약속')return 'meeting';if(subject==='개인일정')return 'personal';if(subject==='뇽')return 'nyong';if(subject==='기념일')return 'anniversary';if(subject==='공휴일')return 'holiday';if(subject==='으르렁데이')return 'magic';if(subject==='연차')return 'leave';if(subject==='근무')return 'leave';return 'work'}
       function isHolidaySchedule(x){return !x.canceled&&(x.color||scheduleColor(x.subject))==='holiday'}
       function calendarMarkers(v){const markers=[];v.schedule.forEach(x=>{const c=x.canceled?'canceled':scheduleColor(x.subject);if(c!=='holiday')markers.push(c)});if(v.todo.length)markers.push('task');markers.sort((a,b)=>(a==='anniversary'?-1:b==='anniversary'?1:0));return markers.slice(0,4)}
