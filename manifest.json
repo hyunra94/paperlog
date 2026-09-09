@@ -23,5 +23,33 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "캘린더",
+      "short_name": "캘린더",
+      "description": "캘린더 탭 바로 열기",
+      "url": "./?tab=calendar",
+      "icons": [
+        {
+          "src": "./icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "설정",
+      "short_name": "설정",
+      "description": "Paper Log 설정 바로 열기",
+      "url": "./?settings=1",
+      "icons": [
+        {
+          "src": "./icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
   ]
 }
