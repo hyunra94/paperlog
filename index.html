@@ -208,6 +208,9 @@
       .chips{grid-template-columns:repeat(6,minmax(0,1fr));}
       /* 보스 탭: 태블릿 이상에서는 메인/보스 패널을 좌우로 나란히 배치 */
       #boss .bossMainBossWrap{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start;}
+      #boss .bossMainBossWrap [data-boss-panel="shortcuts"]{position:sticky;top:calc(var(--sticky-h) + 8px + env(safe-area-inset-top) + 72px);max-height:calc(100svh - var(--sticky-h) - 8px - env(safe-area-inset-top) - 72px - var(--nav) - 20px);overflow:auto;scrollbar-width:thin;}
+      #boss .bossMainBossWrap [data-boss-panel="shortcuts"]::-webkit-scrollbar{width:6px;}
+      #boss .bossMainBossWrap [data-boss-panel="shortcuts"]::-webkit-scrollbar-thumb{background:rgba(47,42,40,.25);border-radius:999px;}
     }
 
     @media (min-width:1180px){
@@ -1689,7 +1692,7 @@
       </div>
       <div class="bossMainBossWrap">
         <div class="bossViewPanel" data-boss-panel="shortcuts">
-          <article class="card"><div class="divTitle">이번 주 현황</div><div class="bossSum bossSumV47"><div><span>보스 수</span><strong id="mainBossCount">0개</strong></div><div><span>예정 메소</span><strong id="mainBossExpectedTotal">0</strong></div><div><span>에픽던전</span><strong id="mainEpicSummary">0/0</strong></div><div><span>몬스터파크</span><strong id="mainParkSummary">0/0</strong></div></div></article>
+          <article class="card"><div class="divTitle">이번 주 현황</div><div class="bossSum bossSumV47" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div><span>에픽던전</span><strong id="mainEpicSummary">0/0</strong></div><div><span>몬스터파크</span><strong id="mainParkSummary">0/0</strong></div></div></article>
           <article class="card"><div class="divTitle">환산주스탯 바로가기<a class="sundayMapleLink" href="https://maplestory.nexon.com/News/Event" target="_blank" rel="noopener noreferrer">🍁 썬데이 메이플</a></div><div id="charLinkList" class="list"></div></article>
         </div>
         <div class="bossViewPanel" data-boss-panel="boss">
@@ -3336,8 +3339,6 @@
         const lootTotal=visibleCharIds.reduce((a,cid)=>a+charLootValue(cid),0);
         $('#bossCount').textContent=`${checkedRows.length}/${crystalRows.length}개`;
         $('#bossExpectedTotal')&&($('#bossExpectedTotal').innerHTML=`<span class="bossMoneyBrief" data-moneylabel="예정 메소" data-moneyvalue="${expectedTotal}">${briefMoney(expectedTotal)}</span>`);
-        $('#mainBossCount')&&($('#mainBossCount').textContent=`${checkedRows.length}/${crystalRows.length}개`);
-        $('#mainBossExpectedTotal')&&($('#mainBossExpectedTotal').innerHTML=`<span class="bossMoneyBrief" data-moneylabel="예정 메소" data-moneyvalue="${expectedTotal}">${briefMoney(expectedTotal)}</span>`);
         $('#mainEpicSummary')&&($('#mainEpicSummary').textContent=mapleEpicSummaryText());
         $('#mainParkSummary')&&($('#mainParkSummary').textContent=mapleParkSummaryText());
         $('#bossLootTotal')&&($('#bossLootTotal').innerHTML=`<span class="bossMoneyBrief" data-bosslootsummary="1">${briefMoney(lootTotal)}</span>`);
