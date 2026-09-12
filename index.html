@@ -206,9 +206,8 @@
       #dashboard #anniversaryBlock,#budget article:last-child{grid-column:1/-1;}
       .moneyTabs{margin-top:12px;}
       .chips{grid-template-columns:repeat(6,minmax(0,1fr));}
-      /* 보스 탭: 실제 카드는 .bossViewPanel 안에 있어서 그 레벨에서 2열 배치 */
-      #boss .bossViewPanel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start;}
-      #boss .bossViewPanel article:only-child{grid-column:1/-1;}
+      /* 보스 탭: 태블릿 이상에서는 메인/보스 패널을 좌우로 나란히 배치 */
+      #boss .bossMainBossWrap{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start;}
     }
 
     @media (min-width:1180px){
@@ -355,7 +354,8 @@
     .bossIndexBtn{border:1.6px solid var(--line);border-radius:999px;background:#fffaf4;padding:9px 8px;font-family:'Gaegu';font-size:19px;box-shadow:2px 2px 0 rgba(47,42,40,.1)}
     .bossIndexBtn.on{background:var(--yellow)}
     .bossIndexBtn.soon{opacity:.55;font-size:15px}
-    .bossViewPanel[hidden]{display:none!important}
+    .bossViewPanel[hidden],.bossMainBossWrap[hidden]{display:none!important}
+    .bossViewPanel,.bossCard{scroll-margin-top:calc(var(--sticky-h) + 8px + env(safe-area-inset-top) + 72px)}
     .bossTool .bossAction{font-size:13px;padding:9px 4px;white-space:nowrap;font-family:'Gowun Dodum',sans-serif;font-weight:700}
     .calendarFab{
       position:fixed;
@@ -1687,13 +1687,15 @@
         <button class="bossIndexBtn" id="bossIndexBoss" data-boss-view="boss" type="button">보스</button>
         <button class="bossIndexBtn" id="bossIndexTodo" data-boss-view="todo" type="button">메할일</button>
       </div>
-      <div class="bossViewPanel" data-boss-panel="shortcuts">
-        <article class="card"><div class="divTitle">이번 주 현황</div><div class="bossSum bossSumV47"><div><span>보스 수</span><strong id="mainBossCount">0개</strong></div><div><span>예정 메소</span><strong id="mainBossExpectedTotal">0</strong></div><div><span>에픽던전</span><strong id="mainEpicSummary">0/0</strong></div><div><span>몬스터파크</span><strong id="mainParkSummary">0/0</strong></div></div></article>
-        <article class="card"><div class="divTitle">환산주스탯 바로가기<a class="sundayMapleLink" href="https://maplestory.nexon.com/News/Event" target="_blank" rel="noopener noreferrer">🍁 썬데이 메이플</a></div><div id="charLinkList" class="list"></div></article>
-      </div>
-      <div class="bossViewPanel" data-boss-panel="boss">
-        <article class="card"><div class="weekCard bossWeekNavCard"><div><span class="weekLabel">보스 주차</span><div class="bossWeekNav"><button class="weekArrow" id="bossPrevWeek" type="button" aria-label="이전 주">◀</button><strong id="bossWeekTitle">이번 주</strong><button class="weekArrow" id="bossNextWeek" type="button" aria-label="다음 주">▶</button></div></div><button class="icon" id="bossTodayWeek" type="button" aria-label="오늘 주차">↺</button></div><div class="bossTool"><button class="bossAction gen" id="generateBoss">선택 주차 생성</button><button class="bossAction setup" id="loadBossNotion" type="button">선택 주차 불러오기</button></div></article>
-        <article class="card"><div class="divTitle">이번 주 보스 체크<button class="bossAddCharBtn" id="addBossCharacter" type="button">+ 캐릭터</button></div><div class="bossSum bossSumV47"><div><span>보스 수</span><strong id="bossCount">0개</strong></div><div><span>예정 메소</span><strong id="bossExpectedTotal">0</strong></div><div><span>득템</span><strong id="bossLootTotal">0</strong></div><div><span>결정석</span><strong id="bossCrystalTotal">0</strong></div></div><div id="bossList"></div><p class="note">나중에 Worker API 연결 시 보스 체크 기록 DB에 실제 페이지 생성</p></article>
+      <div class="bossMainBossWrap">
+        <div class="bossViewPanel" data-boss-panel="shortcuts">
+          <article class="card"><div class="divTitle">이번 주 현황</div><div class="bossSum bossSumV47"><div><span>보스 수</span><strong id="mainBossCount">0개</strong></div><div><span>예정 메소</span><strong id="mainBossExpectedTotal">0</strong></div><div><span>에픽던전</span><strong id="mainEpicSummary">0/0</strong></div><div><span>몬스터파크</span><strong id="mainParkSummary">0/0</strong></div></div></article>
+          <article class="card"><div class="divTitle">환산주스탯 바로가기<a class="sundayMapleLink" href="https://maplestory.nexon.com/News/Event" target="_blank" rel="noopener noreferrer">🍁 썬데이 메이플</a></div><div id="charLinkList" class="list"></div></article>
+        </div>
+        <div class="bossViewPanel" data-boss-panel="boss">
+          <article class="card"><div class="weekCard bossWeekNavCard"><div><span class="weekLabel">보스 주차</span><div class="bossWeekNav"><button class="weekArrow" id="bossPrevWeek" type="button" aria-label="이전 주">◀</button><strong id="bossWeekTitle">이번 주</strong><button class="weekArrow" id="bossNextWeek" type="button" aria-label="다음 주">▶</button></div></div><button class="icon" id="bossTodayWeek" type="button" aria-label="오늘 주차">↺</button></div><div class="bossTool"><button class="bossAction gen" id="generateBoss">선택 주차 생성</button><button class="bossAction setup" id="loadBossNotion" type="button">선택 주차 불러오기</button></div></article>
+          <article class="card"><div class="divTitle">이번 주 보스 체크<button class="bossAddCharBtn" id="addBossCharacter" type="button">+ 캐릭터</button></div><div class="bossSum bossSumV47"><div><span>보스 수</span><strong id="bossCount">0개</strong></div><div><span>예정 메소</span><strong id="bossExpectedTotal">0</strong></div><div><span>득템</span><strong id="bossLootTotal">0</strong></div><div><span>결정석</span><strong id="bossCrystalTotal">0</strong></div></div><div id="bossList"></div><p class="note">나중에 Worker API 연결 시 보스 체크 기록 DB에 실제 페이지 생성</p></article>
+        </div>
       </div>
       <div class="bossViewPanel" data-boss-panel="todo">
         <article class="card">
@@ -4174,15 +4176,23 @@
           return;
         }
       });
-      function setBossView(view,persist=true){
+      function setBossView(view,persist=true,{scroll=true,behavior='smooth'}={}){
         bossActiveView=view;
         if(persist)try{localStorage.setItem(BOSS_VIEW_KEY,view)}catch{}
         $$('.bossIndexBtn').forEach(b=>b.classList.toggle('on',b.dataset.bossView===view));
-        $$('.bossViewPanel').forEach(p=>p.hidden=p.dataset.bossPanel!==view);
+        const isTodo=view==='todo';
+        const mainBossWrap=document.querySelector('.bossMainBossWrap');
+        if(mainBossWrap)mainBossWrap.hidden=isTodo;
+        const todoPanel=document.querySelector('[data-boss-panel="todo"]');
+        if(todoPanel)todoPanel.hidden=!isTodo;
+        if(!isTodo&&scroll&&window.innerWidth<960){
+          const target=document.querySelector(`[data-boss-panel="${view}"]`);
+          if(target)requestAnimationFrame(()=>target.scrollIntoView({behavior,block:'start'}));
+        }
         if(view==='todo')refreshAllMapleScheduler();
       }
       $$('.bossIndexBtn').forEach(b=>b.addEventListener('click',()=>setBossView(b.dataset.bossView)));
-      setBossView(bossActiveView);
+      setBossView(bossActiveView,true,{behavior:'auto'});
       $('#boss')?.addEventListener('click',e=>{
         const money=e.target.closest('[data-moneyvalue]');
         if(money){moneyDetail(money.dataset.moneylabel||'금액',money.dataset.moneyvalue||0);return}
@@ -4751,7 +4761,7 @@
       const isWidgetTabUrl=Boolean(urlTab&&document.getElementById(urlTab));
       const savedPage=isWidgetTabUrl?urlTab:(sessionStorage.getItem(ACTIVE_PAGE_KEY)||'dashboard');
       page(savedPage,{scroll:false,persist:!isWidgetTabUrl});
-      if(savedPage==='boss'&&urlBossView)setBossView(urlBossView,!isWidgetTabUrl);
+      if(savedPage==='boss'&&urlBossView)setBossView(urlBossView,!isWidgetTabUrl,{behavior:'auto'});
       if(hasPaperConfig()){setTimeout(()=>{loadProjectsFromWorker(true);loadCalendarFromWorker(true);loadDashboardTodayFromWorker();loadBossFromWorker(true);loadAnniversariesFromWorker()},300);if(urlSettings)setTimeout(()=>openSettings(),250)}else setTimeout(()=>openSettings(),250);window.addEventListener('resize',()=>{hideSchedulePopup();renderDetail()});console.assert($('#stickyMonthLabel'),'test: header month label exists');console.assert($$('.navBtn').length===4,'test: nav has 4 tabs');console.assert($('#calendarGrid'),'test: calendar grid exists');
     });
   </script>
