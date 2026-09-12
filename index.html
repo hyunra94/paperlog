@@ -208,9 +208,8 @@
       .chips{grid-template-columns:repeat(6,minmax(0,1fr));}
       /* 보스 탭: 태블릿 이상에서는 메인/보스 패널을 좌우로 나란히 배치 */
       #boss .bossMainBossWrap{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start;}
-      #boss .bossMainBossWrap [data-boss-panel="shortcuts"]{position:sticky;top:calc(var(--sticky-h) + 8px + env(safe-area-inset-top) + 72px);max-height:calc(100svh - var(--sticky-h) - 8px - env(safe-area-inset-top) - 72px - var(--nav) - 20px);overflow:auto;scrollbar-width:thin;}
-      #boss .bossMainBossWrap [data-boss-panel="shortcuts"]::-webkit-scrollbar{width:6px;}
-      #boss .bossMainBossWrap [data-boss-panel="shortcuts"]::-webkit-scrollbar-thumb{background:rgba(47,42,40,.25);border-radius:999px;}
+      #boss .bossMainBossWrap [data-boss-panel="shortcuts"]{position:sticky;top:calc(var(--sticky-h) + 8px + env(safe-area-inset-top) + 72px);max-height:calc(100svh - var(--sticky-h) - 8px - env(safe-area-inset-top) - 72px - var(--nav) - 20px);overflow:auto;scrollbar-width:none;-ms-overflow-style:none;}
+      #boss .bossMainBossWrap [data-boss-panel="shortcuts"]::-webkit-scrollbar{display:none;width:0;height:0;}
     }
 
     @media (min-width:1180px){
@@ -4177,10 +4176,19 @@
           return;
         }
       });
+      function syncBossIndexBtns(){
+        const isTodo=bossActiveView==='todo';
+        const isWide=window.innerWidth>=960;
+        $$('.bossIndexBtn').forEach(b=>{
+          const bv=b.dataset.bossView;
+          const active=isTodo?bv==='todo':(isWide?bv!=='todo':bv===bossActiveView);
+          b.classList.toggle('on',active);
+        });
+      }
       function setBossView(view,persist=true,{scroll=true,behavior='smooth'}={}){
         bossActiveView=view;
         if(persist)try{localStorage.setItem(BOSS_VIEW_KEY,view)}catch{}
-        $$('.bossIndexBtn').forEach(b=>b.classList.toggle('on',b.dataset.bossView===view));
+        syncBossIndexBtns();
         const isTodo=view==='todo';
         const mainBossWrap=document.querySelector('.bossMainBossWrap');
         if(mainBossWrap)mainBossWrap.hidden=isTodo;
@@ -4193,6 +4201,7 @@
         if(view==='todo')refreshAllMapleScheduler();
       }
       $$('.bossIndexBtn').forEach(b=>b.addEventListener('click',()=>setBossView(b.dataset.bossView)));
+      window.addEventListener('resize',syncBossIndexBtns);
       setBossView(bossActiveView,true,{behavior:'auto'});
       $('#boss')?.addEventListener('click',e=>{
         const money=e.target.closest('[data-moneyvalue]');
