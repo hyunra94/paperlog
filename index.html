@@ -2655,14 +2655,17 @@
       }
       const WORK_CATEGORY_PROJECT_NAMES=['재직자 교육(2026)','KHP','공모전','공유개방','VR 체험버스'];
       function maybeAutoSetWorkCategory(){
-        if(!$('#addSchedule')?.checked)return;
         const projectId=$('#entryProject')?.value||'';
         if(!projectId)return;
         const project=projectOptions.find(p=>p.id===projectId);
         if(!project)return;
-        if(WORK_CATEGORY_PROJECT_NAMES.includes(String(project.title||'').trim())){
+        const isWorkProject=WORK_CATEGORY_PROJECT_NAMES.includes(String(project.title||'').trim());
+        if($('#addSchedule')?.checked&&isWorkProject){
           setCategoryValue('업무일정');
           updateAppointmentTargetVisibility();
+        }
+        if($('#addTodo')?.checked&&isWorkProject){
+          $('#entryDone')&&($('#entryDone').value='work');
         }
       }
       const CATEGORY_PRESETS=['약속','업무일정','개인일정','기념일','공휴일','으르렁데이'];
@@ -2933,7 +2936,8 @@
         $('#entryEndDate').value='';
         populateProjectSelect();
         const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
-        $('#entryDone')&&($('#entryDone').value='work');
+        $('#entryDone')&&($('#entryDone').value='personal');
+        selectPersonalProject();
         $('#addSchedule').checked=false;
         $('#addTodo').checked=false;
         $('#addDaily')&&($('#addDaily').checked=false);
