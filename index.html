@@ -2228,6 +2228,7 @@
       let showLocalShortcuts=false;
       const BOSS_VIEW_KEY='paperLogBossView';
       let bossActiveView=(()=>{try{return localStorage.getItem(BOSS_VIEW_KEY)||'boss'}catch{return 'boss'}})();
+      let bossScrollSpySuspended=false;
       const HIDDEN_CHAR_KEY='paperLogHiddenBossChars';
       function getHiddenCharIdSet(){try{return new Set(JSON.parse(localStorage.getItem(HIDDEN_CHAR_KEY)||'[]'))}catch{return new Set()}}
       function setHiddenCharIdSet(set){try{localStorage.setItem(HIDDEN_CHAR_KEY,JSON.stringify([...set]))}catch(e){console.warn('숨긴 캐릭터 저장 실패',e)}}
@@ -4196,13 +4197,39 @@
         if(todoPanel)todoPanel.hidden=!isTodo;
         if(!isTodo&&scroll&&window.innerWidth<960){
           const target=document.querySelector(`[data-boss-panel="${view}"]`);
-          if(target)requestAnimationFrame(()=>target.scrollIntoView({behavior,block:'start'}));
+          if(target){
+            bossScrollSpySuspended=true;
+            requestAnimationFrame(()=>{
+              target.scrollIntoView({behavior,block:'start'});
+              const resume=()=>{bossScrollSpySuspended=false;window.removeEventListener('scrollend',resume)};
+              window.addEventListener('scrollend',resume,{once:true});
+              setTimeout(resume,700);
+            });
+          }
         }
         if(view==='todo')refreshAllMapleScheduler();
       }
       $$('.bossIndexBtn').forEach(b=>b.addEventListener('click',()=>setBossView(b.dataset.bossView)));
       window.addEventListener('resize',syncBossIndexBtns);
       setBossView(bossActiveView,true,{behavior:'auto'});
+      function highlightBossView(view){
+        if(view===bossActiveView||bossScrollSpySuspended||window.innerWidth>=960)return;
+        bossActiveView=view;
+        try{localStorage.setItem(BOSS_VIEW_KEY,view)}catch{}
+        syncBossIndexBtns();
+      }
+      (()=>{
+        const stickyH=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sticky-h'))||132;
+        const topOffset=Math.round(stickyH+90);
+        const bossSpyObserver=new IntersectionObserver(entries=>{
+          if(bossScrollSpySuspended)return;
+          entries.forEach(entry=>{if(entry.isIntersecting)highlightBossView(entry.target.dataset.bossPanel)});
+        },{rootMargin:`-${topOffset}px 0px -55% 0px`,threshold:0});
+        ['shortcuts','boss'].forEach(v=>{
+          const el=document.querySelector(`[data-boss-panel="${v}"]`);
+          if(el)bossSpyObserver.observe(el);
+        });
+      })();
       $('#boss')?.addEventListener('click',e=>{
         const money=e.target.closest('[data-moneyvalue]');
         if(money){moneyDetail(money.dataset.moneylabel||'금액',money.dataset.moneyvalue||0);return}
