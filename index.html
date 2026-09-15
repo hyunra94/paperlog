@@ -208,7 +208,7 @@
       .chips{grid-template-columns:repeat(6,minmax(0,1fr));}
       /* 보스 탭: 태블릿 이상에서는 메인/보스 패널을 좌우로 나란히 배치 */
       #boss .bossMainBossWrap{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start;}
-      #boss .bossMainBossWrap [data-boss-panel="shortcuts"]{position:sticky;top:calc(var(--sticky-h) + 8px + env(safe-area-inset-top) + 72px);max-height:calc(100svh - var(--sticky-h) - 8px - env(safe-area-inset-top) - 72px - var(--nav) - 20px);overflow:auto;scrollbar-width:none;-ms-overflow-style:none;}
+      #boss .bossMainBossWrap [data-boss-panel="shortcuts"]{position:sticky;top:calc(var(--sticky-h) + 8px + env(safe-area-inset-top) + 72px);overflow:auto;scrollbar-width:none;-ms-overflow-style:none;}
       #boss .bossMainBossWrap [data-boss-panel="shortcuts"]::-webkit-scrollbar{display:none;width:0;height:0;}
     }
 
@@ -357,6 +357,8 @@
     .bossIndexBtn.on{background:var(--yellow)}
     .bossIndexBtn.soon{opacity:.55;font-size:15px}
     .bossViewPanel[hidden],.bossMainBossWrap[hidden]{display:none!important}
+    .bossShortcutsScrollThumb{position:absolute;top:0;right:3px;width:4px;border-radius:999px;background:rgba(47,42,40,.32);opacity:0;transition:opacity .25s ease;pointer-events:none;z-index:5}
+    .bossShortcutsScrollThumb.show{opacity:1}
     .bossViewPanel,.bossCard{scroll-margin-top:calc(var(--sticky-h) + 8px + env(safe-area-inset-top) + 72px)}
     .bossTool .bossAction{font-size:13px;padding:9px 4px;white-space:nowrap;font-family:'Gowun Dodum',sans-serif;font-weight:700}
     .calendarFab{
@@ -1691,6 +1693,7 @@
       </div>
       <div class="bossMainBossWrap">
         <div class="bossViewPanel" data-boss-panel="shortcuts">
+          <div class="bossShortcutsScrollThumb" id="bossShortcutsScrollThumb" aria-hidden="true"></div>
           <article class="card"><div class="divTitle">이번 주 현황</div><div class="bossSum bossSumV47" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div><span>에픽던전</span><strong id="mainEpicSummary">0/0</strong></div><div><span>몬스터파크</span><strong id="mainParkSummary">0/0</strong></div></div></article>
           <article class="card"><div class="divTitle">환산주스탯 바로가기<a class="sundayMapleLink" href="https://maplestory.nexon.com/News/Event" target="_blank" rel="noopener noreferrer">🍁 썬데이 메이플</a></div><div id="charLinkList" class="list"></div></article>
         </div>
@@ -2558,7 +2561,7 @@
         if(options.scroll!==false)scrollTo({top:0,behavior:'smooth'});
         if(id==='calendar')setTimeout(()=>loadCalendarFromWorker(true),180);
         if(id==='budget')setTimeout(()=>window.paperMoney?.load?.(true),260);
-        if(id==='boss')setTimeout(()=>loadBossFromWorker(true),220);
+        if(id==='boss'){setTimeout(()=>loadBossFromWorker(true),220);requestAnimationFrame(()=>requestAnimationFrame(syncBossShortcutsMaxHeight));setTimeout(syncBossShortcutsMaxHeight,300);}
       }
       let pageDragBusy=false;
       function neighborPageId(dir){
@@ -4195,6 +4198,7 @@
         if(mainBossWrap)mainBossWrap.hidden=isTodo;
         const todoPanel=document.querySelector('[data-boss-panel="todo"]');
         if(todoPanel)todoPanel.hidden=!isTodo;
+        if(!isTodo){requestAnimationFrame(()=>requestAnimationFrame(syncBossShortcutsMaxHeight));setTimeout(syncBossShortcutsMaxHeight,300);}
         if(!isTodo&&scroll&&window.innerWidth<960){
           const target=document.querySelector(`[data-boss-panel="${view}"]`);
           if(target){
@@ -4229,6 +4233,44 @@
           const el=document.querySelector(`[data-boss-panel="${v}"]`);
           if(el)bossSpyObserver.observe(el);
         });
+      })();
+      let bossShortcutsLastMaxH=null;
+      function syncBossShortcutsMaxHeight(){
+        const panel=document.querySelector('.bossMainBossWrap [data-boss-panel="shortcuts"]');
+        const nav=document.querySelector('.nav');
+        if(!panel||!nav||window.innerWidth<960||panel.offsetParent===null){if(panel)panel.style.maxHeight='';bossShortcutsLastMaxH=null;return}
+        const navTop=nav.getBoundingClientRect().top;
+        const panelTop=panel.getBoundingClientRect().top;
+        const h=Math.max(120,Math.round(navTop-panelTop-16));
+        if(h===bossShortcutsLastMaxH)return;
+        bossShortcutsLastMaxH=h;
+        panel.style.maxHeight=h+'px';
+      }
+      window.addEventListener('scroll',syncBossShortcutsMaxHeight,{passive:true});
+      window.addEventListener('resize',syncBossShortcutsMaxHeight);
+      (()=>{
+        const panel=document.querySelector('.bossMainBossWrap [data-boss-panel="shortcuts"]');
+        if(panel&&typeof ResizeObserver!=='undefined')new ResizeObserver(syncBossShortcutsMaxHeight).observe(panel);
+      })();
+      syncBossShortcutsMaxHeight();
+      (()=>{
+        const panel=document.querySelector('.bossMainBossWrap [data-boss-panel="shortcuts"]');
+        const thumb=$('#bossShortcutsScrollThumb');
+        if(!panel||!thumb)return;
+        let hideTimer=null;
+        const update=()=>{
+          const {scrollTop,scrollHeight,clientHeight}=panel;
+          if(scrollHeight<=clientHeight+1){thumb.classList.remove('show');return}
+          const thumbH=Math.max(24,clientHeight*(clientHeight/scrollHeight));
+          const top=(scrollTop/(scrollHeight-clientHeight))*(clientHeight-thumbH);
+          thumb.style.height=thumbH+'px';
+          thumb.style.top=top+'px';
+          thumb.classList.add('show');
+          clearTimeout(hideTimer);
+          hideTimer=setTimeout(()=>thumb.classList.remove('show'),700);
+        };
+        panel.addEventListener('scroll',update,{passive:true});
+        window.addEventListener('resize',update);
       })();
       $('#boss')?.addEventListener('click',e=>{
         const money=e.target.closest('[data-moneyvalue]');
