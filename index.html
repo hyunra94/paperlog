@@ -382,6 +382,29 @@
     @media (min-width:700px){
       .calendarFab{right:calc((100vw - var(--app-max))/2 + 32px);bottom:calc(var(--nav) + 30px)}
     }
+    .scrollTopFab{
+      position:fixed;
+      left:calc(18px + env(safe-area-inset-left));
+      bottom:calc(var(--nav) + 26px + env(safe-area-inset-bottom));
+      z-index:46;
+      width:44px;
+      height:44px;
+      border:1.6px solid var(--line);
+      border-radius:999px;
+      background:rgba(255,253,247,.95);
+      box-shadow:3px 3px 0 rgba(47,42,40,.14),0 8px 20px rgba(47,42,40,.12);
+      display:grid;
+      place-items:center;
+      color:var(--ink);
+      opacity:0;
+      transform:translateY(6px);
+      pointer-events:none;
+      transition:opacity .2s ease,transform .2s ease;
+    }
+    .scrollTopFab.show{opacity:1;transform:translateY(0);pointer-events:auto}
+    @media (min-width:700px){
+      .scrollTopFab{left:calc((100vw - var(--app-max))/2 + 32px);bottom:calc(var(--nav) + 30px)}
+    }
     @media (min-width:960px){
       .calendarTopBar{grid-column:1/-1}
       .calendarFab{right:calc((100vw - var(--app-max))/2 + 40px)}
@@ -2012,6 +2035,7 @@
   </main>
 
   <nav class="nav"><button class="navBtn on" data-target="dashboard"><svg viewBox="0 0 24 24"><path d="M5 5.5h14v13H5z"/><path d="M8 9h8M8 12h5M8 15h7"/></svg><span>Home</span></button><button class="navBtn" data-target="calendar"><svg viewBox="0 0 24 24"><path d="M5 6h14v13H5z"/><path d="M8 4v4M16 4v4M5 10h14"/><path d="M8 13h2M12 13h2M16 13h2"/></svg><span>Calendar</span></button><button class="navBtn" data-target="budget"><svg viewBox="0 0 24 24"><path d="M5 8h14v10H5z"/><path d="M7 8V6h9v2"/><path d="M15.5 13.5h2"/></svg><span>Money</span></button><button class="navBtn" data-target="boss"><svg viewBox="0 0 24 24"><path d="M6 9l2-4 4 3 4-3 2 4"/><path d="M7 10h10l-1 8H8z"/><path d="M10 13h.1M14 13h.1"/></svg><span>Boss</span></button></nav>
+  <button class="scrollTopFab" id="scrollTopFab" type="button" aria-label="맨 위로"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 14l6-6 6 6"/></svg></button>
 
   <script>
     document.addEventListener('DOMContentLoaded',()=>{
@@ -3805,6 +3829,14 @@
         return [...monthly,...eventWeekly,...weekly];
       }
       $$('.navBtn').forEach(b=>b.onclick=()=>page(b.dataset.target));$$('.jump').forEach(b=>b.onclick=()=>page(b.dataset.target));$$('[data-scroll]').forEach(b=>b.onclick=()=>document.getElementById(b.dataset.scroll).scrollIntoView({behavior:'smooth'}));
+      (()=>{
+        const fab=$('#scrollTopFab');
+        if(!fab)return;
+        const sync=()=>fab.classList.toggle('show',window.scrollY>400);
+        window.addEventListener('scroll',sync,{passive:true});
+        fab.onclick=()=>window.scrollTo({top:0,behavior:'smooth'});
+        sync();
+      })();
       (function initTabSwipe(){
         let sx=0,sy=0,st=0,tracking=false,dragging=false,dragDir=0,w=0;
         const GAP=14;
