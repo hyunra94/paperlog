@@ -3175,7 +3175,7 @@
       function getBossMultiplier(key){return Number(bossMultipliers[key])||1}
       function setBossMultiplier(key,n){bossMultipliers[key]=Math.max(1,n);saveBossMultipliers(bossMultipliers)}
       function isTotalCharRecord(r){return chars.find(c=>c.id===r.charId)?.name==='총합'}
-      function bossMultiplierKey(r){return `${r.charId}_${r.bossId}`}
+      function bossMultiplierKey(r){return `${r.charId}_${r.bossId}_${bossPeriodKey(r)}`}
       function crystalValue(r){const mult=isTotalCharRecord(r)?getBossMultiplier(bossMultiplierKey(r)):1;return Math.floor(Number(r.price||0)/bossDivisor(r)*mult)}
       function lootValue(r){return parseBossLoot(r.memo||r.lootMemo||'')}
       function recordValue(r){return crystalValue(r)}
