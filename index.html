@@ -208,8 +208,9 @@
       .chips{grid-template-columns:repeat(6,minmax(0,1fr));}
       /* 보스 탭: 태블릿 이상에서는 메인/보스 패널을 좌우로 나란히 배치 */
       #boss .bossMainBossWrap{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start;}
-      #boss .bossMainBossWrap [data-boss-panel="shortcuts"]{position:sticky;top:calc(var(--sticky-h) + 8px + env(safe-area-inset-top) + 72px);overflow:auto;scrollbar-width:none;-ms-overflow-style:none;}
-      #boss .bossMainBossWrap [data-boss-panel="shortcuts"]::-webkit-scrollbar{display:none;width:0;height:0;}
+      #boss .bossTopBar{padding-left:0;padding-right:0;gap:14px}
+      #boss .bossMainBossWrap [data-boss-panel]{position:sticky;top:calc(var(--sticky-h) + 8px + env(safe-area-inset-top) + 72px);overflow:auto;scrollbar-width:none;-ms-overflow-style:none;}
+      #boss .bossMainBossWrap [data-boss-panel]::-webkit-scrollbar{display:none;width:0;height:0;}
     }
 
     @media (min-width:1180px){
@@ -357,8 +358,8 @@
     .bossIndexBtn.on{background:var(--yellow)}
     .bossIndexBtn.soon{opacity:.55;font-size:15px}
     .bossViewPanel[hidden],.bossMainBossWrap[hidden]{display:none!important}
-    .bossShortcutsScrollThumb{position:absolute;top:0;right:3px;width:4px;border-radius:999px;background:rgba(47,42,40,.32);opacity:0;transition:opacity .25s ease;pointer-events:none;z-index:5}
-    .bossShortcutsScrollThumb.show{opacity:1}
+    .bossPanelScrollThumb{position:absolute;top:0;right:3px;width:4px;border-radius:999px;background:rgba(47,42,40,.32);opacity:0;transition:opacity .25s ease;pointer-events:none;z-index:5}
+    .bossPanelScrollThumb.show{opacity:1}
     .bossViewPanel,.bossCard{scroll-margin-top:calc(var(--sticky-h) + 8px + env(safe-area-inset-top) + 72px)}
     .bossTool .bossAction{font-size:13px;padding:9px 4px;white-space:nowrap;font-family:'Gowun Dodum',sans-serif;font-weight:700}
     .calendarFab{
@@ -1716,11 +1717,12 @@
       </div>
       <div class="bossMainBossWrap">
         <div class="bossViewPanel" data-boss-panel="shortcuts">
-          <div class="bossShortcutsScrollThumb" id="bossShortcutsScrollThumb" aria-hidden="true"></div>
+          <div class="bossPanelScrollThumb" data-boss-panel-thumb="shortcuts" aria-hidden="true"></div>
           <article class="card"><div class="divTitle">이번 주 현황</div><div class="bossSum bossSumV47" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div><span>에픽던전</span><strong id="mainEpicSummary">0/0</strong></div><div><span>몬스터파크</span><strong id="mainParkSummary">0/0</strong></div></div></article>
           <article class="card"><div class="divTitle">환산주스탯 바로가기<a class="sundayMapleLink" href="https://maplestory.nexon.com/News/Event" target="_blank" rel="noopener noreferrer">🍁 썬데이 메이플</a></div><div id="charLinkList" class="list"></div></article>
         </div>
         <div class="bossViewPanel" data-boss-panel="boss">
+          <div class="bossPanelScrollThumb" data-boss-panel-thumb="boss" aria-hidden="true"></div>
           <article class="card"><div class="weekCard bossWeekNavCard"><div><span class="weekLabel">보스 주차</span><div class="bossWeekNav"><button class="weekArrow" id="bossPrevWeek" type="button" aria-label="이전 주">◀</button><strong id="bossWeekTitle">이번 주</strong><button class="weekArrow" id="bossNextWeek" type="button" aria-label="다음 주">▶</button></div></div><button class="icon" id="bossTodayWeek" type="button" aria-label="오늘 주차">↺</button></div><div class="bossTool"><button class="bossAction gen" id="generateBoss">선택 주차 생성</button><button class="bossAction setup" id="loadBossNotion" type="button">선택 주차 불러오기</button></div></article>
           <article class="card"><div class="divTitle">이번 주 보스 체크<button class="bossAddCharBtn" id="addBossCharacter" type="button">+ 캐릭터</button></div><div class="bossSum bossSumV47"><div><span>보스 수</span><strong id="bossCount">0개</strong></div><div><span>예정 메소</span><strong id="bossExpectedTotal">0</strong></div><div><span>득템</span><strong id="bossLootTotal">0</strong></div><div><span>결정석</span><strong id="bossCrystalTotal">0</strong></div></div><div id="bossList"></div><p class="note">나중에 Worker API 연결 시 보스 체크 기록 DB에 실제 페이지 생성</p></article>
         </div>
@@ -2585,7 +2587,7 @@
         if(options.scroll!==false)scrollTo({top:0,behavior:'smooth'});
         if(id==='calendar')setTimeout(()=>loadCalendarFromWorker(true),180);
         if(id==='budget')setTimeout(()=>window.paperMoney?.load?.(true),260);
-        if(id==='boss'){setTimeout(()=>loadBossFromWorker(true),220);requestAnimationFrame(()=>requestAnimationFrame(syncBossShortcutsMaxHeight));setTimeout(syncBossShortcutsMaxHeight,300);}
+        if(id==='boss'){setTimeout(()=>loadBossFromWorker(true),220);requestAnimationFrame(()=>requestAnimationFrame(()=>{syncBossPanelMaxHeights();syncBossTopBarAlignment();}));setTimeout(()=>{syncBossPanelMaxHeights();syncBossTopBarAlignment();},300);}
       }
       let pageDragBusy=false;
       function neighborPageId(dir){
@@ -3797,7 +3799,8 @@
         const{type,id}=editingCalendarRecord;
         if(type!=='schedule'&&type!=='todo')return;
         const list=type==='schedule'?state.schedules:state.tasks;
-        const items=list.filter(x=>x.id===id);
+        const dashList=type==='schedule'?dashboardTodaySchedules:dashboardTodayTodos;
+        const items=[...list.filter(x=>x.id===id),...(dashList||[]).filter(x=>x.id===id)];
         if(!items.length)return;
         const prev=!!items[0].canceled,next=!prev;
         items.forEach(x=>x.canceled=next);
@@ -4230,7 +4233,7 @@
         if(mainBossWrap)mainBossWrap.hidden=isTodo;
         const todoPanel=document.querySelector('[data-boss-panel="todo"]');
         if(todoPanel)todoPanel.hidden=!isTodo;
-        if(!isTodo){requestAnimationFrame(()=>requestAnimationFrame(syncBossShortcutsMaxHeight));setTimeout(syncBossShortcutsMaxHeight,300);}
+        if(!isTodo){requestAnimationFrame(()=>requestAnimationFrame(()=>{syncBossPanelMaxHeights();syncBossTopBarAlignment();}));setTimeout(()=>{syncBossPanelMaxHeights();syncBossTopBarAlignment();},300);}
         if(!isTodo&&scroll&&window.innerWidth<960){
           const target=document.querySelector(`[data-boss-panel="${view}"]`);
           if(target){
@@ -4266,28 +4269,54 @@
           if(el)bossSpyObserver.observe(el);
         });
       })();
-      let bossShortcutsLastMaxH=null;
-      function syncBossShortcutsMaxHeight(){
-        const panel=document.querySelector('.bossMainBossWrap [data-boss-panel="shortcuts"]');
+      const bossPanelLastMaxH={};
+      function syncBossPanelMaxHeights(){
         const nav=document.querySelector('.nav');
-        if(!panel||!nav||window.innerWidth<960||panel.offsetParent===null){if(panel)panel.style.maxHeight='';bossShortcutsLastMaxH=null;return}
-        const navTop=nav.getBoundingClientRect().top;
-        const panelTop=panel.getBoundingClientRect().top;
-        const h=Math.max(120,Math.round(navTop-panelTop-16));
-        if(h===bossShortcutsLastMaxH)return;
-        bossShortcutsLastMaxH=h;
-        panel.style.maxHeight=h+'px';
+        ['shortcuts','boss'].forEach(v=>{
+          const panel=document.querySelector(`.bossMainBossWrap [data-boss-panel="${v}"]`);
+          if(!panel)return;
+          if(!nav||window.innerWidth<960||panel.offsetParent===null){panel.style.maxHeight='';bossPanelLastMaxH[v]=null;return}
+          const navTop=nav.getBoundingClientRect().top;
+          const panelTop=panel.getBoundingClientRect().top;
+          const h=Math.max(120,Math.round(navTop-panelTop-16));
+          if(h===bossPanelLastMaxH[v])return;
+          bossPanelLastMaxH[v]=h;
+          panel.style.maxHeight=h+'px';
+        });
       }
-      window.addEventListener('scroll',syncBossShortcutsMaxHeight,{passive:true});
-      window.addEventListener('resize',syncBossShortcutsMaxHeight);
+      function syncBossTopBarAlignment(){
+        const bar=document.querySelector('.bossTopBar');
+        const shortcuts=document.querySelector('.bossMainBossWrap [data-boss-panel="shortcuts"]');
+        const boss=document.querySelector('.bossMainBossWrap [data-boss-panel="boss"]');
+        const todoBtn=document.getElementById('bossIndexTodo');
+        if(!bar)return;
+        if(!shortcuts||!boss||!todoBtn||window.innerWidth<960||shortcuts.offsetParent===null){bar.style.gridTemplateColumns='';return}
+        bar.style.gridTemplateColumns='';
+        const todoW=Math.ceil(todoBtn.getBoundingClientRect().width);
+        const barGap=parseFloat(getComputedStyle(bar).columnGap)||14;
+        const contentSW=shortcuts.getBoundingClientRect().width;
+        const contentBW=boss.getBoundingClientRect().width;
+        const ratio=(contentSW+contentBW)>0?contentSW/(contentSW+contentBW):0.5;
+        const available=Math.max(160,bar.clientWidth-todoW-barGap*2);
+        const mainW=Math.round(available*ratio);
+        const bossW=Math.round(available-mainW);
+        bar.style.gridTemplateColumns=`${mainW}px ${bossW}px ${todoW}px`;
+      }
+      window.addEventListener('scroll',syncBossPanelMaxHeights,{passive:true});
+      window.addEventListener('resize',()=>{syncBossPanelMaxHeights();syncBossTopBarAlignment();});
       (()=>{
-        const panel=document.querySelector('.bossMainBossWrap [data-boss-panel="shortcuts"]');
-        if(panel&&typeof ResizeObserver!=='undefined')new ResizeObserver(syncBossShortcutsMaxHeight).observe(panel);
+        if(typeof ResizeObserver==='undefined')return;
+        const ro=new ResizeObserver(()=>{syncBossPanelMaxHeights();syncBossTopBarAlignment();});
+        ['shortcuts','boss'].forEach(v=>{
+          const panel=document.querySelector(`.bossMainBossWrap [data-boss-panel="${v}"]`);
+          if(panel)ro.observe(panel);
+        });
       })();
-      syncBossShortcutsMaxHeight();
-      (()=>{
-        const panel=document.querySelector('.bossMainBossWrap [data-boss-panel="shortcuts"]');
-        const thumb=$('#bossShortcutsScrollThumb');
+      syncBossPanelMaxHeights();
+      syncBossTopBarAlignment();
+      ['shortcuts','boss'].forEach(v=>{
+        const panel=document.querySelector(`.bossMainBossWrap [data-boss-panel="${v}"]`);
+        const thumb=document.querySelector(`[data-boss-panel-thumb="${v}"]`);
         if(!panel||!thumb)return;
         let hideTimer=null;
         const update=()=>{
@@ -4303,7 +4332,7 @@
         };
         panel.addEventListener('scroll',update,{passive:true});
         window.addEventListener('resize',update);
-      })();
+      });
       $('#boss')?.addEventListener('click',e=>{
         const money=e.target.closest('[data-moneyvalue]');
         if(money){moneyDetail(money.dataset.moneylabel||'금액',money.dataset.moneyvalue||0);return}
