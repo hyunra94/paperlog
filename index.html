@@ -2488,8 +2488,23 @@
         }catch(e){console.warn('미사용 보스 저장 실패',e)}
       }
       function localShortcutAnchorCharId(){return chars.find(c=>c.name==='총합')?.id||''}
+      function pruneLowBossIds(){
+        if(!bosses.length)return;
+        try{
+          const validIds=new Set(bosses.map(b=>b.id));
+          const all=JSON.parse(localStorage.getItem(LOW_BOSS_IDS_KEY)||'{}');
+          let changed=false;
+          Object.keys(all).forEach(cid=>{
+            const pruned=(all[cid]||[]).filter(id=>validIds.has(id));
+            if(pruned.length!==all[cid].length){all[cid]=pruned;changed=true}
+          });
+          if(changed)localStorage.setItem(LOW_BOSS_IDS_KEY,JSON.stringify(all));
+        }catch(e){console.warn('미사용 보스 정리 실패',e)}
+      }
       function bossSettingMemoPayload(charId){
-        const payload={low:[...getLowBossIdsSet(charId)],hidden:getHiddenCharIdSet().has(charId)};
+        const validIds=new Set(bosses.map(b=>b.id));
+        const low=[...getLowBossIdsSet(charId)].filter(id=>validIds.has(id));
+        const payload={low,hidden:getHiddenCharIdSet().has(charId)};
         if(charId&&charId===localShortcutAnchorCharId())payload.localShortcuts=getLocalShortcuts();
         return JSON.stringify(payload);
       }
@@ -3530,6 +3545,7 @@
           }
           if(Array.isArray(data.crystals)&&data.crystals.length){
             bosses.splice(0,bosses.length,...data.crystals.filter(c=>!String(c.name||'').includes('키링')&&!String(c.family||'').includes('키링')).map(c=>({id:c.id,name:c.name,family:bossFamilyName(c)||c.family||'보스',cycle:c.cycle||bossCycleByName(c.name),price:Number(c.price||0),source:'notion'})));
+            pruneLowBossIds();
           }
           Object.keys(bossSet).forEach(k=>delete bossSet[k]);
           if(Array.isArray(data.setups)){
