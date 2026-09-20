@@ -3395,11 +3395,13 @@
         const crystalRows=rows.filter(r=>!noCrystal(r));
         const checkedRows=crystalRows.filter(r=>r.clear);
         const crystalTotal=checkedRows.reduce((a,b)=>a+crystalValue(b),0);
-        const expectedTotal=rows.reduce((a,b)=>a+crystalValue(b),0);
+        const isMonthlyRowSum=r=>(r.cycle||bossCycleByName(r.name||r.family))==='monthly';
+        const expectedWeekly=rows.filter(r=>!isMonthlyRowSum(r)).reduce((a,b)=>a+crystalValue(b),0);
+        const expectedMonthly=rows.filter(isMonthlyRowSum).reduce((a,b)=>a+crystalValue(b),0);
         const visibleCharIds=[...new Set(rows.map(r=>r.charId))];
         const lootTotal=visibleCharIds.reduce((a,cid)=>a+charLootValue(cid),0);
         $('#bossCount').textContent=`${checkedRows.length}/${crystalRows.length}개`;
-        $('#bossExpectedTotal')&&($('#bossExpectedTotal').innerHTML=`<span class="bossMoneyBrief" data-bossexpecteddetail="1">${briefMoney(expectedTotal)}</span>`);
+        $('#bossExpectedTotal')&&($('#bossExpectedTotal').innerHTML=`<span style="display:flex;flex-direction:column;gap:2px;line-height:1.25;align-items:center;"><span style="font-family:'Gaegu';font-size:16px;font-weight:700;">주간 ${briefMoney(expectedWeekly)}</span><span class="bossMoneyBrief" data-bossexpecteddetail="1" style="font-size:16px;">월간 ${briefMoney(expectedMonthly)}</span></span>`);
         $('#mainEpicSummary')&&($('#mainEpicSummary').textContent=mapleEpicSummaryText());
         $('#mainParkSummary')&&($('#mainParkSummary').textContent=mapleParkSummaryText());
         $('#bossLootTotal')&&($('#bossLootTotal').innerHTML=`<span class="bossMoneyBrief" data-bosslootsummary="1">${briefMoney(lootTotal)}</span>`);
