@@ -3235,7 +3235,6 @@
         const noCrystal=r=>String(r.name||'').includes('메이린')||String(r.family||'').includes('메이린');
         const rows=bossSummaryVisibleRows().filter(r=>!noCrystal(r));
         const isMonthlyRow=r=>(r.cycle||bossCycleByName(r.name||r.family))==='monthly';
-        const weeklyRows=rows.filter(r=>!isMonthlyRow(r));
         const monthlyRows=rows.filter(isMonthlyRow);
         const sumOf=list=>list.reduce((a,b)=>a+crystalValue(b),0);
         const groupFor=(title,list)=>{
@@ -3246,8 +3245,8 @@
           });
           return {title:`${title} · 합계 ${won(sumOf(list))}`,items};
         };
-        const groups=[groupFor('주간 보스',weeklyRows),groupFor('월간 보스',monthlyRows)].filter(Boolean);
-        openBossSummarySheet('예정 메소',groups.length?bossSummaryGroupsHtml(groups):'<p class="bossSummaryEmpty">등록된 보스가 없어요.</p>');
+        const groups=[groupFor('월간 보스',monthlyRows)].filter(Boolean);
+        openBossSummarySheet('월간 보스 예정 메소',groups.length?bossSummaryGroupsHtml(groups):'<p class="bossSummaryEmpty">등록된 월간 보스가 없어요.</p>');
       }
       function showBossCrystalPendingDetail(){
         const noCrystal=r=>String(r.name||'').includes('메이린')||String(r.family||'').includes('메이린');
