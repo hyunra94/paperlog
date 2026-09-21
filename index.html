@@ -3247,6 +3247,19 @@
         const html=weeklyHtml+monthlyHtml;
         openBossSummarySheet('예정 메소',html||'<p class="bossSummaryEmpty">등록된 보스가 없어요.</p>');
       }
+      function showCharBossDetail(cid){
+        const noCrystal=r=>String(r.name||'').includes('메이린')||String(r.family||'').includes('메이린');
+        const rs=bossRecords.filter(r=>r.charId===cid&&!noCrystal(r));
+        const charName=chars.find(c=>c.id===cid)?.name||rs[0]?.charName||'캐릭터';
+        const clearedRows=rs.filter(r=>r.clear);
+        const pendingRows=rs.filter(r=>!r.clear);
+        const sumOf=list=>list.reduce((a,b)=>a+crystalValue(b),0);
+        const itemsHtml=list=>list.map(r=>`<li>${r.name||bossFamilyName(r)} — ${won(crystalValue(r))}</li>`).join('');
+        const clearedHtml=clearedRows.length?`<div class="bossSummaryGroup"><div class="bossSummaryGroupTitle">결정석(획득) · 합계 ${won(sumOf(clearedRows))}</div><ul class="bossSummaryGroupList">${itemsHtml(clearedRows)}</ul></div>`:'';
+        const pendingHtml=pendingRows.length?`<div class="bossSummaryGroup"><div class="bossSummaryGroupTitle">예정(미획득) · 합계 ${won(sumOf(pendingRows))}</div><ul class="bossSummaryGroupList">${itemsHtml(pendingRows)}</ul></div>`:'';
+        const html=clearedHtml+pendingHtml;
+        openBossSummarySheet(`${charName} 결정석 현황`,html||'<p class="bossSummaryEmpty">등록된 보스가 없어요.</p>');
+      }
       function showBossCrystalPendingDetail(){
         const noCrystal=r=>String(r.name||'').includes('메이린')||String(r.family||'').includes('메이린');
         const rows=bossSummaryVisibleRows().filter(r=>!noCrystal(r));
@@ -3413,14 +3426,15 @@
           const solo=regularRows.filter(r=>r.partyType==='solo');
           const duo=regularRows.filter(r=>r.partyType==='duo');
           const other=regularRows.filter(r=>r.partyType==='other');
-          const checkedSum=rs.filter(r=>r.clear&&!noCrystal(r)).reduce((a,b)=>a+crystalValue(b),0);
-          const expectedSum=rs.filter(r=>!r.clear).reduce((a,b)=>a+crystalValue(b),0);
+          const weeklyTotal=regularRows.reduce((a,b)=>a+crystalValue(b),0);
+          const monthlyTotal=monthlyRows.reduce((a,b)=>a+crystalValue(b),0);
+          const charTotalsText=monthlyRows.length?`주간 ${won(weeklyTotal)} · 월간 ${won(monthlyTotal)}`:`주간 ${won(weeklyTotal)}`;
           const charName=chars.find(c=>c.id===cid)?.name||rs[0]?.charName||'캐릭터';
           const menuBtnStyle='width:24px;height:24px;border:1.2px solid rgba(47,42,40,.2);border-radius:50%;background:rgba(255,253,247,.9);display:inline-grid;place-items:center;box-shadow:1px 1px 0 rgba(47,42,40,.08);flex:0 0 24px;color:#9b9189;transition:opacity .15s;';
           const menuBtn=bossCardOpenCharId===cid
             ?`<button class="bossCharMenuBtn" data-open-boss-setting="${cid}" title="보스 설정" type="button" style="${menuBtnStyle}"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>`
             :'';
-          return `<div class="bossCard"><div class="bossTitle"><span style="display:flex;align-items:center;gap:6px;"><span data-boss-char-toggle="${cid}" style="cursor:pointer;user-select:none;">${charName}</span>${menuBtn}</span><span class="tag y">예정 ${won(expectedSum)} · 결정석 ${won(checkedSum)}</span></div>${renderLootBucket(cid)}${renderBossMonthlyCallout(monthlyRows)}${renderBossBucket('1인 파티','solo',solo)}${renderBossBucket('2인 파티','duo',duo)}${renderBossBucket('기타 인원','other',other)}</div>`;
+          return `<div class="bossCard"><div class="bossTitle"><span style="display:flex;align-items:center;gap:6px;"><span data-boss-char-toggle="${cid}" style="cursor:pointer;user-select:none;">${charName}</span>${menuBtn}</span><span class="tag y" data-charexpecteddetail="${cid}" style="cursor:pointer;">${charTotalsText}</span></div>${renderLootBucket(cid)}${renderBossMonthlyCallout(monthlyRows)}${renderBossBucket('1인 파티','solo',solo)}${renderBossBucket('2인 파티','duo',duo)}${renderBossBucket('기타 인원','other',other)}</div>`;
         }).join('');
       }
       function openBossLootMemo(keyValue){
@@ -4374,6 +4388,8 @@
         if(pending){showBossCrystalPendingDetail();return}
         const expected=e.target.closest('[data-bossexpecteddetail]');
         if(expected){showBossExpectedDetail();return}
+        const charDetail=e.target.closest('[data-charexpecteddetail]');
+        if(charDetail){showCharBossDetail(charDetail.dataset.charexpecteddetail);return}
       });
       $('#bossList').onclick=async e=>{
         const charToggle=e.target.closest('[data-boss-char-toggle]');
