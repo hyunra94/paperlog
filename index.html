@@ -2004,6 +2004,15 @@
       </section>
     </div>
 
+    <div class="sheetBg" id="expenseSearchSheet" hidden>
+      <section class="sheet">
+        <div class="handle"></div>
+        <div class="sheetHead"><h3 id="expenseSearchTitle">결제 이력</h3><button class="icon" id="closeExpenseSearch" type="button">×</button></div>
+        <div class="moneyStatsHead"><span id="expenseSearchCount">총 0건</span><strong class="moneyStatsTotal" id="expenseSearchTotal">0</strong></div>
+        <div class="moneyStatsList" id="expenseSearchList"></div>
+      </section>
+    </div>
+
     <div class="sheetBg" id="moneyCategorySheet" hidden>
       <section class="sheet">
         <div class="handle"></div>
@@ -5418,7 +5427,7 @@
           }
         }
         if(!sorted.length){list.innerHTML='<li><p class="moneyEmpty">표시할 기록이 없어요.</p></li>';return}
-        list.innerHTML=sorted.map(r=>`<li class="moneyRecordItem" data-money-edit="${r.id}" data-money-type="${r.type}" title="클릭해서 수정"><span><strong>${r.installmentGroup?`<button class="installmentBadge" type="button" data-installment-group="${r.installmentGroup}" title="할부 일정 보기">💡</button> `:''}${r.title||'(제목 없음)'}</strong><small>${r.date||''} · ${r.type==='income'?'수입':'지출'} · ${r.category||r.subject||'분류 없음'}${r.card?' · '+r.card:''}${r.installmentGroup?'<span class="installmentTag">할부</span>':''}${r.waste?'<span class="wasteTag">Waste</span>':''}</small></span><span class="amount ${r.type==='income'?'income':'expense'}">${amountText(r)}</span>${r.url?`<a class="goLink" href="${r.url}" target="_blank" rel="noopener noreferrer" aria-label="Notion 바로가기">↗</a>`:'<span class="goLink disabled">↗</span>'}</li>`).join('');
+        list.innerHTML=sorted.map(r=>`<li class="moneyRecordItem" data-money-edit="${r.id}" data-money-type="${r.type}" title="클릭해서 수정"><span><strong>${r.installmentGroup?`<button class="installmentBadge" type="button" data-installment-group="${r.installmentGroup}" title="할부 일정 보기">💡</button> `:''}${r.type==='expense'?`<button class="installmentBadge" type="button" data-expense-search="${encodeURIComponent(r.title||'')}" title="같은 이름 결제 이력 보기">🔍</button> `:''}${r.title||'(제목 없음)'}</strong><small>${r.date||''} · ${r.type==='income'?'수입':'지출'} · ${r.category||r.subject||'분류 없음'}${r.card?' · '+r.card:''}${r.installmentGroup?'<span class="installmentTag">할부</span>':''}${r.waste?'<span class="wasteTag">Waste</span>':''}</small></span><span class="amount ${r.type==='income'?'income':'expense'}">${amountText(r)}</span>${r.url?`<a class="goLink" href="${r.url}" target="_blank" rel="noopener noreferrer" aria-label="Notion 바로가기">↗</a>`:'<span class="goLink disabled">↗</span>'}</li>`).join('');
       }
       async function showInstallmentSchedule(groupId){
         try{
@@ -5434,6 +5443,24 @@
           const sheet=$('#installmentScheduleSheet');if(sheet)sheet.hidden=false;
         }catch(err){
           alert('할부 일정 조회 실패: '+err.message);
+        }
+      }
+      async function showExpenseTitleHistory(title){
+        if(!title)return;
+        try{
+          const res=await window.paperLog.fetch(`/api/money/expense/search?title=${encodeURIComponent(title)}`);
+          const data=await res.json().catch(()=>({}));
+          if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'결제 이력 조회 실패');
+          const records=(data.records||[]).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+          const titleEl=$('#expenseSearchTitle');if(titleEl)titleEl.textContent=`"${title}" 결제 이력`;
+          const countEl=$('#expenseSearchCount');if(countEl)countEl.textContent=`총 ${records.length}건`;
+          const total=records.reduce((a,b)=>a+Number(b.amount||0),0);
+          const totalEl=$('#expenseSearchTotal');if(totalEl)totalEl.textContent='-'+won(total);
+          const list=$('#expenseSearchList');
+          if(list)list.innerHTML=records.length?records.map(r=>`<div class="moneyStatsRow" style="grid-template-columns:1fr auto auto"><span><strong>${r.date||''}</strong><small>${r.category||r.subject||'분류 없음'}${r.card?' · '+r.card:''}${r.installmentGroup?' · 할부':''}${r.waste?' · Waste':''}</small></span><span class="amount expense">-${won(r.amount)}</span>${r.url?`<a class="goLink" href="${r.url}" target="_blank" rel="noopener noreferrer" aria-label="Notion 바로가기">↗</a>`:'<span class="goLink disabled">↗</span>'}</div>`).join(''):'<p class="moneyStatsEmpty">일치하는 결제 기록이 없어요.</p>';
+          const sheet=$('#expenseSearchSheet');if(sheet)sheet.hidden=false;
+        }catch(err){
+          alert('결제 이력 조회 실패: '+err.message);
         }
       }
       function showMoneyCategoryDetail(kind){
@@ -6097,10 +6124,14 @@
       });
       $('#moneyRecordList')?.addEventListener('click',e=>{
         if(e.target.closest('a'))return;
+        const searchBadge=e.target.closest('[data-expense-search]');
+        if(searchBadge){e.stopPropagation();showExpenseTitleHistory(decodeURIComponent(searchBadge.dataset.expenseSearch||''));return}
         const badge=e.target.closest('.installmentBadge');
         if(badge){e.stopPropagation();showInstallmentSchedule(badge.dataset.installmentGroup);return}
         const el=e.target.closest('[data-money-edit]');if(!el)return;const id=el.dataset.moneyEdit;const record=moneyRecords.find(r=>r.id===id);if(record)openMoneyEdit(record)
       });
+      $('#closeExpenseSearch')?.addEventListener('click',()=>{const s=$('#expenseSearchSheet');if(s)s.hidden=true});
+      const expenseSearchSheetBg=$('#expenseSearchSheet');if(expenseSearchSheetBg)expenseSearchSheetBg.addEventListener('click',e=>{if(e.target===expenseSearchSheetBg)expenseSearchSheetBg.hidden=true});
       $$('.moneyTypeBtn[data-money-type]').forEach(btn=>btn.addEventListener('click',()=>{
         moneySubjectTouched=false;moneyCardTouched=false;setMoneyType(btn.dataset.moneyType);
         const def=btn.dataset.moneyType==='income'?'국민카드':'토스뱅크';setSelectValue($('#moneyEntryCard'),def);applyMoneySuggestion();

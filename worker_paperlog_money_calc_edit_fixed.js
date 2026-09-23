@@ -58,7 +58,8 @@ export default {
             "DELETE /api/money/income",
             "DELETE /api/money/expense",
             "POST /api/money/expense/installment",
-            "DELETE /api/money/expense/installment"
+            "DELETE /api/money/expense/installment",
+            "/api/money/expense/search"
           ],
         }, 200, cors);
       }
@@ -287,6 +288,11 @@ export default {
 
       if (url.pathname === "/api/money/expense/installment" && request.method === "GET") {
         const records = await getInstallmentGroup(request, env);
+        return json({ ok: true, records }, 200, cors);
+      }
+
+      if (url.pathname === "/api/money/expense/search" && request.method === "GET") {
+        const records = await searchExpenseRecords(request, env);
         return json({ ok: true, records }, 200, cors);
       }
 
@@ -2188,6 +2194,39 @@ async function getExpenseRecords(env, from, to) {
       card: readTextLike(props, p.card),
       payment: readTextLike(props, p.card),
       done: readCheckbox(props, p.done),
+      waste: readCheckbox(props, p.waste),
+      installmentGroup: readRichText(props, p.installmentGroup),
+    };
+  });
+}
+
+async function searchExpenseRecords(request, env) {
+  const url = new URL(request.url);
+  const q = (url.searchParams.get("title") || "").trim();
+  if (!q) return [];
+
+  const p = expenseProps(env);
+  const body = {
+    filter: { property: p.title, title: { contains: q } },
+    sorts: [{ property: p.date, direction: "descending" }],
+    page_size: 100,
+  };
+
+  const notionData = await notionQuery(env, env.NOTION_EXPENSE_DB_ID, body);
+
+  return notionData.results.map(page => {
+    const props = page.properties || {};
+    const dateInfo = readDateRange(props, p.date);
+
+    return {
+      id: page.id,
+      url: page.url,
+      type: "expense",
+      title: readTitle(props, p.title) || "지출",
+      date: dateInfo.date,
+      amount: readNumber(props, p.amount),
+      category: readSelect(props, p.subject),
+      card: readTextLike(props, p.card),
       waste: readCheckbox(props, p.waste),
       installmentGroup: readRichText(props, p.installmentGroup),
     };
