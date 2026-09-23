@@ -5427,7 +5427,7 @@
           }
         }
         if(!sorted.length){list.innerHTML='<li><p class="moneyEmpty">표시할 기록이 없어요.</p></li>';return}
-        list.innerHTML=sorted.map(r=>`<li class="moneyRecordItem" data-money-edit="${r.id}" data-money-type="${r.type}" title="클릭해서 수정"><span><strong>${r.installmentGroup?`<button class="installmentBadge" type="button" data-installment-group="${r.installmentGroup}" title="할부 일정 보기">💡</button> `:''}${r.type==='expense'?`<button class="installmentBadge" type="button" data-expense-search="${encodeURIComponent(r.title||'')}" title="같은 이름 결제 이력 보기">🔍</button> `:''}${r.title||'(제목 없음)'}</strong><small>${r.date||''} · ${r.type==='income'?'수입':'지출'} · ${r.category||r.subject||'분류 없음'}${r.card?' · '+r.card:''}${r.installmentGroup?'<span class="installmentTag">할부</span>':''}${r.waste?'<span class="wasteTag">Waste</span>':''}</small></span><span class="amount ${r.type==='income'?'income':'expense'}">${amountText(r)}</span>${r.url?`<a class="goLink" href="${r.url}" target="_blank" rel="noopener noreferrer" aria-label="Notion 바로가기">↗</a>`:'<span class="goLink disabled">↗</span>'}</li>`).join('');
+        list.innerHTML=sorted.map(r=>`<li class="moneyRecordItem" data-money-edit="${r.id}" data-money-type="${r.type}" title="클릭해서 수정"><span><strong>${r.installmentGroup?`<button class="installmentBadge" type="button" data-installment-group="${r.installmentGroup}" title="할부 일정 보기">💡</button> `:''}${r.title||'(제목 없음)'}</strong><small>${r.date||''} · ${r.type==='income'?'수입':'지출'} · ${r.category||r.subject||'분류 없음'}${r.card?' · '+r.card:''}${r.installmentGroup?'<span class="installmentTag">할부</span>':''}${r.waste?'<span class="wasteTag">Waste</span>':''}</small></span><span class="amount ${r.type==='income'?'income':'expense'}">${amountText(r)}</span>${r.url?`<a class="goLink" href="${r.url}" target="_blank" rel="noopener noreferrer" aria-label="Notion 바로가기">↗</a>`:'<span class="goLink disabled">↗</span>'}</li>`).join('');
       }
       async function showInstallmentSchedule(groupId){
         try{
@@ -6148,8 +6148,6 @@
       });
       $('#moneyRecordList')?.addEventListener('click',e=>{
         if(e.target.closest('a'))return;
-        const searchBadge=e.target.closest('[data-expense-search]');
-        if(searchBadge){e.stopPropagation();showExpenseTitleHistory(decodeURIComponent(searchBadge.dataset.expenseSearch||''));return}
         const badge=e.target.closest('.installmentBadge');
         if(badge){e.stopPropagation();showInstallmentSchedule(badge.dataset.installmentGroup);return}
         const el=e.target.closest('[data-money-edit]');if(!el)return;const id=el.dataset.moneyEdit;const record=moneyRecords.find(r=>r.id===id);if(record)openMoneyEdit(record)
