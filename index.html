@@ -441,7 +441,7 @@
     .moneyNum{font-family:'Gaegu';font-size:17px;line-height:1}.moneyDay.weekend .moneyNum{color:var(--cal-red)}
     .moneyDots{position:absolute;left:6px;right:6px;bottom:6px;display:flex;gap:4px}.moneyDot{width:8px;height:8px;border:1px solid rgba(47,42,40,.45);border-radius:999px}.moneyDot.income{background:#b9dced}.moneyDot.expense{background:#e7c3c8}.moneyDot.waste{background:#f4d98b}
     .moneyRecordHead{display:flex;align-items:center;justify-content:space-between;gap:8px}.moneyRecordTotals{margin:-2px 2px 8px;text-align:right;color:var(--sub);font-size:11px;line-height:1.35}.moneyClearFilter{border:1.2px solid var(--line);border-radius:999px;background:var(--card);font-size:12px;padding:4px 8px;box-shadow:1.5px 1.5px 0 rgba(47,42,40,.08)}
-    .moneyRecords li{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--grid);font-size:14px}.moneyRecords li:last-child{border-bottom:0}.moneyRecords small{display:block;color:var(--sub);font-size:11px;line-height:1.45;margin-top:2px}.moneyRecords .amount{font-family:'Gaegu';font-size:21px;font-weight:700;white-space:nowrap}.moneyRecords .wasteTag{display:inline-flex;margin-left:4px;border:1px solid rgba(47,42,40,.45);border-radius:999px;padding:0 5px;background:#f6e7a6;color:#806b2f;font-size:10px}.moneyRecords .installmentTag{display:inline-flex;margin-left:4px;border:1px solid rgba(47,42,40,.45);border-radius:999px;padding:0 5px;background:#d9ebf5;color:#3f6b82;font-size:10px}
+    .moneyRecords li{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--grid);font-size:14px}.moneyRecords li:last-child{border-bottom:0}.moneyRecords small{display:block;color:var(--sub);font-size:11px;line-height:1.45;margin-top:2px}.moneyRecords .amount{font-family:'Gaegu';font-size:21px;font-weight:700;white-space:nowrap}.moneyRecords .wasteTag{display:inline-flex;margin-left:4px;border:1px solid rgba(47,42,40,.45);border-radius:999px;padding:0 5px;background:#f6e7a6;color:#806b2f;font-size:10px}.moneyRecords .installmentTag{display:inline-flex;margin-left:4px;border:1px solid rgba(47,42,40,.45);border-radius:999px;padding:0 5px;background:#d9ebf5;color:#3f6b82;font-size:10px}.moneyRecords .recurringTag{display:inline-flex;margin-left:4px;border:1px solid rgba(47,42,40,.45);border-radius:999px;padding:0 5px;background:#dcf0d6;color:#3f7a3f;font-size:10px}
 .installmentBadge{border:0;background:none;padding:0;margin:0;font-size:13px;line-height:1;cursor:pointer;vertical-align:-1px}
     .moneyEmpty{margin:0;color:var(--sub);font-family:'Gaegu';font-size:18px;line-height:1.4}.moneyFab{position:fixed;right:calc(18px + env(safe-area-inset-right));bottom:calc(var(--nav) + 26px + env(safe-area-inset-bottom));z-index:46;width:56px;height:56px;border:1.9px solid var(--line);border-radius:999px;background:var(--yellow);box-shadow:4px 4px 0 rgba(47,42,40,.16),0 10px 28px rgba(47,42,40,.14);font-family:'Gaegu';font-size:34px;line-height:1;display:grid;place-items:center}
     #budget:not(.on) .moneyFab{display:none}.moneyTypeTabs{display:grid;grid-template-columns:1fr 1fr;gap:8px}.moneyTypeBtn{border:1.5px solid var(--line);border-radius:999px;background:var(--card);padding:9px 10px;font-family:'Gaegu';font-size:20px;box-shadow:2px 2px 0 rgba(47,42,40,.12)}.moneyTypeBtn.on[data-money-type="expense"]{background:var(--pink)}.moneyTypeBtn.on[data-money-type="income"]{background:var(--blue)}.moneyExpenseOnly[hidden],.moneyIncomeOnly[hidden]{display:none!important}.moneyRecordFilterBtn.on[data-filter-type="all"]{background:#f4e4a8}.moneyRecordFilterBtn.on[data-filter-type="income"]{background:#c4dff0}.moneyRecordFilterBtn.on[data-filter-type="expense"]{background:#f2cece}.moneyRecordFilterBtn{transition:opacity .15s,filter .15s}.moneyRecordFilterBtn.on{opacity:1!important;filter:none!important}.moneyRecordFilterBtn:not(.on){opacity:.4;filter:saturate(.3)}#moneyRecordFilterTabs[data-active-filter="all"] .moneyRecordFilterBtn[data-filter-type="income"]{opacity:1!important;filter:none!important;background:#c4dff0}#moneyRecordFilterTabs[data-active-filter="all"] .moneyRecordFilterBtn[data-filter-type="expense"]{opacity:1!important;filter:none!important;background:#f2cece}
@@ -5403,6 +5403,34 @@
         }
       }
 
+      const recurringExpenseTitleCache=new Map();
+      const recurringExpenseQueue=[];
+      let recurringExpenseQueueRunning=0;
+      const RECURRING_EXPENSE_CONCURRENCY=3;
+      function queueRecurringExpenseCheck(title){
+        if(!title||recurringExpenseTitleCache.has(title)||recurringExpenseQueue.includes(title))return;
+        recurringExpenseQueue.push(title);
+        runRecurringExpenseQueue();
+      }
+      async function runRecurringExpenseQueue(){
+        if(recurringExpenseQueueRunning>=RECURRING_EXPENSE_CONCURRENCY)return;
+        const title=recurringExpenseQueue.shift();
+        if(!title)return;
+        recurringExpenseQueueRunning++;
+        recurringExpenseTitleCache.set(title,null);
+        try{
+          const res=await window.paperLog.fetch(`/api/money/expense/search?title=${encodeURIComponent(title)}`);
+          const data=await res.json().catch(()=>({}));
+          const count=(res.ok&&data.ok!==false)?(data.records||[]).length:0;
+          recurringExpenseTitleCache.set(title,count);
+          renderMoneyRecords(moneyRecords.filter(r=>sameMonth(r.date)));
+        }catch(e){
+          recurringExpenseTitleCache.delete(title);
+        }finally{
+          recurringExpenseQueueRunning--;
+          runRecurringExpenseQueue();
+        }
+      }
       function renderMoneyRecords(monthly){
         const list=$('#moneyRecordList'), head=$('#moneyRecordTitle'), clear=$('#moneyClearFilter'), totalsEl=$('#moneyRecordTotals');if(!list)return;
         let filtered=selectedMoneyDate?monthly.filter(r=>r.date===selectedMoneyDate):monthly;
@@ -5427,7 +5455,13 @@
           }
         }
         if(!sorted.length){list.innerHTML='<li><p class="moneyEmpty">표시할 기록이 없어요.</p></li>';return}
-        list.innerHTML=sorted.map(r=>`<li class="moneyRecordItem" data-money-edit="${r.id}" data-money-type="${r.type}" title="클릭해서 수정"><span><strong>${r.installmentGroup?`<button class="installmentBadge" type="button" data-installment-group="${r.installmentGroup}" title="할부 일정 보기">💡</button> `:''}${r.title||'(제목 없음)'}</strong><small>${r.date||''} · ${r.type==='income'?'수입':'지출'} · ${r.category||r.subject||'분류 없음'}${r.card?' · '+r.card:''}${r.installmentGroup?'<span class="installmentTag">할부</span>':''}${r.waste?'<span class="wasteTag">Waste</span>':''}</small></span><span class="amount ${r.type==='income'?'income':'expense'}">${amountText(r)}</span>${r.url?`<a class="goLink" href="${r.url}" target="_blank" rel="noopener noreferrer" aria-label="Notion 바로가기">↗</a>`:'<span class="goLink disabled">↗</span>'}</li>`).join('');
+        sorted.forEach(r=>{
+          if(r.type==='expense'&&!r.installmentGroup&&r.category!=='식비'&&r.title)queueRecurringExpenseCheck(r.title);
+        });
+        list.innerHTML=sorted.map(r=>{
+          const isRecurring=r.type==='expense'&&!r.installmentGroup&&r.category!=='식비'&&Number(recurringExpenseTitleCache.get(r.title)||0)>=2;
+          return `<li class="moneyRecordItem" data-money-edit="${r.id}" data-money-type="${r.type}" title="클릭해서 수정"><span><strong>${r.installmentGroup?`<button class="installmentBadge" type="button" data-installment-group="${r.installmentGroup}" title="할부 일정 보기">💡</button> `:''}${r.title||'(제목 없음)'}</strong><small>${r.date||''} · ${r.type==='income'?'수입':'지출'} · ${r.category||r.subject||'분류 없음'}${r.card?' · '+r.card:''}${r.installmentGroup?'<span class="installmentTag">할부</span>':''}${isRecurring?'<span class="recurringTag">고정비</span>':''}${r.waste?'<span class="wasteTag">Waste</span>':''}</small></span><span class="amount ${r.type==='income'?'income':'expense'}">${amountText(r)}</span>${r.url?`<a class="goLink" href="${r.url}" target="_blank" rel="noopener noreferrer" aria-label="Notion 바로가기">↗</a>`:'<span class="goLink disabled">↗</span>'}</li>`;
+        }).join('');
       }
       async function showInstallmentSchedule(groupId){
         try{
