@@ -1971,7 +1971,7 @@
     <div class="sheetBg" id="moneySheet" hidden>
       <section class="sheet">
         <div class="handle"></div>
-        <div class="sheetHead moneySheetHead"><h3 id="moneySheetTitle">가계부 입력</h3><div class="moneySheetHeadActions"><button class="moneyDeleteBtn" id="deleteMoneyInstallmentGroup" type="button" hidden style="border:1.7px solid var(--line);border-radius:13px;padding:0 10px;height:38px;font-size:13px;white-space:nowrap;box-shadow:2px 2px 0 rgba(47,42,40,.16);">할부 전체</button><button class="icon moneyDeleteBtn" id="deleteMoneyEntry" type="button" hidden aria-label="가계부 기록 삭제">🗑</button><button class="icon" id="closeMoneyEntry" type="button">×</button></div></div>
+        <div class="sheetHead moneySheetHead"><h3 id="moneySheetTitle">가계부 입력</h3><div class="moneySheetHeadActions"><button class="moneyDeleteBtn" id="moneyHistoryBtn" type="button" hidden style="border:1.7px solid var(--line);border-radius:13px;padding:0 10px;height:38px;font-size:13px;white-space:nowrap;box-shadow:2px 2px 0 rgba(47,42,40,.16);background:#dcebf5;"></button><button class="moneyDeleteBtn" id="deleteMoneyInstallmentGroup" type="button" hidden style="border:1.7px solid var(--line);border-radius:13px;padding:0 10px;height:38px;font-size:13px;white-space:nowrap;box-shadow:2px 2px 0 rgba(47,42,40,.16);">할부 전체</button><button class="icon moneyDeleteBtn" id="deleteMoneyEntry" type="button" hidden aria-label="가계부 기록 삭제">🗑</button><button class="icon" id="closeMoneyEntry" type="button">×</button></div></div>
         <form class="entryForm" id="moneyEntryForm">
           <div class="moneyTypeTabs">
             <button class="moneyTypeBtn on" data-money-type="expense" type="button">지출</button>
@@ -5863,6 +5863,7 @@
         currentMoneyType=type;setMoneyType(type);
         const sheet=$('#moneySheet');if(sheet)sheet.hidden=false;
         $('#moneySheetTitle')&&($('#moneySheetTitle').textContent='가계부 입력');$('#moneySaveContinue')&&($('#moneySaveContinue').hidden=false);$('#deleteMoneyEntry')&&($('#deleteMoneyEntry').hidden=true);$('#deleteMoneyInstallmentGroup')&&($('#deleteMoneyInstallmentGroup').hidden=true);
+        moneyHistorySeq++;const newEntryHistoryBtn=$('#moneyHistoryBtn');if(newEntryHistoryBtn){newEntryHistoryBtn.hidden=true;delete newEntryHistoryBtn.dataset.historyTitle}
         $('#moneyEntryTitle')&&( $('#moneyEntryTitle').value='');
         $('#moneyEntryDate')&&( $('#moneyEntryDate').value=selectedMoneyDate||key(today));
         $('#moneyEntryAmount')&&( $('#moneyEntryAmount').value='');
@@ -5894,8 +5895,30 @@
         resetMoneyInstallmentInputs();
         $('#moneyInstallmentRow')&&($('#moneyInstallmentRow').hidden=!!record.installmentGroup);
         const status=$('#moneyEntryStatus');if(status)status.textContent=record.installmentGroup?'할부로 나눠 기록된 항목이에요. 이 달만 수정하거나, 할부 전체를 삭제할 수 있어요.':'수정 후 Notion에 반영됩니다. "할부"를 체크하면 이 기록을 할부로 바꿀 수 있어요.';
+        updateMoneyHistoryButton(record);
       }
-      function closeMoneySheet(){const sheet=$('#moneySheet');if(sheet)sheet.hidden=true;editingMoneyRecord=null;const title=$('#moneySheetTitle');if(title)title.textContent='가계부 입력';$('#deleteMoneyEntry')&&($('#deleteMoneyEntry').hidden=true);$('#deleteMoneyInstallmentGroup')&&($('#deleteMoneyInstallmentGroup').hidden=true)}
+      let moneyHistorySeq=0;
+      async function updateMoneyHistoryButton(record){
+        const btn=$('#moneyHistoryBtn');
+        if(!btn)return;
+        btn.hidden=true;
+        delete btn.dataset.historyTitle;
+        if(!record||record.type!=='expense'||record.installmentGroup||!record.title)return;
+        const seq=++moneyHistorySeq;
+        try{
+          const res=await window.paperLog.fetch(`/api/money/expense/search?title=${encodeURIComponent(record.title)}`);
+          const data=await res.json().catch(()=>({}));
+          if(seq!==moneyHistorySeq)return;
+          if(!res.ok||data.ok===false)return;
+          const count=(data.records||[]).length;
+          if(count>=2){
+            btn.hidden=false;
+            btn.textContent=`결제 이력 ${count}회`;
+            btn.dataset.historyTitle=record.title;
+          }
+        }catch(e){console.warn('결제 이력 확인 실패',e)}
+      }
+      function closeMoneySheet(){const sheet=$('#moneySheet');if(sheet)sheet.hidden=true;editingMoneyRecord=null;const title=$('#moneySheetTitle');if(title)title.textContent='가계부 입력';$('#deleteMoneyEntry')&&($('#deleteMoneyEntry').hidden=true);$('#deleteMoneyInstallmentGroup')&&($('#deleteMoneyInstallmentGroup').hidden=true);moneyHistorySeq++;const historyBtn=$('#moneyHistoryBtn');if(historyBtn){historyBtn.hidden=true;delete historyBtn.dataset.historyTitle}}
       function setMoneyType(type){
         currentMoneyType=type;
         $$('.moneyTypeBtn[data-money-type]').forEach(b=>b.classList.toggle('on',b.dataset.moneyType===type));
@@ -6117,6 +6140,7 @@
       $('#closeMoneyEntry')?.addEventListener('click',closeMoneySheet);
       $('#deleteMoneyEntry')?.addEventListener('click',deleteMoneyEntry);
       $('#deleteMoneyInstallmentGroup')?.addEventListener('click',deleteMoneyInstallmentGroup);
+      $('#moneyHistoryBtn')?.addEventListener('click',()=>{const t=$('#moneyHistoryBtn')?.dataset.historyTitle;if(t)showExpenseTitleHistory(t)});
       $('#closeInstallmentSchedule')?.addEventListener('click',()=>{const sheet=$('#installmentScheduleSheet');if(sheet)sheet.hidden=true});
       $('#moneyEntryInstallment')?.addEventListener('change',()=>{
         const checked=$('#moneyEntryInstallment')?.checked;
