@@ -437,7 +437,7 @@
     .moneyWd,.moneyDay{background:var(--cal-cell);min-height:34px;padding:5px;text-align:left;position:relative}
     .moneyWd{text-align:center;background:var(--cal-head);font-family:'Patrick Hand';font-size:15px;min-height:29px;color:#3f382f}.moneyWd.weekend{color:var(--cal-red)}
     .moneyDay{border:0}.moneyDay.incomeOnly{background:#d9ebf5}.moneyDay.expenseOnly{background:#f8dddd}.moneyDay.both{background:#eadff6}.moneyDay.wasteFlag:after{content:"";position:absolute;right:6px;top:6px;width:7px;height:7px;border:1px solid rgba(47,42,40,.45);border-radius:999px;background:#f4d98b}
-.moneyDay.installmentFlag:before{content:"";position:absolute;right:6px;top:6px;width:7px;height:7px;border:1px solid rgba(47,42,40,.45);border-radius:999px;background:#9fcbdf}.moneyDay.wasteFlag.installmentFlag:before{right:15px}.moneyDay.mute{background:var(--cal-muted);opacity:.82}.moneyDay.mute.incomeOnly{background:#d6dde0}.moneyDay.mute.expenseOnly{background:#e6d8d8}.moneyDay.mute.both{background:#ddd8e3}.moneyDay.today .moneyNum,.moneyDay.sel .moneyNum{display:inline-grid;place-items:center;width:22px;height:22px;border:1.1px solid var(--line);border-radius:999px}.moneyDay.today .moneyNum{background:var(--cal-today)}.moneyDay.sel .moneyNum{background:var(--cal-sel)}
+.moneyDay.installmentFlag:before{content:"";position:absolute;right:6px;top:6px;width:7px;height:7px;border:1px solid rgba(47,42,40,.45);border-radius:999px;background:#9fcbdf}.moneyDay.wasteFlag.installmentFlag:before{right:15px}.moneyDay .fixedDot{position:absolute;left:6px;bottom:6px;width:7px;height:7px;border:1px solid rgba(47,42,40,.45);border-radius:999px;background:#a8d9a0}.moneyDay.mute{background:var(--cal-muted);opacity:.82}.moneyDay.mute.incomeOnly{background:#d6dde0}.moneyDay.mute.expenseOnly{background:#e6d8d8}.moneyDay.mute.both{background:#ddd8e3}.moneyDay.today .moneyNum,.moneyDay.sel .moneyNum{display:inline-grid;place-items:center;width:22px;height:22px;border:1.1px solid var(--line);border-radius:999px}.moneyDay.today .moneyNum{background:var(--cal-today)}.moneyDay.sel .moneyNum{background:var(--cal-sel)}
     .moneyNum{font-family:'Gaegu';font-size:17px;line-height:1}.moneyDay.weekend .moneyNum{color:var(--cal-red)}
     .moneyDots{position:absolute;left:6px;right:6px;bottom:6px;display:flex;gap:4px}.moneyDot{width:8px;height:8px;border:1px solid rgba(47,42,40,.45);border-radius:999px}.moneyDot.income{background:#b9dced}.moneyDot.expense{background:#e7c3c8}.moneyDot.waste{background:#f4d98b}
     .moneyRecordHead{display:flex;align-items:center;justify-content:space-between;gap:8px}.moneyRecordTotals{margin:-2px 2px 8px;text-align:right;color:var(--sub);font-size:11px;line-height:1.35}.moneyClearFilter{border:1.2px solid var(--line);border-radius:999px;background:var(--card);font-size:12px;padding:4px 8px;box-shadow:1.5px 1.5px 0 rgba(47,42,40,.08)}
@@ -5229,7 +5229,8 @@
       let lastMoneySubmitAt=0;
       let moneySubjectTouched=false;
       let moneyCardTouched=false;
-      const MONEY_EXPENSE_CATEGORIES=['식비','간식','장비','카페','편의점','데이트','교통비','문화생활비','오락','쇼핑','쇼핑(기기)','쇼핑(의류)','쇼핑(화장품)','미용','친목','주거비','통신비','보험료','의료비','주유비','저축','투자','경조사비','교육비','기부금','숙박비','여행','공과금','기타','카드대금','확인','이체','법인카드'];
+      const MONEY_EXPENSE_CATEGORIES=['식비','간식','장비','카페','편의점','데이트','교통비','문화생활비','오락','쇼핑','쇼핑(기기)','쇼핑(의류)','쇼핑(화장품)','미용','친목','주거비','통신비','보험료','구독료','의료비','주유비','저축','투자','경조사비','교육비','기부금','숙박비','여행','공과금','기타','카드대금','확인','이체','법인카드'];
+      const FIXED_COST_CATEGORIES=['보험료','구독료'];
       const MONEY_INCOME_CATEGORIES=['월급','수당','시간외','배당금','이자','M','부수입','이체','법인카드','출장','기타'];
       const MONEY_CARDS=['토스뱅크','국민은행','국민카드','돼지카드','카카오뱅크','카카오페이','삼성카드','롯데카드','법인카드','주식','네이버페이','쿠팡','문화상품권'];
 
@@ -5300,7 +5301,7 @@
         const waste=records.filter(r=>r.type==='expense'&&r.waste).reduce((a,b)=>a+Number(b.amount||0),0);return {income,expense,balance:income-expense,waste,count:records.length};
       }
       function computeDays(records){
-        return records.reduce((acc,r)=>{if(!r.date)return acc;(acc[r.date]??={income:false,expense:false,waste:false,installment:false});if(r.type==='income')acc[r.date].income=true;if(r.type==='expense')acc[r.date].expense=true;if(r.waste)acc[r.date].waste=true;if(r.installmentGroup)acc[r.date].installment=true;return acc},{});
+        return records.reduce((acc,r)=>{if(!r.date)return acc;(acc[r.date]??={income:false,expense:false,waste:false,installment:false,fixed:false});if(r.type==='income')acc[r.date].income=true;if(r.type==='expense')acc[r.date].expense=true;if(r.waste)acc[r.date].waste=true;if(r.installmentGroup)acc[r.date].installment=true;if(isFixedCostRecord(r))acc[r.date].fixed=true;return acc},{});
       }
       let moneyLoadSeq=0, dashboardMoneyLoadSeq=0;
       function getMoneyCacheStore(){try{return JSON.parse(localStorage.getItem(MONEY_CACHE_KEY)||'{}')}catch{return {}}}
@@ -5399,38 +5400,11 @@
         const first=new Date(moneyView.getFullYear(),moneyView.getMonth(),1), start=new Date(first);start.setDate(first.getDate()-((first.getDay()+6)%7));
         for(let i=0;i<42;i++){
           const d=new Date(start);d.setDate(start.getDate()+i);const k=key(d);const info=days[k]||{};
-          const tone=info.income&&info.expense?'both':info.income?'incomeOnly':info.expense?'expenseOnly':'';const wasteClass=info.waste?'wasteFlag':'';const installmentClass=info.installment?'installmentFlag':'';root.insertAdjacentHTML('beforeend',`<button class="moneyDay ${tone} ${wasteClass} ${installmentClass} ${d.getMonth()!==moneyView.getMonth()?'mute':''} ${k===key(today)?'today':''} ${k===selectedMoneyDate?'sel':''} ${d.getDay()===0||d.getDay()===6?'weekend':''}" data-money-date="${k}" type="button"><span class="moneyNum">${d.getDate()}</span></button>`);
+          const tone=info.income&&info.expense?'both':info.income?'incomeOnly':info.expense?'expenseOnly':'';const wasteClass=info.waste?'wasteFlag':'';const installmentClass=info.installment?'installmentFlag':'';const fixedDot=info.fixed?'<span class="fixedDot" title="고정비"></span>':'';root.insertAdjacentHTML('beforeend',`<button class="moneyDay ${tone} ${wasteClass} ${installmentClass} ${d.getMonth()!==moneyView.getMonth()?'mute':''} ${k===key(today)?'today':''} ${k===selectedMoneyDate?'sel':''} ${d.getDay()===0||d.getDay()===6?'weekend':''}" data-money-date="${k}" type="button"><span class="moneyNum">${d.getDate()}</span>${fixedDot}</button>`);
         }
       }
 
-      const recurringExpenseTitleCache=new Map();
-      const recurringExpenseQueue=[];
-      let recurringExpenseQueueRunning=0;
-      const RECURRING_EXPENSE_CONCURRENCY=3;
-      function queueRecurringExpenseCheck(title){
-        if(!title||recurringExpenseTitleCache.has(title)||recurringExpenseQueue.includes(title))return;
-        recurringExpenseQueue.push(title);
-        runRecurringExpenseQueue();
-      }
-      async function runRecurringExpenseQueue(){
-        if(recurringExpenseQueueRunning>=RECURRING_EXPENSE_CONCURRENCY)return;
-        const title=recurringExpenseQueue.shift();
-        if(!title)return;
-        recurringExpenseQueueRunning++;
-        recurringExpenseTitleCache.set(title,null);
-        try{
-          const res=await window.paperLog.fetch(`/api/money/expense/search?title=${encodeURIComponent(title)}`);
-          const data=await res.json().catch(()=>({}));
-          const count=(res.ok&&data.ok!==false)?(data.records||[]).length:0;
-          recurringExpenseTitleCache.set(title,count);
-          renderMoneyRecords(moneyRecords.filter(r=>sameMonth(r.date)));
-        }catch(e){
-          recurringExpenseTitleCache.delete(title);
-        }finally{
-          recurringExpenseQueueRunning--;
-          runRecurringExpenseQueue();
-        }
-      }
+      function isFixedCostRecord(r){return r.type==='expense'&&!r.installmentGroup&&FIXED_COST_CATEGORIES.includes(r.category)}
       function renderMoneyRecords(monthly){
         const list=$('#moneyRecordList'), head=$('#moneyRecordTitle'), clear=$('#moneyClearFilter'), totalsEl=$('#moneyRecordTotals');if(!list)return;
         let filtered=selectedMoneyDate?monthly.filter(r=>r.date===selectedMoneyDate):monthly;
@@ -5455,12 +5429,9 @@
           }
         }
         if(!sorted.length){list.innerHTML='<li><p class="moneyEmpty">표시할 기록이 없어요.</p></li>';return}
-        sorted.forEach(r=>{
-          if(r.type==='expense'&&!r.installmentGroup&&r.category!=='식비'&&r.title)queueRecurringExpenseCheck(r.title);
-        });
         list.innerHTML=sorted.map(r=>{
-          const isRecurring=r.type==='expense'&&!r.installmentGroup&&r.category!=='식비'&&Number(recurringExpenseTitleCache.get(r.title)||0)>=2;
-          return `<li class="moneyRecordItem" data-money-edit="${r.id}" data-money-type="${r.type}" title="클릭해서 수정"><span><strong>${r.installmentGroup?`<button class="installmentBadge" type="button" data-installment-group="${r.installmentGroup}" title="할부 일정 보기">💡</button> `:''}${r.title||'(제목 없음)'}</strong><small>${r.date||''} · ${r.type==='income'?'수입':'지출'} · ${r.category||r.subject||'분류 없음'}${r.card?' · '+r.card:''}${r.installmentGroup?'<span class="installmentTag">할부</span>':''}${isRecurring?'<span class="recurringTag">고정비</span>':''}${r.waste?'<span class="wasteTag">Waste</span>':''}</small></span><span class="amount ${r.type==='income'?'income':'expense'}">${amountText(r)}</span>${r.url?`<a class="goLink" href="${r.url}" target="_blank" rel="noopener noreferrer" aria-label="Notion 바로가기">↗</a>`:'<span class="goLink disabled">↗</span>'}</li>`;
+          const isFixed=isFixedCostRecord(r);
+          return `<li class="moneyRecordItem" data-money-edit="${r.id}" data-money-type="${r.type}" title="클릭해서 수정"><span><strong>${r.installmentGroup?`<button class="installmentBadge" type="button" data-installment-group="${r.installmentGroup}" title="할부 일정 보기">💡</button> `:''}${r.title||'(제목 없음)'}</strong><small>${r.date||''} · ${r.type==='income'?'수입':'지출'} · ${r.category||r.subject||'분류 없음'}${r.card?' · '+r.card:''}${r.installmentGroup?'<span class="installmentTag">할부</span>':''}${isFixed?'<span class="recurringTag">고정비</span>':''}${r.waste?'<span class="wasteTag">Waste</span>':''}</small></span><span class="amount ${r.type==='income'?'income':'expense'}">${amountText(r)}</span>${r.url?`<a class="goLink" href="${r.url}" target="_blank" rel="noopener noreferrer" aria-label="Notion 바로가기">↗</a>`:'<span class="goLink disabled">↗</span>'}</li>`;
         }).join('');
       }
       async function showInstallmentSchedule(groupId){
