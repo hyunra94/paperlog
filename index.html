@@ -2560,7 +2560,7 @@
         const validIds=new Set(bosses.map(b=>b.id));
         const low=[...getLowBossIdsSet(charId)].filter(id=>validIds.has(id));
         const payload={low,hidden:getHiddenCharIdSet().has(charId)};
-        if(charId&&charId===localShortcutAnchorCharId())payload.localShortcuts=getLocalShortcuts();
+        if(charId&&charId===localShortcutAnchorCharId()){payload.localShortcuts=getLocalShortcuts();payload.charOrder=getCharOrder()}
         return JSON.stringify(payload);
       }
       function applySyncedBossSettingMemo(charId,memoText){
@@ -2572,6 +2572,7 @@
         if(parsed.hidden)hset.add(charId);else hset.delete(charId);
         setHiddenCharIdSet(hset);
         if(charId===localShortcutAnchorCharId()&&Array.isArray(parsed.localShortcuts))setLocalShortcuts(parsed.localShortcuts);
+        if(charId===localShortcutAnchorCharId()&&Array.isArray(parsed.charOrder))saveCharOrder(parsed.charOrder);
         return true;
       }
       function pushLocalShortcutsSync(){
@@ -4534,7 +4535,7 @@
         document.removeEventListener('pointermove',bossCharDragPointerMove);
         const order=container?[...container.querySelectorAll('[data-char-card]')].map(c=>c.dataset.charCard):[];
         bossCharDragState=null;
-        if(order.length){saveCharOrder(order);renderBoss()}
+        if(order.length){saveCharOrder(order);renderBoss();pushLocalShortcutsSync()}
       }
       $('#charLinkList')?.addEventListener('pointerdown',e=>{
         const handle=e.target.closest('[data-char-drag-handle]');
