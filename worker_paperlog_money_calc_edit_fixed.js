@@ -1267,11 +1267,14 @@ async function updateDailyLog(request, env) {
    메모 DB (전용, 날짜별 메모)
 ========================= */
 
+const MEMO_CATEGORIES = ["일반", "업무", "개인", "아이디어", "중요"];
+
 function memoProps(env) {
   return {
     title: env.MEMO_TITLE_PROP || "제목",
     date: env.MEMO_DATE_PROP || "날짜",
     text: env.MEMO_TEXT_PROP || "내용",
+    category: env.MEMO_CATEGORY_PROP || "분류",
   };
 }
 
@@ -1299,6 +1302,7 @@ async function getMemos(request, env) {
         url: page.url,
         date: dateInfo.date,
         text: readRichText(props, p.text),
+        category: readSelect(props, p.category) || "일반",
       };
     })
     .filter(item => item.date);
@@ -1311,11 +1315,13 @@ async function createMemo(request, env) {
   if (!body.date) throw new Error("date is required");
 
   const text = typeof body.text === "string" ? body.text : "";
+  const category = String(body.category || "일반").trim() || "일반";
 
   const properties = {
     [p.title]: { title: [{ text: { content: text.slice(0, 80) || "메모" } }] },
     [p.date]: { date: { start: body.date } },
     [p.text]: { rich_text: [{ text: { content: text } }] },
+    [p.category]: { select: { name: category } },
   };
 
   return notionCreatePage(env, env.NOTION_MEMO_DB_ID, properties);
@@ -1334,6 +1340,10 @@ async function updateMemo(request, env) {
     const text = body.text || "";
     properties[p.text] = { rich_text: [{ text: { content: text } }] };
     properties[p.title] = { title: [{ text: { content: text.slice(0, 80) || "메모" } }] };
+  }
+  if (body.category !== undefined) {
+    const category = String(body.category || "일반").trim() || "일반";
+    properties[p.category] = { select: { name: category } };
   }
 
   return notionUpdatePage(env, body.id, properties);

@@ -1358,6 +1358,14 @@
     }
   </style>
 
+  <style id="memoCatTabsV1">
+    .memoCatTabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+    .memoCatTab{border:1.4px solid var(--line);border-radius:999px;background:var(--card);padding:5px 11px;font-family:'Gaegu';font-size:15px;box-shadow:1.5px 1.5px 0 rgba(47,42,40,.1)}
+    .memoCatTab.on{background:var(--yellow)}
+    .memoGroupT{margin:12px 0 6px;font-family:'Gaegu';font-size:18px;color:var(--sub)}
+    .memoGroupT:first-child{margin-top:0}
+    .memoCatBadge{display:inline-flex;border:1.1px solid rgba(47,42,40,.5);border-radius:999px;padding:1px 7px;margin-right:6px;background:var(--card);font-size:10px;color:var(--sub);white-space:nowrap}
+  </style>
 
   <style id="dashboardTodoMemoV75">
     #dashboardTodayList li{
@@ -1881,6 +1889,16 @@
             <input id="memoDate" type="date" readonly required>
           </div>
           <div class="field">
+            <label>분류</label>
+            <select id="memoCategory">
+              <option value="일반">일반</option>
+              <option value="업무">업무</option>
+              <option value="개인">개인</option>
+              <option value="아이디어">아이디어</option>
+              <option value="중요">중요</option>
+            </select>
+          </div>
+          <div class="field">
             <label>내용</label>
             <textarea id="memoText" placeholder="자유롭게 메모를 남겨보세요." style="width:100%;min-height:160px;padding:12px;border:1.5px solid var(--line);border-radius:14px;background:var(--card);font:inherit;font-size:15px;line-height:1.6;resize:vertical;"></textarea>
           </div>
@@ -1889,6 +1907,7 @@
         </form>
         <div class="group">
           <p class="groupT"><span class="hl">지난 메모</span></p>
+          <div class="memoCatTabs" id="memoCatTabs"></div>
           <div id="memoListWrap"></div>
         </div>
       </section>
@@ -4569,15 +4588,41 @@
       $('#entryProject')?.addEventListener('change',maybeAutoSetWorkCategory);
       const ANNIV_KEY='paperlog_anniversaries_v1';
 
-      // ── 메모 (전용 Notion DB, 날짜별) ───────────────────────────
+      // ── 메모 (전용 Notion DB, 분류별) ───────────────────────────
+      const MEMO_CATEGORIES=['일반','업무','개인','아이디어','중요'];
       let memoSaving=false;
       let editingMemoId=null;
       let memoListCache=[];
+      let memoActiveCategory='all';
+      function memoCategoryOrder(list){
+        const extra=[...new Set(list.map(x=>x.category||'일반'))].filter(c=>!MEMO_CATEGORIES.includes(c));
+        return [...MEMO_CATEGORIES,...extra];
+      }
+      function renderMemoCatTabs(list){
+        const wrap=$('#memoCatTabs');
+        if(!wrap)return;
+        const cats=memoCategoryOrder(list).filter(c=>list.some(x=>(x.category||'일반')===c));
+        if(!cats.length){wrap.innerHTML='';return}
+        const tabs=[{v:'all',label:'전체'},...cats.map(c=>({v:c,label:c}))];
+        wrap.innerHTML=tabs.map(t=>`<button type="button" class="memoCatTab${memoActiveCategory===t.v?' on':''}" data-memo-cat="${escapeHTML(t.v)}">${escapeHTML(t.label)}</button>`).join('');
+      }
       function renderMemoList(list){
         const wrap=$('#memoListWrap');
         if(!wrap)return;
+        renderMemoCatTabs(list);
         if(!list.length){wrap.innerHTML='<p class="muted" style="padding:6px 0;">아직 메모가 없어요.</p>';return}
-        wrap.innerHTML=list.map(x=>`<div class="scheduleItem" data-memo-id="${x.id}" style="cursor:pointer;"><span class="time">${x.date.slice(5)}</span><span>${String(x.text||'').replace(/</g,'&lt;').replace(/>/g,'&gt;').slice(0,60)}</span></div>`).join('');
+        const filtered=memoActiveCategory==='all'?list:list.filter(x=>(x.category||'일반')===memoActiveCategory);
+        if(!filtered.length){wrap.innerHTML='<p class="muted" style="padding:6px 0;">이 분류엔 메모가 없어요.</p>';return}
+        const itemHtml=x=>`<div class="scheduleItem" data-memo-id="${x.id}" style="cursor:pointer;"><span class="time">${x.date.slice(5)}</span><span><span class="memoCatBadge">${escapeHTML(x.category||'일반')}</span>${String(x.text||'').replace(/</g,'&lt;').replace(/>/g,'&gt;').slice(0,60)}</span></div>`;
+        if(memoActiveCategory!=='all'){
+          wrap.innerHTML=filtered.map(itemHtml).join('');
+          return;
+        }
+        const groups=memoCategoryOrder(filtered).filter(c=>filtered.some(x=>(x.category||'일반')===c));
+        wrap.innerHTML=groups.map(cat=>{
+          const items=filtered.filter(x=>(x.category||'일반')===cat);
+          return `<p class="memoGroupT">${escapeHTML(cat)} · ${items.length}개</p>${items.map(itemHtml).join('')}`;
+        }).join('');
       }
       async function loadMemoList(){
         const wrap=$('#memoListWrap');
@@ -4594,9 +4639,10 @@
       }
       function resetMemoForm(){
         editingMemoId=null;
-        const dateEl=$('#memoDate'), ta=$('#memoText'), del=$('#deleteMemo'), note=$('#memoSavedNote');
+        const dateEl=$('#memoDate'), ta=$('#memoText'), del=$('#deleteMemo'), note=$('#memoSavedNote'), catEl=$('#memoCategory');
         if(dateEl)dateEl.value=key(today);
         if(ta)ta.value='';
+        if(catEl)catEl.value='일반';
         if(del)del.hidden=true;
         if(note)note.textContent='전용 메모 DB에 날짜와 함께 저장돼요.';
       }
@@ -4604,6 +4650,7 @@
         const sheet=$('#memoSheet');
         if(!sheet)return;
         resetMemoForm();
+        memoActiveCategory='all';
         sheet.hidden=false;
         if(hasPaperConfig())loadMemoList();
         else{const w=$('#memoListWrap');if(w)w.innerHTML='';const note=$('#memoSavedNote');if(note)note.textContent='설정 메뉴에서 Worker 주소와 SECRET Key를 먼저 저장해 주세요.';}
@@ -4611,9 +4658,10 @@
       async function saveMemoEntry(e){
         e.preventDefault();
         if(memoSaving)return;
-        const dateEl=$('#memoDate'), ta=$('#memoText'), note=$('#memoSavedNote');
+        const dateEl=$('#memoDate'), ta=$('#memoText'), note=$('#memoSavedNote'), catEl=$('#memoCategory');
         const date=dateEl?.value||'';
         const text=(ta?.value||'').trim();
+        const category=catEl?.value||'일반';
         if(!date||!text)return;
         if(!hasPaperConfig()){
           if(note)note.textContent='설정 메뉴에서 Worker 주소와 SECRET Key를 먼저 저장해 주세요.';
@@ -4622,7 +4670,7 @@
         memoSaving=true;
         if(note)note.textContent='저장 중...';
         try{
-          const body=editingMemoId?{id:editingMemoId,date,text}:{date,text};
+          const body=editingMemoId?{id:editingMemoId,date,text,category}:{date,text,category};
           const res=await window.paperLog.fetch('/api/memo',{method:editingMemoId?'PATCH':'POST',body:JSON.stringify(body)});
           const data=await res.json().catch(()=>({}));
           if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'저장 실패');
@@ -4657,6 +4705,13 @@
       if(memoFormEl)memoFormEl.onsubmit=saveMemoEntry;
       const deleteMemoBtn=$('#deleteMemo');
       if(deleteMemoBtn)deleteMemoBtn.onclick=deleteMemoEntry;
+      const memoCatTabsEl=$('#memoCatTabs');
+      if(memoCatTabsEl)memoCatTabsEl.addEventListener('click',e=>{
+        const btn=e.target.closest('[data-memo-cat]');
+        if(!btn)return;
+        memoActiveCategory=btn.dataset.memoCat;
+        renderMemoList(memoListCache);
+      });
       const memoListWrapEl=$('#memoListWrap');
       if(memoListWrapEl)memoListWrapEl.addEventListener('click',e=>{
         const item=e.target.closest('[data-memo-id]');
@@ -4664,9 +4719,10 @@
         const m=memoListCache.find(x=>x.id===item.dataset.memoId);
         if(!m)return;
         editingMemoId=m.id;
-        const dateEl=$('#memoDate'), ta=$('#memoText'), del=$('#deleteMemo'), note=$('#memoSavedNote');
+        const dateEl=$('#memoDate'), ta=$('#memoText'), del=$('#deleteMemo'), note=$('#memoSavedNote'), catEl=$('#memoCategory');
         if(dateEl)dateEl.value=m.date;
         if(ta)ta.value=m.text||'';
+        if(catEl)catEl.value=m.category||'일반';
         if(del)del.hidden=false;
         if(note)note.textContent='수정 중 — 저장하면 업데이트돼요.';
       });
