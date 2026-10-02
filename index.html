@@ -2741,7 +2741,7 @@
       function calendarMonthKey(){return `${view.getFullYear()}-${String(view.getMonth()+1).padStart(2,'0')}`}
       function uniqueByIdDate(items){const seen=new Set();return items.filter(item=>{const k=`${item.id||item.title}_${item.date}_${item.type||''}`;if(seen.has(k))return false;seen.add(k);return true})}
       function normalizeCalendarData(data){return {
-        schedules:uniqueByIdDate((data.schedules||[]).filter(x=>x.date).map(x=>({id:x.id,url:x.url,type:'schedule',date:String(x.date).slice(0,10),time:x.time||'',title:x.title||'(제목 없음)',subject:x.category||x.subject||'일정',category:x.category||x.subject||'',color:(()=>{const sc=scheduleColor(x.category||x.subject);return sc!=='work'?sc:(x.color||sc);})(),canceled:!!x.canceled,projectIds:x.projectIds||[],isRange:Boolean(x.isRange),originalDate:x.originalDate||x.date,originalEndDate:x.originalEndDate||x.endDate||x.date}))),
+        schedules:uniqueByIdDate((data.schedules||[]).filter(x=>x.date).map(x=>({id:x.id,url:x.url,type:'schedule',date:String(x.date).slice(0,10),time:x.time||'',title:x.title||'(제목 없음)',subject:x.category||x.subject||'일정',category:x.category||x.subject||'',color:(()=>{const sc=scheduleColor(x.category||x.subject);return sc!=='work'?sc:(x.color||sc);})(),canceled:!!x.canceled,projectIds:x.projectIds||[],memoTags:x.memoTags||[],isRange:Boolean(x.isRange),originalDate:x.originalDate||x.date,originalEndDate:x.originalEndDate||x.endDate||x.date}))),
         todos:uniqueByIdDate((data.todos||[]).filter(x=>x.date).map(x=>({id:x.id,url:x.url,type:'todo',date:String(x.date).slice(0,10),time:x.time||'',title:x.title||'(제목 없음)',memo:x.memo||'',subject:x.category||'할 일',color:x.color||'task',done:!!x.done,canceled:!!x.canceled,projectIds:x.projectIds||[],isRange:Boolean(x.isRange),originalDate:x.originalDate||x.date,originalEndDate:x.originalEndDate||x.endDate||x.date}))).sort((a,b)=>Number(a.done)-Number(b.done)),
         dailyLogs:uniqueByIdDate((data.dailyLogs||[]).filter(x=>x.date).map(x=>({id:x.id,url:x.url,type:'daily',date:String(x.date).slice(0,10),title:x.title||'하루 기록',mood:x.mood||'',text:x.text||''})))
       }}
@@ -3120,7 +3120,7 @@
         updateAppointmentTargetVisibility();
       }
       function resetEntryForm(){
-        ['entryTitle','entryTime','entrySubject','entryEndDate','entryDailyText'].forEach(id=>{const el=$('#'+id);if(el)el.value=''});$('#entryMood')&&($('#entryMood').value='happy');
+        ['entryTitle','entryTime','entrySubject','entryEndDate','entryDailyText','entryAppointmentTarget'].forEach(id=>{const el=$('#'+id);if(el)el.value=''});$('#entryMood')&&($('#entryMood').value='happy');
         setCategoryValue('');
         $('#entryDate').value=selected;
         $('#entryEndDate').value='';
@@ -3173,6 +3173,7 @@
         $('#entryEndDate')&&($('#entryEndDate').value=(item.originalEndDate&&item.originalEndDate!==item.date)?item.originalEndDate:'');
         $('#entryTime')&&($('#entryTime').value=item.time||'');
         $('#entrySubject')&&($('#entrySubject').value=type==='todo'?(item.memo||''):'');
+        $('#entryAppointmentTarget')&&($('#entryAppointmentTarget').value=(type==='schedule'&&Array.isArray(item.memoTags))?item.memoTags.join(', '):'');
         setCategoryValue(type==='schedule'?(item.category||item.subject||''):'');
         $('#entryDone')&&($('#entryDone').value=type==='todo'?inferTodoKindFromProjectIds(item.projectIds||[]):'work');
         $('#entryMood')&&($('#entryMood').value=moodKey(item.mood)||'happy');
