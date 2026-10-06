@@ -1,4 +1,4 @@
-const CACHE_NAME = "paper-log-v99";
+const CACHE_NAME = "paper-log-v100";
 
 const APP_SHELL = [
   "./",
@@ -59,6 +59,7 @@ self.addEventListener("notificationclick", event => {
 
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(list => {
+      if (!target.startsWith(self.registration.scope)) return self.clients.openWindow(target);
       const existing = list.find(c => c.url.startsWith(self.registration.scope));
       if (existing) return existing.focus();
       return self.clients.openWindow(target);

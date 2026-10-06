@@ -2446,7 +2446,7 @@ function buildExpenseProperties(body, p, isCreate) {
    푸시 알림 (Web Push + Cron)
    - 구독 정보와 발송 기록은 PUSH_KV에 저장한다.
    - Cron(5분마다)이 아래 알림을 한국 시간 기준으로 보낸다.
-     약속 1시간 전 / 전날 21시 다음 날 일정 / 당일 08시 할 일 묶음 / 목요일 0시 보스 초기화
+     약속 1시간 전 / 전날 21시 다음 날 일정 / 당일 08시 할 일 묶음 / 목요일 0시 보스 초기화 / 썬데이 메이플 공개
 ========================= */
 
 const PUSH_SUBS_KEY = "push:subs";
@@ -2549,9 +2549,9 @@ function kstMinutesFrom(todayKey, dateText, time) {
   return dayDiff * 1440 + h * 60 + mi;
 }
 
-async function markPushSent(env, key) {
+async function markPushSent(env, key, ttl = PUSH_SENT_TTL) {
   if (await env.PUSH_KV.get(key)) return false;
-  await env.PUSH_KV.put(key, "1", { expirationTtl: PUSH_SENT_TTL });
+  await env.PUSH_KV.put(key, "1", { expirationTtl: ttl });
   return true;
 }
 
@@ -2582,6 +2582,7 @@ async function runPushCron(env) {
   if (now.hour === 21) jobs.push(pushTomorrowSchedules(env, tomorrow));
   if (now.hour === 8) jobs.push(pushTodayTodos(env, today));
   if (now.hour === 0 && kstWeekday() === 4) jobs.push(pushBossReset(env, today));
+  if (SUNDAY_MAPLE_CHECK_DAYS.has(kstWeekday()) && now.minute % 15 < 5) jobs.push(pushSundayMaple(env));
 
   const results = await Promise.allSettled(jobs);
   results.filter(r => r.status === "rejected").forEach(r => console.error("push cron failed:", r.reason));
@@ -2651,6 +2652,33 @@ async function pushBossReset(env, today) {
     tag: `boss-${today}`,
     url: "./",
   });
+}
+
+// 썬데이 메이플은 보통 금요일에 공지되므로 목~일에만 15분마다 이벤트 목록을 확인한다.
+const SUNDAY_MAPLE_CHECK_DAYS = new Set([4, 5, 6, 0]);
+const SUNDAY_MAPLE_KEYWORDS = ["썬데이", "SUNDAY", "SUN DAY"];
+const MAPLE_EVENTS_URL = "https://mapleboss.hyunra94.workers.dev/api/events";
+
+async function pushSundayMaple(env) {
+  // 같은 계정의 workers.dev끼리는 공개 fetch가 막힐 수 있어 서비스 바인딩(MAPLE_WORKER)을 우선 쓴다.
+  const res = env.MAPLE_WORKER ? await env.MAPLE_WORKER.fetch(MAPLE_EVENTS_URL) : await fetch(MAPLE_EVENTS_URL);
+  if (!res.ok) throw new Error(`maple events fetch failed ${res.status}`);
+  const data = await res.json();
+  const events = (data.events || []).filter(e => {
+    const title = String(e.title || "").toUpperCase();
+    return SUNDAY_MAPLE_KEYWORDS.some(k => title.includes(k));
+  });
+
+  for (const event of events) {
+    const id = event.url || event.title;
+    if (!(await markPushSent(env, `sent:sunday:${id}`, 60 * 60 * 24 * 14))) continue;
+    await sendPushToAll(env, {
+      title: "🍁 썬데이 메이플 공개!",
+      body: event.title,
+      tag: `sunday-${id}`,
+      url: event.url || "https://maplestory.nexon.com/News/Event",
+    });
+  }
 }
 
 /* ---- Web Push 암호화 (RFC 8291 aes128gcm) + VAPID (RFC 8292) ---- */
