@@ -306,6 +306,25 @@ export default {
         return json({ ok: true, ...result }, 200, cors);
       }
 
+      if (url.pathname === "/api/push/config" && request.method === "GET") {
+        return json({ ok: true, publicKey: env.VAPID_PUBLIC_KEY || "", enabled: Boolean(env.PUSH_KV && env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY) }, 200, cors);
+      }
+
+      if (url.pathname === "/api/push/subscribe" && request.method === "POST") {
+        const result = await savePushSubscription(request, env);
+        return json({ ok: true, ...result }, 200, cors);
+      }
+
+      if (url.pathname === "/api/push/unsubscribe" && request.method === "POST") {
+        const result = await removePushSubscription(request, env);
+        return json({ ok: true, ...result }, 200, cors);
+      }
+
+      if (url.pathname === "/api/push/test" && request.method === "POST") {
+        const result = await sendPushTest(request, env);
+        return json({ ok: true, ...result }, 200, cors);
+      }
+
       return json({
         ok: false,
         error: "Not found",
@@ -320,6 +339,10 @@ export default {
         stack: err.stack,
       }, 500, cors);
     }
+  },
+
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(runPushCron(env));
   }
 };
 
@@ -2418,3 +2441,308 @@ function buildExpenseProperties(body, p, isCreate) {
 }
 
 
+
+/* =========================
+   푸시 알림 (Web Push + Cron)
+   - 구독 정보와 발송 기록은 PUSH_KV에 저장한다.
+   - Cron(5분마다)이 아래 알림을 한국 시간 기준으로 보낸다.
+     약속 1시간 전 / 전날 21시 다음 날 일정 / 당일 08시 할 일 묶음 / 목요일 0시 보스 초기화
+========================= */
+
+const PUSH_SUBS_KEY = "push:subs";
+const PUSH_SENT_TTL = 60 * 60 * 24 * 3;
+const APPOINTMENT_CATEGORY = "약속";
+const APPOINTMENT_LEAD_MINUTES = 60;
+
+async function loadPushSubs(env) {
+  if (!env.PUSH_KV) return [];
+  const raw = await env.PUSH_KV.get(PUSH_SUBS_KEY);
+  if (!raw) return [];
+  try { return JSON.parse(raw) || []; } catch { return []; }
+}
+
+async function savePushSubs(env, subs) {
+  await env.PUSH_KV.put(PUSH_SUBS_KEY, JSON.stringify(subs));
+}
+
+async function savePushSubscription(request, env) {
+  if (!env.PUSH_KV) throw new Error("PUSH_KV binding is missing");
+  const body = await request.json();
+  const sub = body.subscription || {};
+  if (!sub.endpoint || !sub.keys?.p256dh || !sub.keys?.auth) throw new Error("invalid subscription");
+
+  const subs = (await loadPushSubs(env)).filter(s => s.endpoint !== sub.endpoint);
+  subs.push({
+    endpoint: sub.endpoint,
+    keys: { p256dh: sub.keys.p256dh, auth: sub.keys.auth },
+    label: String(body.label || "").slice(0, 40),
+    createdAt: new Date().toISOString(),
+  });
+  await savePushSubs(env, subs);
+  return { count: subs.length };
+}
+
+async function removePushSubscription(request, env) {
+  if (!env.PUSH_KV) throw new Error("PUSH_KV binding is missing");
+  const body = await request.json();
+  const subs = await loadPushSubs(env);
+  const next = subs.filter(s => s.endpoint !== body.endpoint);
+  if (next.length !== subs.length) await savePushSubs(env, next);
+  return { count: next.length };
+}
+
+async function sendPushTest(request, env) {
+  const body = await request.json().catch(() => ({}));
+  const subs = (await loadPushSubs(env)).filter(s => !body.endpoint || s.endpoint === body.endpoint);
+  if (!subs.length) throw new Error("등록된 알림 기기가 없습니다");
+  return sendPushToSubs(env, subs, {
+    title: "Paper Log 알림 테스트",
+    body: "알림이 잘 도착했어요 🔔",
+    tag: "paperlog-test",
+    url: "./",
+  });
+}
+
+async function sendPushToAll(env, payload) {
+  const subs = await loadPushSubs(env);
+  if (!subs.length) return { sent: 0, failed: 0 };
+  return sendPushToSubs(env, subs, payload);
+}
+
+async function sendPushToSubs(env, subs, payload) {
+  const results = await Promise.all(subs.map(async sub => {
+    try {
+      const res = await sendWebPush(env, sub, JSON.stringify(payload));
+      return { endpoint: sub.endpoint, status: res.status };
+    } catch (err) {
+      return { endpoint: sub.endpoint, status: 0, error: err.message };
+    }
+  }));
+
+  // 만료된 구독(404/410)은 정리한다.
+  const gone = new Set(results.filter(r => r.status === 404 || r.status === 410).map(r => r.endpoint));
+  if (gone.size) {
+    const all = await loadPushSubs(env);
+    await savePushSubs(env, all.filter(s => !gone.has(s.endpoint)));
+  }
+
+  const sent = results.filter(r => r.status >= 200 && r.status < 300).length;
+  return { sent, failed: results.length - sent, results };
+}
+
+/* ---- 예약 알림 ---- */
+
+function kstWeekday() {
+  const p = kstNowParts();
+  return new Date(Date.UTC(p.year, p.month - 1, p.day)).getUTCDay();
+}
+
+function addDaysKey(dateText, days) {
+  const [y, m, d] = dateText.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
+}
+
+// 한국 시간 dateText+time을 "오늘 0시 기준 분"으로 바꾼다 (내일이면 +1440).
+function kstMinutesFrom(todayKey, dateText, time) {
+  const [h, mi] = time.split(":").map(Number);
+  const dayDiff = Math.round((Date.parse(`${dateText}T00:00:00Z`) - Date.parse(`${todayKey}T00:00:00Z`)) / 86400000);
+  return dayDiff * 1440 + h * 60 + mi;
+}
+
+async function markPushSent(env, key) {
+  if (await env.PUSH_KV.get(key)) return false;
+  await env.PUSH_KV.put(key, "1", { expirationTtl: PUSH_SENT_TTL });
+  return true;
+}
+
+function internalRequest(path) {
+  return new Request(`https://paperlog.internal${path}`);
+}
+
+function scheduleDetailText(item) {
+  const parts = [];
+  if (item.category) parts.push(`[${item.category}]`);
+  parts.push(item.title);
+  const tags = (item.memoTags || []).filter(Boolean);
+  if (tags.length) parts.push(`· ${tags.join(", ")}`);
+  return parts.join(" ");
+}
+
+async function runPushCron(env) {
+  if (!env.PUSH_KV || !env.VAPID_PRIVATE_KEY || !env.VAPID_PUBLIC_KEY) return;
+  const subs = await loadPushSubs(env);
+  if (!subs.length) return;
+
+  const now = kstNowParts();
+  const today = kstTodayKey();
+  const tomorrow = addDaysKey(today, 1);
+  const nowMin = now.hour * 60 + now.minute;
+  const jobs = [pushAppointmentReminders(env, today, tomorrow, nowMin)];
+
+  if (now.hour === 21) jobs.push(pushTomorrowSchedules(env, tomorrow));
+  if (now.hour === 8) jobs.push(pushTodayTodos(env, today));
+  if (now.hour === 0 && kstWeekday() === 4) jobs.push(pushBossReset(env, today));
+
+  const results = await Promise.allSettled(jobs);
+  results.filter(r => r.status === "rejected").forEach(r => console.error("push cron failed:", r.reason));
+}
+
+async function pushAppointmentReminders(env, today, tomorrow, nowMin) {
+  const items = await getSchedules(internalRequest(`/api/schedule?from=${today}&to=${tomorrow}`), env);
+  const targets = items.filter(item =>
+    item.category === APPOINTMENT_CATEGORY &&
+    item.time &&
+    item.date === item.originalDate
+  );
+
+  for (const item of targets) {
+    const diff = kstMinutesFrom(today, item.date, item.time) - nowMin;
+    if (diff <= 0 || diff > APPOINTMENT_LEAD_MINUTES) continue;
+    if (!(await markPushSent(env, `sent:appt:${item.id}:${item.date}T${item.time}`))) continue;
+
+    const when = diff >= 55 ? "1시간 후" : `${diff}분 후`;
+    await sendPushToAll(env, {
+      title: `⏰ ${when} 약속 · ${item.time}`,
+      body: scheduleDetailText(item),
+      tag: `appt-${item.id}`,
+      url: "./?tab=calendar",
+    });
+  }
+}
+
+async function pushTomorrowSchedules(env, tomorrow) {
+  if (!(await markPushSent(env, `sent:eve:${tomorrow}`))) return;
+  const items = await getSchedules(internalRequest(`/api/schedule?from=${tomorrow}&to=${tomorrow}`), env);
+  const targets = items
+    .filter(item => item.date === item.originalDate)
+    .sort((a, b) => (a.time || "99:99").localeCompare(b.time || "99:99"));
+
+  for (const item of targets) {
+    await sendPushToAll(env, {
+      title: `📅 내일 ${item.time || "하루 종일"} 일정`,
+      body: scheduleDetailText(item),
+      tag: `eve-${item.id}-${tomorrow}`,
+      url: "./?tab=calendar",
+    });
+  }
+}
+
+async function pushTodayTodos(env, today) {
+  if (!(await markPushSent(env, `sent:todo:${today}`))) return;
+  const items = await getTodos(internalRequest(`/api/todo?from=${today}&to=${today}`), env);
+  const targets = items.filter(item => !item.done && item.originalEndDate === today);
+  if (!targets.length) return;
+
+  const lines = targets.slice(0, 8).map(item => `• ${item.title}`);
+  if (targets.length > 8) lines.push(`외 ${targets.length - 8}개`);
+  await sendPushToAll(env, {
+    title: `✅ 오늘 마감 할 일 ${targets.length}개`,
+    body: lines.join("\n"),
+    tag: `todo-${today}`,
+    url: "./?tab=calendar",
+  });
+}
+
+async function pushBossReset(env, today) {
+  if (!(await markPushSent(env, `sent:boss:${today}`))) return;
+  await sendPushToAll(env, {
+    title: "🔄 보스 주간 초기화",
+    body: "이번 주 보스가 초기화됐어요. 새 주차 보스를 시작해 보세요!",
+    tag: `boss-${today}`,
+    url: "./",
+  });
+}
+
+/* ---- Web Push 암호화 (RFC 8291 aes128gcm) + VAPID (RFC 8292) ---- */
+
+const textEnc = new TextEncoder();
+
+function b64uEncode(buf) {
+  const bytes = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function b64uDecode(str) {
+  const b64 = str.replace(/-/g, "+").replace(/_/g, "/").padEnd(Math.ceil(str.length / 4) * 4, "=");
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+function concatBytes(...arrays) {
+  const out = new Uint8Array(arrays.reduce((n, a) => n + a.length, 0));
+  let offset = 0;
+  for (const a of arrays) { out.set(a, offset); offset += a.length; }
+  return out;
+}
+
+async function hmacSha256(key, data) {
+  const k = await crypto.subtle.importKey("raw", key, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return new Uint8Array(await crypto.subtle.sign("HMAC", k, data));
+}
+
+async function vapidAuthorization(env, endpoint) {
+  const header = b64uEncode(textEnc.encode(JSON.stringify({ typ: "JWT", alg: "ES256" })));
+  const claims = b64uEncode(textEnc.encode(JSON.stringify({
+    aud: new URL(endpoint).origin,
+    exp: Math.floor(Date.now() / 1000) + 12 * 60 * 60,
+    sub: env.VAPID_SUBJECT || "mailto:paperlog@example.com",
+  })));
+  const unsigned = `${header}.${claims}`;
+
+  const pub = b64uDecode(env.VAPID_PUBLIC_KEY);
+  const key = await crypto.subtle.importKey("jwk", {
+    kty: "EC",
+    crv: "P-256",
+    x: b64uEncode(pub.slice(1, 33)),
+    y: b64uEncode(pub.slice(33, 65)),
+    d: env.VAPID_PRIVATE_KEY,
+    ext: true,
+  }, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, key, textEnc.encode(unsigned));
+
+  return `vapid t=${unsigned}.${b64uEncode(sig)}, k=${env.VAPID_PUBLIC_KEY}`;
+}
+
+async function encryptPushPayload(sub, plaintext) {
+  const uaPublic = b64uDecode(sub.keys.p256dh);
+  const authSecret = b64uDecode(sub.keys.auth);
+
+  const asKeys = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
+  const asPublic = new Uint8Array(await crypto.subtle.exportKey("raw", asKeys.publicKey));
+  const uaKey = await crypto.subtle.importKey("raw", uaPublic, { name: "ECDH", namedCurve: "P-256" }, false, []);
+  const ecdhSecret = new Uint8Array(await crypto.subtle.deriveBits({ name: "ECDH", public: uaKey }, asKeys.privateKey, 256));
+
+  const prkKey = await hmacSha256(authSecret, ecdhSecret);
+  const ikm = await hmacSha256(prkKey, concatBytes(textEnc.encode("WebPush: info\0"), uaPublic, asPublic, new Uint8Array([1])));
+
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const prk = await hmacSha256(salt, ikm);
+  const cek = (await hmacSha256(prk, concatBytes(textEnc.encode("Content-Encoding: aes128gcm\0"), new Uint8Array([1])))).slice(0, 16);
+  const nonce = (await hmacSha256(prk, concatBytes(textEnc.encode("Content-Encoding: nonce\0"), new Uint8Array([1])))).slice(0, 12);
+
+  const aesKey = await crypto.subtle.importKey("raw", cek, { name: "AES-GCM" }, false, ["encrypt"]);
+  const record = concatBytes(textEnc.encode(plaintext), new Uint8Array([2]));
+  const ciphertext = new Uint8Array(await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce }, aesKey, record));
+
+  const recordSize = new Uint8Array([0, 0, 16, 0]); // 4096
+  return concatBytes(salt, recordSize, new Uint8Array([asPublic.length]), asPublic, ciphertext);
+}
+
+async function sendWebPush(env, sub, payloadText) {
+  const body = await encryptPushPayload(sub, payloadText);
+  return fetch(sub.endpoint, {
+    method: "POST",
+    headers: {
+      "Authorization": await vapidAuthorization(env, sub.endpoint),
+      "Content-Encoding": "aes128gcm",
+      "Content-Type": "application/octet-stream",
+      "TTL": "86400",
+      "Urgency": "high",
+    },
+    body,
+  });
+}

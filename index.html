@@ -1983,7 +1983,7 @@
       </section>
     </div>
 
-    <div class="sheetBg" id="settingsSheet" hidden><section class="sheet"><div class="handle"></div><div class="sheetHead"><h3>Paper Log 설정</h3><button class="icon" id="closeSettings" type="button">×</button></div><div class="ruleBox"><strong>Notion / Worker 연결</strong><span>Worker 주소와 SECRET Key는 이 기기에 저장됩니다.</span><span>Notion 토큰과 DB ID는 Cloudflare Worker에만 등록해 주세요.</span></div><form class="entryForm" id="settingsForm"><div class="field"><label>Worker 앞부분</label><input id="settingWorkerName" autocomplete="off" placeholder="예: paperlog"></div><div class="field"><label>Cloudflare ID</label><input id="settingWorkerId" autocomplete="off" placeholder="예: hyunra94"></div><div class="field"><label>SECRET Key</label><input id="settingSecretKey" type="password" autocomplete="current-password" placeholder="Cloudflare Worker의 SECRET_KEY"></div><label class="typeChip" style="justify-content:flex-start"><input type="checkbox" id="settingRememberSecret" checked> 이 기기에 SECRET Key 저장</label><div class="field"><label>보기 모드</label><select id="settingViewMode"><option value="personal">전체 보기</option><option value="work">회사 보기</option></select></div><div class="field"><label>캘린더에서 감시할 아이콘</label><input id="settingWatchIcons" autocomplete="off" placeholder="예: ⚫🟣"><p class="sheetNote">제목에 이 아이콘이 있고 완료 체크 안 된 채 날짜가 지나면, 캘린더 날짜 칸에 빨간 점이 떠요.</p></div><button class="save" id="saveSettings" type="submit">설정 저장</button><button class="cancel" id="settingLoadNotion" type="button">Notion 불러오기</button><button class="cancel" id="installPwaBtn" type="button" hidden>앱 설치</button><button class="cancel" id="clearSettings" type="button">저장된 설정 지우기</button><p class="sheetNote" id="settingsStatus">설정 저장 후 자동으로 현재 월 일정/할 일을 불러옵니다.</p></form></section></div>
+    <div class="sheetBg" id="settingsSheet" hidden><section class="sheet"><div class="handle"></div><div class="sheetHead"><h3>Paper Log 설정</h3><button class="icon" id="closeSettings" type="button">×</button></div><div class="ruleBox"><strong>Notion / Worker 연결</strong><span>Worker 주소와 SECRET Key는 이 기기에 저장됩니다.</span><span>Notion 토큰과 DB ID는 Cloudflare Worker에만 등록해 주세요.</span></div><form class="entryForm" id="settingsForm"><div class="field"><label>Worker 앞부분</label><input id="settingWorkerName" autocomplete="off" placeholder="예: paperlog"></div><div class="field"><label>Cloudflare ID</label><input id="settingWorkerId" autocomplete="off" placeholder="예: hyunra94"></div><div class="field"><label>SECRET Key</label><input id="settingSecretKey" type="password" autocomplete="current-password" placeholder="Cloudflare Worker의 SECRET_KEY"></div><label class="typeChip" style="justify-content:flex-start"><input type="checkbox" id="settingRememberSecret" checked> 이 기기에 SECRET Key 저장</label><div class="field"><label>보기 모드</label><select id="settingViewMode"><option value="personal">전체 보기</option><option value="work">회사 보기</option></select></div><div class="field"><label>캘린더에서 감시할 아이콘</label><input id="settingWatchIcons" autocomplete="off" placeholder="예: ⚫🟣"><p class="sheetNote">제목에 이 아이콘이 있고 완료 체크 안 된 채 날짜가 지나면, 캘린더 날짜 칸에 빨간 점이 떠요.</p></div><div class="field"><label>푸시 알림</label><p class="sheetNote">약속 1시간 전 · 전날 밤 9시 다음 날 일정 · 아침 8시 오늘 마감 할 일 · 목요일 0시 보스 초기화</p><button class="cancel" id="pushToggleBtn" type="button">이 기기 알림 켜기</button><button class="cancel" id="pushTestBtn" type="button" hidden>테스트 알림 보내기</button><p class="sheetNote" id="pushStatus"></p></div><button class="save" id="saveSettings" type="submit">설정 저장</button><button class="cancel" id="settingLoadNotion" type="button">Notion 불러오기</button><button class="cancel" id="installPwaBtn" type="button" hidden>앱 설치</button><button class="cancel" id="clearSettings" type="button">저장된 설정 지우기</button><p class="sheetNote" id="settingsStatus">설정 저장 후 자동으로 현재 월 일정/할 일을 불러옵니다.</p></form></section></div>
 
 
 
@@ -6280,7 +6280,111 @@
         setInstallButtonVisible(false);
       };
 
+      const pushSupported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+
+      function setPushStatus(text) {
+        const el = document.getElementById('pushStatus');
+        if (el) el.textContent = text;
+      }
+
+      function urlBase64ToUint8Array(base64) {
+        const padded = (base64 + '='.repeat((4 - base64.length % 4) % 4)).replace(/-/g, '+').replace(/_/g, '/');
+        const raw = atob(padded);
+        return Uint8Array.from(raw, c => c.charCodeAt(0));
+      }
+
+      function pushDeviceLabel() {
+        const ua = navigator.userAgent;
+        const os = /Android/i.test(ua) ? 'Android' : /iPhone|iPad/i.test(ua) ? 'iOS' : /Windows/i.test(ua) ? 'Windows' : /Mac/i.test(ua) ? 'Mac' : '기타';
+        return `${os}${isStandalone ? ' 앱' : ' 브라우저'}`;
+      }
+
+      async function pushApi(path, body) {
+        const res = await window.paperLog.fetch(path, body ? { method: 'POST', body: JSON.stringify(body) } : {});
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.ok === false) throw new Error(data.message || data.error || '알림 서버 오류');
+        return data;
+      }
+
+      async function currentPushSubscription() {
+        if (!pushSupported) return null;
+        const reg = await navigator.serviceWorker.ready;
+        return reg.pushManager.getSubscription();
+      }
+
+      async function refreshPushUi() {
+        const toggle = document.getElementById('pushToggleBtn');
+        const test = document.getElementById('pushTestBtn');
+        if (!toggle) return;
+        if (!pushSupported) {
+          toggle.disabled = true;
+          setPushStatus('이 브라우저는 푸시 알림을 지원하지 않아요. 아이폰은 홈 화면에 추가한 앱에서만 켤 수 있어요.');
+          return;
+        }
+        const sub = await currentPushSubscription().catch(() => null);
+        const on = Boolean(sub) && Notification.permission === 'granted';
+        toggle.textContent = on ? '이 기기 알림 끄기' : '이 기기 알림 켜기';
+        if (test) test.hidden = !on;
+        if (Notification.permission === 'denied') setPushStatus('알림이 차단돼 있어요. 브라우저/앱 설정에서 알림을 허용해 주세요.');
+        else setPushStatus(on ? `이 기기(${pushDeviceLabel()})에서 알림을 받고 있어요.` : '');
+      }
+
+      async function enablePush() {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') throw new Error('알림 권한이 허용되지 않았어요.');
+        const config = await pushApi('/api/push/config');
+        if (!config.enabled || !config.publicKey) throw new Error('Worker에 알림 설정(PUSH_KV/VAPID 키)이 아직 없어요.');
+        const reg = await navigator.serviceWorker.ready;
+        let sub = await reg.pushManager.getSubscription();
+        if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(config.publicKey) });
+        await pushApi('/api/push/subscribe', { subscription: sub.toJSON(), label: pushDeviceLabel() });
+      }
+
+      async function disablePush() {
+        const sub = await currentPushSubscription();
+        if (!sub) return;
+        await pushApi('/api/push/unsubscribe', { endpoint: sub.endpoint }).catch(() => {});
+        await sub.unsubscribe();
+      }
+
+      async function togglePush() {
+        const toggle = document.getElementById('pushToggleBtn');
+        if (toggle) toggle.disabled = true;
+        try {
+          const sub = await currentPushSubscription();
+          if (sub && Notification.permission === 'granted') {
+            setPushStatus('알림을 끄는 중...');
+            await disablePush();
+          } else {
+            setPushStatus('알림을 켜는 중...');
+            await enablePush();
+          }
+          await refreshPushUi();
+        } catch (err) {
+          setPushStatus(`알림 설정 실패: ${err.message}`);
+        } finally {
+          if (toggle) toggle.disabled = false;
+        }
+      }
+
+      async function sendTestPush() {
+        try {
+          const sub = await currentPushSubscription();
+          if (!sub) throw new Error('이 기기 알림이 꺼져 있어요.');
+          setPushStatus('테스트 알림을 보내는 중...');
+          const result = await pushApi('/api/push/test', { endpoint: sub.endpoint });
+          setPushStatus(result.sent ? '테스트 알림을 보냈어요. 잠시 후 도착해요.' : '발송에 실패했어요. 알림을 껐다가 다시 켜 주세요.');
+        } catch (err) {
+          setPushStatus(`테스트 실패: ${err.message}`);
+        }
+      }
+
       window.addEventListener('load', () => {
+        document.getElementById('pushToggleBtn')?.addEventListener('click', togglePush);
+        document.getElementById('pushTestBtn')?.addEventListener('click', sendTestPush);
+        document.getElementById('openSettings')?.addEventListener('click', () => refreshPushUi().catch(() => {}));
+        refreshPushUi().catch(() => {});
+
         const btn = document.getElementById('installPwaBtn');
         if (btn) btn.addEventListener('click', window.promptPaperLogInstall);
 
