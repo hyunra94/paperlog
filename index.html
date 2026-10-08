@@ -1759,7 +1759,7 @@
         <div class="bossViewPanel" data-boss-panel="shortcuts">
           <div class="bossPanelScrollThumb" data-boss-panel-thumb="shortcuts" aria-hidden="true"></div>
           <article class="card"><div class="divTitle">이번 주 현황</div><div class="bossSum bossSumV47" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div><span>에픽던전</span><strong id="mainEpicSummary">0/0</strong></div><div><span>몬스터파크</span><strong id="mainParkSummary">0/0</strong></div></div></article>
-          <article class="card"><div class="divTitle">환산주스탯 바로가기<a class="sundayMapleLink" href="https://maplestory.nexon.com/News/Event" target="_blank" rel="noopener noreferrer">🍁 썬데이 메이플</a></div><div id="charLinkList" class="list"></div></article>
+          <article class="card"><div class="divTitle">환산주스탯 바로가기<a class="sundayMapleLink" id="sundayMapleLink" href="https://maplestory.nexon.com/News/Event" target="_blank" rel="noopener noreferrer">🍁 썬데이 메이플</a></div><div id="charLinkList" class="list"></div></article>
         </div>
         <div class="bossViewPanel" data-boss-panel="boss">
           <div class="bossPanelScrollThumb" data-boss-panel-thumb="boss" aria-hidden="true"></div>
@@ -2364,6 +2364,16 @@
         if(!res.ok)throw new Error(data.error||`요청 실패 (${res.status})`);
         return data;
       }
+      // 진행 중인 썬데이 메이플이 있으면 바로가기를 이벤트 목록 대신 해당 이벤트 페이지로 연결한다.
+      async function updateSundayMapleLink(){
+        const link=document.getElementById('sundayMapleLink');if(!link)return;
+        try{
+          const data=await mapleSchedulerApiGet('/api/events');
+          const sunday=(data.events||[]).filter(e=>/썬데이|SUN ?DAY/i.test(e.title||'')&&e.url).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')))[0];
+          link.href=sunday?sunday.url:'https://maplestory.nexon.com/News/Event';
+        }catch(e){console.warn('썬데이 메이플 링크 갱신 실패',e)}
+      }
+      updateSundayMapleLink();
       const MAPLE_KNOWN_MONTHLY_BOSSES=new Set(['검은 마법사']);
       const MAPLE_KNOWN_DAILY_BOSSES=new Set(['시그너스_노말','힐라_하드']);
       const MAPLE_DIFFICULTY_KO={easy:'이지',normal:'노말',hard:'하드',chaos:'카오스',extreme:'익스트림'};
