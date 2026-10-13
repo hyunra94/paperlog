@@ -5177,6 +5177,9 @@
       const savedPage=isWidgetTabUrl?urlTab:(sessionStorage.getItem(ACTIVE_PAGE_KEY)||'dashboard');
       page(savedPage,{scroll:false,persist:!isWidgetTabUrl});
       if(savedPage==='boss'&&urlBossView)setBossView(urlBossView,!isWidgetTabUrl,{behavior:'auto'});
+      // 앱 아이콘 길게 누르기 메뉴(manifest shortcuts)의 '할 일 추가'/'일정 추가'로 열면 입력창을 바로 띄운다.
+      const urlAdd=urlParams.get('add');
+      if(hasPaperConfig()&&(urlAdd==='todo'||urlAdd==='schedule'))setTimeout(()=>{openEntry();$(urlAdd==='todo'?'#addTodo':'#addSchedule').checked=true;updateEntryMode();$('#entryTitle')?.focus();history.replaceState(null,'',location.pathname)},350);
       if(hasPaperConfig()){setTimeout(()=>{loadProjectsFromWorker(true);loadCalendarFromWorker(true);loadDashboardTodayFromWorker();loadBossFromWorker(true);loadAnniversariesFromWorker()},300);if(urlSettings)setTimeout(()=>openSettings(),250)}else setTimeout(()=>openSettings(),250);window.addEventListener('resize',()=>{hideSchedulePopup();renderDetail()});console.assert($('#stickyMonthLabel'),'test: header month label exists');console.assert($$('.navBtn').length===4,'test: nav has 4 tabs');console.assert($('#calendarGrid'),'test: calendar grid exists');
     });
   </script>

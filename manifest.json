@@ -26,6 +26,32 @@
   ],
   "shortcuts": [
     {
+      "name": "할 일 추가",
+      "short_name": "할 일 추가",
+      "description": "할 일 입력창 바로 열기",
+      "url": "./?tab=calendar&add=todo",
+      "icons": [
+        {
+          "src": "./icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "일정 추가",
+      "short_name": "일정 추가",
+      "description": "일정 입력창 바로 열기",
+      "url": "./?tab=calendar&add=schedule",
+      "icons": [
+        {
+          "src": "./icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
       "name": "캘린더",
       "short_name": "캘린더",
       "description": "큰 캘린더 화면 바로 열기",
