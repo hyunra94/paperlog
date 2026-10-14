@@ -382,8 +382,12 @@ function scheduleProps(env) {
 function projectProps(env) {
   return {
     title: env.PROJECT_TITLE_PROP || "프로젝트 이름",
+    status: env.PROJECT_STATUS_PROP || "상태",
   };
 }
+
+// 프로젝트 상태 중 '완료' 그룹에 속하는 값. 이 상태의 프로젝트는 입력창 선택 목록에서 숨긴다.
+const PROJECT_DONE_STATUSES = new Set(["작업 완료", "업로드 완료", "프로젝트 종료"]);
 
 function incomeProps(env) {
   return {
@@ -882,10 +886,13 @@ async function getProjects(env) {
 
   return notionData.results.map(page => {
     const props = page.properties || {};
+    const status = props[p.status]?.status?.name || readSelect(props, p.status);
     return {
       id: page.id,
       url: page.url,
       title: readTitle(props, p.title) || "이름 없음",
+      status,
+      done: PROJECT_DONE_STATUSES.has(status),
     };
   });
 }

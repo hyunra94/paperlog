@@ -2825,7 +2825,7 @@
       function getProjectUsage(){try{return JSON.parse(localStorage.getItem(PROJECT_USAGE_KEY)||'{}')}catch{return {}}}
       function bumpProjectUsage(id){if(!id)return;try{const usage=getProjectUsage();usage[id]=(usage[id]||0)+1;localStorage.setItem(PROJECT_USAGE_KEY,JSON.stringify(usage))}catch(e){console.warn('프로젝트 사용 빈도 저장 실패',e)}}
       function sortProjectOptionsByUsage(list){const usage=getProjectUsage();return [...list].sort((a,b)=>(usage[b.id]||0)-(usage[a.id]||0))}
-      function populateProjectSelect(){const sel=$('#entryProject');if(!sel)return;const current=sel.value;const sorted=sortProjectOptionsByUsage(projectOptions);sel.innerHTML='<option value="">선택 안 함</option>'+sorted.map(p=>`<option value="${p.id}">${p.title||'제목 없음'}</option>`).join('');if(current&&projectOptions.some(p=>p.id===current))sel.value=current}
+      function populateProjectSelect(keepId=''){const sel=$('#entryProject');if(!sel)return;const current=sel.value;const sorted=sortProjectOptionsByUsage(projectOptions.filter(p=>!p.done||p.id===keepId||p.id===current));sel.innerHTML='<option value="">선택 안 함</option>'+sorted.map(p=>`<option value="${p.id}">${p.title||'제목 없음'}</option>`).join('');if(current&&projectOptions.some(p=>p.id===current))sel.value=current}
       function selectPersonalProject(){
         const sel=$('#entryProject');
         if(!sel)return false;
@@ -3172,7 +3172,7 @@
         const item=(type==='schedule'?state.schedules:state.tasks).find(x=>x.id===id);
         if(!item)return;
         editingCalendarRecord={type,id,item};
-        populateProjectSelect();
+        populateProjectSelect((item.projectIds||[])[0]);
         $('#entrySheetTitle')&&($('#entrySheetTitle').textContent=type==='schedule'?'일정 수정':type==='todo'?'할 일 수정':'하루 기록 수정');
         $('#entrySaveBtn')&&($('#entrySaveBtn').textContent='Notion에 수정하기');
         $('#deleteEntry')&&($('#deleteEntry').hidden=false);
