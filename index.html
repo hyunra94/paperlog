@@ -1490,6 +1490,14 @@
       background:rgba(250,236,236,.42);
       margin-top:10px;
     }
+    .papulWeekMemoPanel{margin:2px 0 10px;border:1.2px dashed rgba(47,42,40,.35);border-radius:15px;padding:8px;background:rgba(255,255,255,.25)}
+    .papulWeekMemoView{min-height:22px;font-size:14px;line-height:1.5;white-space:pre-wrap;word-break:break-word;cursor:text}
+    .papulWeekMemoView.empty{color:var(--sub)}
+    .papulWeekMemoPanel textarea{width:100%;box-sizing:border-box;border:1.2px solid var(--line);border-radius:12px;background:var(--card);padding:8px 10px;font-size:14px;line-height:1.5;resize:vertical}
+    .papulWeekMemoActions{display:flex;justify-content:flex-end;gap:6px;margin-top:6px}
+    .papulWeekMemoCancel{border:1.6px solid var(--line);border-radius:999px;background:var(--card);padding:5px 12px;font-family:'Gaegu';font-size:15px}
+    .papulWeekMemoNote{margin:4px 0 0;color:var(--sub);font-size:12px}
+    .papulWeekMemoNote:empty{display:none}
     .bossLootBucket .bossBucketTitle{
       color:#9f4f4f;
     }
@@ -1764,7 +1772,7 @@
         <div class="bossViewPanel" data-boss-panel="boss">
           <div class="bossPanelScrollThumb" data-boss-panel-thumb="boss" aria-hidden="true"></div>
           <article class="card"><div class="weekCard bossWeekNavCard"><div><span class="weekLabel">보스 주차</span><div class="bossWeekNav"><button class="weekArrow" id="bossPrevWeek" type="button" aria-label="이전 주">◀</button><strong id="bossWeekTitle">이번 주</strong><button class="weekArrow" id="bossNextWeek" type="button" aria-label="다음 주">▶</button></div></div><button class="icon" id="bossTodayWeek" type="button" aria-label="오늘 주차">↺</button></div><div class="bossTool"><button class="bossAction gen" id="generateBoss">선택 주차 생성</button><button class="bossAction setup" id="loadBossNotion" type="button">선택 주차 불러오기</button></div></article>
-          <article class="card"><div class="divTitle">이번 주 보스 체크<span style="display:flex;gap:6px;"><button class="bossAddCharBtn" id="addBossCharacter" type="button">+ 캐릭터</button><button class="bossAddCharBtn" id="openPapulWeekMemo" type="button">+ 메모</button></span></div><div class="bossSum bossSumV47"><div><span>보스 수</span><strong id="bossCount">0개</strong></div><div><span>예정 메소</span><strong id="bossExpectedTotal">0</strong></div><div><span>득템</span><strong id="bossLootTotal">0</strong></div><div><span>결정석</span><strong id="bossCrystalTotal">0</strong></div></div><div id="bossList"></div><p class="note">나중에 Worker API 연결 시 보스 체크 기록 DB에 실제 페이지 생성</p></article>
+          <article class="card"><div class="divTitle">이번 주 보스 체크<span style="display:flex;align-items:center;gap:6px;"><button class="bossAddCharBtn" id="addBossCharacter" type="button">+ 캐릭터</button><button id="openPapulWeekMemo" type="button" title="파풀 주 메모" aria-label="파풀 주 메모" style="width:28px;height:28px;border:1.2px solid rgba(47,42,40,.2);border-radius:50%;background:rgba(255,253,247,.9);display:inline-grid;place-items:center;box-shadow:1px 1px 0 rgba(47,42,40,.08);flex:0 0 28px;color:#9b9189;padding:0;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20.5l1.4-4.6A8 8 0 1 1 21 12z"/><circle cx="8.5" cy="12" r=".6" fill="currentColor"/><circle cx="12.5" cy="12" r=".6" fill="currentColor"/><circle cx="16.5" cy="12" r=".6" fill="currentColor"/></svg></button></span></div><div class="papulWeekMemoPanel" id="papulWeekMemoPanel" hidden><div class="papulWeekMemoView" id="papulWeekMemoView" title="눌러서 수정"></div><div id="papulWeekMemoEdit" hidden><textarea id="papulWeekMemoText" rows="4" placeholder="이번 주 파풀 득템 메모"></textarea><div class="papulWeekMemoActions"><button class="papulWeekMemoCancel" id="cancelPapulWeekMemo" type="button">취소</button><button class="bossAddCharBtn" id="savePapulWeekMemo" type="button">저장</button></div></div><p class="papulWeekMemoNote" id="papulWeekMemoNote"></p></div><div class="bossSum bossSumV47"><div><span>보스 수</span><strong id="bossCount">0개</strong></div><div><span>예정 메소</span><strong id="bossExpectedTotal">0</strong></div><div><span>득템</span><strong id="bossLootTotal">0</strong></div><div><span>결정석</span><strong id="bossCrystalTotal">0</strong></div></div><div id="bossList"></div><p class="note">나중에 Worker API 연결 시 보스 체크 기록 DB에 실제 페이지 생성</p></article>
         </div>
       </div>
       <div class="bossViewPanel" data-boss-panel="todo">
@@ -3554,6 +3562,7 @@
         }
         renderMapleTodo();
         updateBossNavDot();
+        if(typeof renderPapulWeekMemoView==='function'&&!papulWeekMemoEditing())renderPapulWeekMemoView();
         const isLootChar=cid=>String(chars.find(c=>c.id===cid)?.name||'').includes('득템');
         const noCrystal=r=>String(r.name||'').includes('메이린')||String(r.family||'').includes('메이린');
         const list=$('#bossList'), rows=bossRecords.filter(r=>!isLootChar(r.charId)&&(bossFilter==='all'||r.charId===bossFilter));
@@ -4329,7 +4338,40 @@
         }
       }
       $('#addBossCharacter')&&($('#addBossCharacter').onclick=addBossCharacterFlow);
-      $('#openPapulWeekMemo')&&($('#openPapulWeekMemo').onclick=()=>{const cid=chars.find(c=>c.name==='총합')?.id;if(!cid){alert('총합 캐릭터를 찾을 수 없어요.');return}openBossLootMemo('char:'+cid)});
+      function papulCharId(){return chars.find(c=>c.name==='총합')?.id||''}
+      function papulWeekMemoEditing(){return !$('#papulWeekMemoEdit')?.hidden}
+      function renderPapulWeekMemoView(){
+        const view=$('#papulWeekMemoView');if(!view)return;
+        const cid=papulCharId(), text=cid?charLootMemo(cid):'';
+        view.classList.toggle('empty',!text);
+        view.textContent=text||'이번 주 메모가 없어요. 눌러서 작성';
+      }
+      function setPapulWeekMemoEditing(on){
+        const view=$('#papulWeekMemoView'), edit=$('#papulWeekMemoEdit'), ta=$('#papulWeekMemoText');
+        if(!view||!edit)return;
+        view.hidden=on;edit.hidden=!on;
+        if(on){const cid=papulCharId();ta.value=cid?charLootMemo(cid):'';ta.focus()}
+        else renderPapulWeekMemoView();
+      }
+      $('#openPapulWeekMemo')&&($('#openPapulWeekMemo').onclick=()=>{
+        const panel=$('#papulWeekMemoPanel');if(!panel)return;
+        if(!papulCharId()){alert('총합 캐릭터를 찾을 수 없어요.');return}
+        panel.hidden=!panel.hidden;
+        $('#papulWeekMemoNote').textContent='';
+        setPapulWeekMemoEditing(false);
+      });
+      $('#papulWeekMemoView')&&($('#papulWeekMemoView').onclick=()=>{$('#papulWeekMemoNote').textContent='';setPapulWeekMemoEditing(true)});
+      $('#cancelPapulWeekMemo')&&($('#cancelPapulWeekMemo').onclick=()=>setPapulWeekMemoEditing(false));
+      $('#savePapulWeekMemo')&&($('#savePapulWeekMemo').onclick=async()=>{
+        const cid=papulCharId();if(!cid)return;
+        const note=$('#papulWeekMemoNote');
+        bossLootMemos[cid]=uniqueMemoLines($('#papulWeekMemoText')?.value||'').join('\n');
+        setPapulWeekMemoEditing(false);
+        if(note)note.textContent='저장 중…';
+        renderBoss();
+        const ok=await saveBossWeeklyRecordForChar(cid,{silent:true});
+        if(note)note.textContent=ok?'저장됐어요.':'저장 실패';
+      });
       $('#mapleTodoMenuToggle')&&($('#mapleTodoMenuToggle').onclick=()=>{const el=$('#mapleTodoMenuActions');if(el)el.hidden=!el.hidden});
       $('#refreshMapleScheduler')&&($('#refreshMapleScheduler').onclick=()=>{refreshAllMapleScheduler()});$('#mapleTodoEditBtn')&&($('#mapleTodoEditBtn').onclick=()=>{mapleTodoEditMode=!mapleTodoEditMode;$('#mapleTodoEditBtn').classList.toggle('on',mapleTodoEditMode);renderMapleTodo()});$('#mapleTodoList')?.addEventListener('click',e=>{const toggle=e.target.closest('[data-maple-toggle]');if(!toggle)return;const key=toggle.dataset.mapleToggle;if(mapleDisabledSet.has(key))mapleDisabledSet.delete(key);else mapleDisabledSet.add(key);saveMapleDisabledSet(mapleDisabledSet);renderMapleTodo()});const closeBossSheet=()=>{preserveBossGridSelection();saveBossSettingForChar(bossSettingActiveCharId,{silent:true});lowEditAll=false;showLowBosses=false;$('#bossSheet').hidden=true;};$('#closeBoss').onclick=closeBossSheet;$('#cancelBoss').onclick=closeBossSheet;const bossSheetBg=$('#bossSheet');if(bossSheetBg)bossSheetBg.addEventListener('click',e=>{if(e.target===bossSheetBg)closeBossSheet()});$('#bossLowEditAllBtn')&&($('#bossLowEditAllBtn').onclick=()=>{lowEditAll=!lowEditAll;$('#bossLowEditAllBtn').classList.toggle('on',lowEditAll);$('#bossLowEditAllBtn').textContent=lowEditAll?'닫기':'미사용';renderBossGrid()});$('#bossCharSelect').onchange=()=>{preserveBossGridSelection();const prev=bossSettingActiveCharId;if(prev&&isValidNotionId(prev))saveBossSettingForChar(prev,{silent:true});bossSettingActiveCharId=$('#bossCharSelect').value;renderBossGrid();setBossSettingNote('선택하면 자동으로 저장됩니다.');};$('#bossSettingGrid').addEventListener('click',e=>{
         const currentCid=bossSettingActiveCharId||$('#bossCharSelect')?.value||'';
