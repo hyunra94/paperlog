@@ -1490,7 +1490,6 @@
       background:rgba(250,236,236,.42);
       margin-top:10px;
     }
-    .weekMemoBtn{border:1.2px solid rgba(47,42,40,.25);border-radius:999px;background:rgba(255,253,247,.9);padding:1px 8px;font-family:'Gaegu';font-size:15px;line-height:1.3;color:var(--sub);box-shadow:1px 1px 0 rgba(47,42,40,.08);white-space:nowrap}
     .bossLootBucket .bossBucketTitle{
       color:#9f4f4f;
     }
@@ -1765,7 +1764,7 @@
         <div class="bossViewPanel" data-boss-panel="boss">
           <div class="bossPanelScrollThumb" data-boss-panel-thumb="boss" aria-hidden="true"></div>
           <article class="card"><div class="weekCard bossWeekNavCard"><div><span class="weekLabel">보스 주차</span><div class="bossWeekNav"><button class="weekArrow" id="bossPrevWeek" type="button" aria-label="이전 주">◀</button><strong id="bossWeekTitle">이번 주</strong><button class="weekArrow" id="bossNextWeek" type="button" aria-label="다음 주">▶</button></div></div><button class="icon" id="bossTodayWeek" type="button" aria-label="오늘 주차">↺</button></div><div class="bossTool"><button class="bossAction gen" id="generateBoss">선택 주차 생성</button><button class="bossAction setup" id="loadBossNotion" type="button">선택 주차 불러오기</button></div></article>
-          <article class="card"><div class="divTitle">이번 주 보스 체크<button class="bossAddCharBtn" id="addBossCharacter" type="button">+ 캐릭터</button></div><div class="bossSum bossSumV47"><div><span>보스 수</span><strong id="bossCount">0개</strong></div><div><span>예정 메소</span><strong id="bossExpectedTotal">0</strong></div><div><span>득템</span><strong id="bossLootTotal">0</strong></div><div><span>결정석</span><strong id="bossCrystalTotal">0</strong></div></div><div id="bossList"></div><p class="note">나중에 Worker API 연결 시 보스 체크 기록 DB에 실제 페이지 생성</p></article>
+          <article class="card"><div class="divTitle">이번 주 보스 체크<span style="display:flex;gap:6px;"><button class="bossAddCharBtn" id="addBossCharacter" type="button">+ 캐릭터</button><button class="bossAddCharBtn" id="openPapulWeekMemo" type="button">+ 메모</button></span></div><div class="bossSum bossSumV47"><div><span>보스 수</span><strong id="bossCount">0개</strong></div><div><span>예정 메소</span><strong id="bossExpectedTotal">0</strong></div><div><span>득템</span><strong id="bossLootTotal">0</strong></div><div><span>결정석</span><strong id="bossCrystalTotal">0</strong></div></div><div id="bossList"></div><p class="note">나중에 Worker API 연결 시 보스 체크 기록 DB에 실제 페이지 생성</p></article>
         </div>
       </div>
       <div class="bossViewPanel" data-boss-panel="todo">
@@ -3588,8 +3587,7 @@
           const menuBtn=bossCardOpenCharId===cid
             ?`<button class="bossCharMenuBtn" data-open-boss-setting="${cid}" title="보스 설정" type="button" style="${menuBtnStyle}"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>`
             :'';
-          const weekMemoBtn=charName==='총합'?`<button class="weekMemoBtn" data-charloot="${cid}" type="button">+ 주 메모</button>`:'';
-          return `<div class="bossCard"><div class="bossTitle"><span style="display:flex;align-items:center;gap:6px;"><span data-boss-char-toggle="${cid}" style="cursor:pointer;user-select:none;">${charName}</span>${menuBtn}${weekMemoBtn}</span><span class="tag y" data-charexpecteddetail="${cid}" style="cursor:pointer;">${charTotalsText}</span></div>${renderLootBucket(cid)}${renderBossMonthlyCallout(monthlyRows)}${renderBossBucket('1인 파티','solo',solo)}${renderBossBucket('2인 파티','duo',duo)}${renderBossBucket('기타 인원','other',other)}</div>`;
+          return `<div class="bossCard"><div class="bossTitle"><span style="display:flex;align-items:center;gap:6px;"><span data-boss-char-toggle="${cid}" style="cursor:pointer;user-select:none;">${charName}</span>${menuBtn}</span><span class="tag y" data-charexpecteddetail="${cid}" style="cursor:pointer;">${charTotalsText}</span></div>${renderLootBucket(cid)}${renderBossMonthlyCallout(monthlyRows)}${renderBossBucket('1인 파티','solo',solo)}${renderBossBucket('2인 파티','duo',duo)}${renderBossBucket('기타 인원','other',other)}</div>`;
         }).join('');
       }
       function openBossLootMemo(keyValue){
@@ -4331,6 +4329,7 @@
         }
       }
       $('#addBossCharacter')&&($('#addBossCharacter').onclick=addBossCharacterFlow);
+      $('#openPapulWeekMemo')&&($('#openPapulWeekMemo').onclick=()=>{const cid=chars.find(c=>c.name==='총합')?.id;if(!cid){alert('총합 캐릭터를 찾을 수 없어요.');return}openBossLootMemo('char:'+cid)});
       $('#mapleTodoMenuToggle')&&($('#mapleTodoMenuToggle').onclick=()=>{const el=$('#mapleTodoMenuActions');if(el)el.hidden=!el.hidden});
       $('#refreshMapleScheduler')&&($('#refreshMapleScheduler').onclick=()=>{refreshAllMapleScheduler()});$('#mapleTodoEditBtn')&&($('#mapleTodoEditBtn').onclick=()=>{mapleTodoEditMode=!mapleTodoEditMode;$('#mapleTodoEditBtn').classList.toggle('on',mapleTodoEditMode);renderMapleTodo()});$('#mapleTodoList')?.addEventListener('click',e=>{const toggle=e.target.closest('[data-maple-toggle]');if(!toggle)return;const key=toggle.dataset.mapleToggle;if(mapleDisabledSet.has(key))mapleDisabledSet.delete(key);else mapleDisabledSet.add(key);saveMapleDisabledSet(mapleDisabledSet);renderMapleTodo()});const closeBossSheet=()=>{preserveBossGridSelection();saveBossSettingForChar(bossSettingActiveCharId,{silent:true});lowEditAll=false;showLowBosses=false;$('#bossSheet').hidden=true;};$('#closeBoss').onclick=closeBossSheet;$('#cancelBoss').onclick=closeBossSheet;const bossSheetBg=$('#bossSheet');if(bossSheetBg)bossSheetBg.addEventListener('click',e=>{if(e.target===bossSheetBg)closeBossSheet()});$('#bossLowEditAllBtn')&&($('#bossLowEditAllBtn').onclick=()=>{lowEditAll=!lowEditAll;$('#bossLowEditAllBtn').classList.toggle('on',lowEditAll);$('#bossLowEditAllBtn').textContent=lowEditAll?'닫기':'미사용';renderBossGrid()});$('#bossCharSelect').onchange=()=>{preserveBossGridSelection();const prev=bossSettingActiveCharId;if(prev&&isValidNotionId(prev))saveBossSettingForChar(prev,{silent:true});bossSettingActiveCharId=$('#bossCharSelect').value;renderBossGrid();setBossSettingNote('선택하면 자동으로 저장됩니다.');};$('#bossSettingGrid').addEventListener('click',e=>{
         const currentCid=bossSettingActiveCharId||$('#bossCharSelect')?.value||'';
