@@ -6398,6 +6398,14 @@
         await pushApi('/api/push/subscribe', { subscription: sub.toJSON(), label: pushDeviceLabel() });
       }
 
+      // 기기에는 구독이 살아 있는데 서버 목록에서 빠지는 경우가 있어서(만료 정리 등), 앱을 열 때마다 서버에 다시 등록해 둔다.
+      async function resyncPushSubscription() {
+        if (!pushSupported || Notification.permission !== 'granted') return;
+        const sub = await currentPushSubscription();
+        if (!sub) return;
+        await pushApi('/api/push/subscribe', { subscription: sub.toJSON(), label: pushDeviceLabel() });
+      }
+
       async function disablePush() {
         const sub = await currentPushSubscription();
         if (!sub) return;
@@ -6442,6 +6450,7 @@
         document.getElementById('pushTestBtn')?.addEventListener('click', sendTestPush);
         document.getElementById('openSettings')?.addEventListener('click', () => refreshPushUi().catch(() => {}));
         refreshPushUi().catch(() => {});
+        resyncPushSubscription().catch(err => console.warn('알림 기기 재등록 실패:', err));
 
         const btn = document.getElementById('installPwaBtn');
         if (btn) btn.addEventListener('click', window.promptPaperLogInstall);
