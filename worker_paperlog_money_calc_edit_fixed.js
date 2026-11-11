@@ -2453,7 +2453,7 @@ function buildExpenseProperties(body, p, isCreate) {
    푸시 알림 (Web Push + Cron)
    - 구독 정보와 발송 기록은 PUSH_KV에 저장한다.
    - Cron(5분마다)이 아래 알림을 한국 시간 기준으로 보낸다.
-     약속 1시간 전 / 전날 21시 다음 날 일정 / 당일 08시 할 일 묶음 / 목요일 0시 보스 초기화 / 썬데이 메이플 공개
+     시간 있는 일정 1시간 전 / 전날 21시 다음 날 일정 / 당일 08시 할 일 묶음 / 목요일 0시 보스 초기화 / 썬데이 메이플 공개
 ========================= */
 
 const PUSH_SUBS_KEY = "push:subs";
@@ -2597,9 +2597,10 @@ async function runPushCron(env) {
 
 async function pushAppointmentReminders(env, today, tomorrow, nowMin) {
   const items = await getSchedules(internalRequest(`/api/schedule?from=${today}&to=${tomorrow}`), env);
+  // 분류와 상관없이 시간이 정해진 일정이면 1시간 전에 알린다 (취소된 일정 제외).
   const targets = items.filter(item =>
-    item.category === APPOINTMENT_CATEGORY &&
     item.time &&
+    !item.canceled &&
     item.date === item.originalDate
   );
 
@@ -2609,8 +2610,9 @@ async function pushAppointmentReminders(env, today, tomorrow, nowMin) {
     if (!(await markPushSent(env, `sent:appt:${item.id}:${item.date}T${item.time}`))) continue;
 
     const when = diff >= 55 ? "1시간 후" : `${diff}분 후`;
+    const kind = item.category === APPOINTMENT_CATEGORY ? "약속" : "일정";
     await sendPushToAll(env, {
-      title: `⏰ ${when} 약속 · ${item.time}`,
+      title: `⏰ ${when} ${kind} · ${item.time}`,
       body: scheduleDetailText(item),
       tag: `appt-${item.id}`,
       url: "./?tab=calendar",
