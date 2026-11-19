@@ -1739,7 +1739,7 @@
           <label class="calMenuRow"><input type="checkbox" class="calCheckInput calTypeCheck" data-type="todo" checked><span class="calCheck"></span> 할 일</label>
           <label class="calMenuRow"><input type="checkbox" class="calCheckInput calTypeCheck" data-type="daily" checked><span class="calCheck"></span> 데일리 로그</label>
           <label class="calMenuRow"><input type="checkbox" class="calCheckInput calTypeCheck" data-type="work" checked><span class="calCheck"></span> 업무일정</label>
-          <label class="calMenuRow"><input type="checkbox" class="calCheckInput calTypeCheck" data-type="personal" checked><span class="calCheck"></span> 개인일정</label>
+          <label class="calMenuRow"><input type="checkbox" class="calCheckInput calTypeCheck" data-type="personal" checked><span class="calCheck"></span> 개인일정·약속</label>
           <label class="calMenuRow"><input type="checkbox" class="calCheckInput calTypeCheck" data-type="anniversary" checked><span class="calCheck"></span> 기념일</label>
           <label class="calMenuRow"><input type="checkbox" class="calCheckInput calTypeCheck" data-type="magic"><span class="calCheck"></span> 으르렁데이</label>
         </div>
@@ -2777,7 +2777,7 @@
         const q=calendarSearchFilterQuery;
         return String(x.title||'').toLowerCase().includes(q)||String(x.category||x.subject||'').toLowerCase().includes(q);
       }
-      function visible(k){return{schedule:state.show.schedule?state.schedules.filter(x=>x.date===k&&(state.show.magic||x.subject!=='으르렁데이')&&(state.show.work||(x.color||scheduleColor(x.subject))!=='work')&&(state.show.personal||x.subject!=='개인일정')&&(state.show.anniversary||x.subject!=='기념일')&&matchesCalendarSearchFilter(x)):[],todo:state.show.todo?state.tasks.filter(x=>x.date===k&&matchesCalendarSearchFilter(x)):[],daily:state.show.daily&&state.dailyLogs?state.dailyLogs.filter(x=>x.date===k):[]}}
+      function visible(k){return{schedule:state.show.schedule?state.schedules.filter(x=>x.date===k&&(state.show.magic||x.subject!=='으르렁데이')&&(state.show.work||(x.color||scheduleColor(x.subject))!=='work')&&(state.show.personal||!isPersonalCategory(x.subject))&&(state.show.anniversary||x.subject!=='기념일')&&matchesCalendarSearchFilter(x)):[],todo:state.show.todo?state.tasks.filter(x=>x.date===k&&matchesCalendarSearchFilter(x)):[],daily:state.show.daily&&state.dailyLogs?state.dailyLogs.filter(x=>x.date===k):[]}}
       function scheduleColor(subject){if(subject==='취소')return 'canceled';if(subject==='약속')return 'meeting';if(subject==='개인일정')return 'personal';if(subject==='뇽')return 'nyong';if(subject==='기념일')return 'anniversary';if(subject==='공휴일')return 'holiday';if(subject==='으르렁데이')return 'magic';if(subject==='연차')return 'leave';if(subject==='근무')return 'leave';return 'work'}
       function isHolidaySchedule(x){return !x.canceled&&(x.color||scheduleColor(x.subject))==='holiday'}
       function calendarMarkers(v){const markers=[];v.schedule.forEach(x=>{const c=x.canceled?'canceled':scheduleColor(x.subject);if(c!=='holiday')markers.push(c)});if(v.todo.length)markers.push('task');markers.sort((a,b)=>(a==='anniversary'?-1:b==='anniversary'?1:0));return markers.slice(0,4)}
@@ -2805,7 +2805,7 @@
       function hasMissedIcon(dateKey){return Boolean(dateKey&&dateKey<key(today)&&state.tasks.some(x=>x.date===dateKey&&!x.done&&!x.canceled&&hasWatchIcon(x.title)))}
       function monthRange(){const first=new Date(view.getFullYear(),view.getMonth(),1),from=new Date(first);from.setDate(first.getDate()-((first.getDay()+6)%7));const to=new Date(from);to.setDate(from.getDate()+41);return{from:key(from),to:key(to)}}
       const CALENDAR_CACHE_KEY='paperlog_calendar_cache_v4';
-      let calendarLoadSeq=0, projectsLoadedOnce=false;
+      let calendarLoadSeq=0, projectsLoadedOnce=false, projectsLoadError="";
       function calendarMonthKey(){return `${view.getFullYear()}-${String(view.getMonth()+1).padStart(2,'0')}`}
       function uniqueByIdDate(items){const seen=new Set();return items.filter(item=>{const k=`${item.id||item.title}_${item.date}_${item.type||''}`;if(seen.has(k))return false;seen.add(k);return true})}
       function normalizeCalendarData(data){return {
@@ -2883,7 +2883,7 @@
       function getProjectUsage(){try{return JSON.parse(localStorage.getItem(PROJECT_USAGE_KEY)||'{}')}catch{return {}}}
       function bumpProjectUsage(id){if(!id)return;try{const usage=getProjectUsage();usage[id]=(usage[id]||0)+1;localStorage.setItem(PROJECT_USAGE_KEY,JSON.stringify(usage))}catch(e){console.warn('프로젝트 사용 빈도 저장 실패',e)}}
       function sortProjectOptionsByUsage(list){const usage=getProjectUsage();return [...list].sort((a,b)=>(usage[b.id]||0)-(usage[a.id]||0))}
-      function populateProjectSelect(keepId=''){const sel=$('#entryProject');if(!sel)return;const current=sel.value;const sorted=sortProjectOptionsByUsage(projectOptions.filter(p=>!p.done||p.id===keepId||p.id===current));sel.innerHTML='<option value="">선택 안 함</option>'+sorted.map(p=>`<option value="${p.id}">${p.title||'제목 없음'}</option>`).join('');if(current&&projectOptions.some(p=>p.id===current))sel.value=current}
+      function populateProjectSelect(keepId=''){const sel=$('#entryProject');if(!sel)return;const current=sel.value;const sorted=sortProjectOptionsByUsage(projectOptions.filter(p=>!p.done||p.id===keepId||p.id===current));const hint=!sorted.length?(projectsLoadError||(projectOptions.length?'진행 중인 프로젝트가 없어요':(projectsLoadedOnce?'':'프로젝트 불러오는 중…'))):'';sel.innerHTML='<option value="">선택 안 함</option>'+(hint?`<option value="" disabled>⚠ ${escAttr(hint)}</option>`:'')+sorted.map(p=>`<option value="${p.id}">${p.title||'제목 없음'}</option>`).join('');if(current&&projectOptions.some(p=>p.id===current))sel.value=current}
       function selectPersonalProject(){
         const sel=$('#entryProject');
         if(!sel)return false;
@@ -2900,7 +2900,7 @@
         const kind=$('#entryDone')?.value;
         if(kind==='personal')selectPersonalProject();
       }
-      async function loadProjectsFromWorker(silent=true){try{if(!hasPaperConfig())return;const res=await window.paperLog.fetch('/api/projects');const data=await res.json().catch(()=>({}));if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'프로젝트 불러오기 실패');projectOptions=data.projects||[];projectsLoadedOnce=true;populateProjectSelect();const store=getCalendarCacheStore();store.projects=projectOptions;setCalendarCacheStore(store);saveCalendarCache()}catch(err){if(!silent){const s=$('#settingsStatus');if(s)s.textContent='프로젝트 불러오기 실패: '+err.message}console.warn('프로젝트 불러오기 실패:',err)}}
+      async function loadProjectsFromWorker(silent=true){try{if(!hasPaperConfig()){projectsLoadError='설정에서 Worker 주소와 SECRET Key를 먼저 저장해 주세요';populateProjectSelect();return}const res=await window.paperLog.fetch('/api/projects');const data=await res.json().catch(()=>({}));if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'프로젝트 불러오기 실패');projectOptions=data.projects||[];projectsLoadedOnce=true;projectsLoadError=projectOptions.length?'':'Notion 프로젝트 DB가 비어 있거나 연결되지 않았어요';populateProjectSelect();const store=getCalendarCacheStore();store.projects=projectOptions;setCalendarCacheStore(store);saveCalendarCache()}catch(err){projectsLoadError='불러오기 실패: '+err.message;populateProjectSelect();if(!silent){const s=$('#settingsStatus');if(s)s.textContent='프로젝트 불러오기 실패: '+err.message}console.warn('프로젝트 불러오기 실패:',err)}}
       async function loadCalendarFromWorker(silent=false){const status=$('#syncStatus'), settingsStatus=$('#settingsStatus'), seq=++calendarLoadSeq, month=calendarMonthKey();try{if(!hasPaperConfig()){if(status)status.textContent='설정 메뉴에서 Worker 주소와 SECRET Key를 먼저 저장해 주세요.';openSettings();return}if(status&&!silent)status.textContent='Notion에서 일정/할 일을 불러오는 중...';if(settingsStatus)settingsStatus.textContent='Notion에서 현재 월 데이터를 불러오는 중...';if(!projectsLoadedOnce&&!projectOptions.length)loadProjectsFromWorker(true);const r=monthRange();const qs=new URLSearchParams({from:r.from,to:r.to,includeCanceled:String(state.showCanceled)});const res=await window.paperLog.fetch(`/api/calendar?${qs.toString()}`);const data=await res.json().catch(()=>({}));if(seq!==calendarLoadSeq)return;if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'Worker 응답 오류');applyCalendarData(data,month);loadDashboardTodayFromWorker();if(status)status.textContent=`Notion 불러오기 완료 · 일정 ${state.schedules.length}개 / 할 일 ${state.tasks.length}개`;if(settingsStatus)settingsStatus.textContent='불러오기 완료'}catch(err){if(seq!==calendarLoadSeq)return;if(status)status.textContent=`불러오기 실패: ${err.message}`;if(settingsStatus)settingsStatus.textContent=`불러오기 실패: ${err.message}`}}
       function parseMemoTagsFromText(value){return String(value||'').split(/[,,，\n]/).map(x=>x.trim()).filter(Boolean);}
       function isAppointmentCategory(value){return String(value||'').trim().includes('약속');}
