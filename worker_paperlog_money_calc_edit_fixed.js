@@ -42,6 +42,7 @@ export default {
           hasBossWeekDb: Boolean(env.NOTION_BOSS_WEEK_DB_ID),
           routes: [
             "/api/projects",
+            "POST /api/projects",
             "/api/calendar",
             "POST /api/content-check",
             "/api/todo",
@@ -62,6 +63,11 @@ export default {
             "/api/money/expense/search"
           ],
         }, 200, cors);
+      }
+
+      if (url.pathname === "/api/projects" && request.method === "POST") {
+        const project = await createProject(request, env);
+        return json({ ok: true, project }, 200, cors);
       }
 
       if (url.pathname === "/api/projects" && request.method === "GET") {
@@ -873,6 +879,21 @@ function uniqueByOccurrence(items) {
 /* =========================
    프로젝트 DB
 ========================= */
+
+// 앱에서 새 프로젝트 만들기: 이름만 넣고 만들며, 상태는 Notion DB 기본값을 따름
+async function createProject(request, env) {
+  if (!env.NOTION_PROJECT_DB_ID) throw new Error("NOTION_PROJECT_DB_ID가 설정되지 않았습니다.");
+  const body = await request.json();
+  const title = String(body.title || "").trim();
+  if (!title) throw new Error("프로젝트 이름을 입력해 주세요.");
+  const p = projectProps(env);
+  const page = await notionCreatePage(env, env.NOTION_PROJECT_DB_ID, {
+    [p.title]: { title: [{ text: { content: title.slice(0, 200) } }] },
+  });
+  const props = page?.properties || {};
+  const status = props[p.status]?.status?.name || readSelect(props, p.status) || "";
+  return { id: page.id, url: page.url, title, status, done: PROJECT_DONE_STATUSES.has(status) };
+}
 
 async function getProjects(env) {
   if (!env.NOTION_PROJECT_DB_ID) return [];
