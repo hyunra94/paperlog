@@ -1850,8 +1850,9 @@
   <input id="entryTime" type="time">
 </div>
 <div class="field scheduleOnly">
-  <div class="catChipHead"><label>분류</label><button type="button" class="catChipEdit" id="entryCategoryEdit" aria-pressed="false">정리</button></div>
+  <div class="catChipHead"><label>분류</label><button type="button" class="catChipEdit" id="entryCategoryEdit" aria-pressed="false">목록 편집</button></div>
   <div class="catChips" id="entryCategoryChips"></div>
+  <div class="projVisPanel" id="entryCategoryVisPanel" hidden></div>
   <select id="entryCategorySelect" hidden>
     <option value="개인일정">개인일정</option>
     <option value="__custom">직접 입력</option>
@@ -2955,7 +2956,7 @@
         const custom=Object.keys(seen)
           .filter(c=>!CATEGORY_PRESETS.includes(c)&&!hidden.includes(c)&&c!=='일정')
           .sort((a,b)=>((usage[b]||0)*3+(seen[b]||0))-((usage[a]||0)*3+(seen[a]||0))||a.localeCompare(b,'ko'));
-        return {presets:[...CATEGORY_PRESETS],custom};
+        return {presets:CATEGORY_PRESETS.filter(c=>!hidden.includes(c)),custom};
       }
       function bumpScheduleCategoryUsage(cat){
         cat=String(cat||'').trim();if(!cat)return;
@@ -2986,12 +2987,54 @@
         sel.innerHTML=all.map(c=>`<option value="${escAttr(c)}">${escAttr(c)}</option>`).join('')+'<option value="__custom">직접 입력</option>';
         if([...sel.options].some(o=>o.value===cur))sel.value=cur;
       }
+      // 분류 목록 편집: 기본/써본 분류를 모두 보여주고 체크로 칩 표시 여부를 고르며, 새 분류를 미리 추가할 수 있음(기기별 저장)
+      function allScheduleCategories(){
+        const usage=readLocalJSON(SCHEDULE_CAT_USAGE_KEY,{}), hidden=readLocalJSON(SCHEDULE_CAT_HIDDEN_KEY,[]);
+        const seen={};
+        (state.schedules||[]).forEach(x=>{const c=String(x.category||x.subject||'').trim();if(c)seen[c]=(seen[c]||0)+1});
+        const extra=[...new Set([...Object.keys(seen),...Object.keys(usage),...hidden])].filter(c=>c&&c!=='일정'&&!CATEGORY_PRESETS.includes(c))
+          .sort((a,b)=>((usage[b]||0)*3+(seen[b]||0))-((usage[a]||0)*3+(seen[a]||0))||a.localeCompare(b,'ko'));
+        return [...CATEGORY_PRESETS.map(c=>({name:c,preset:true})),...extra.map(c=>({name:c,preset:false}))].map(x=>({...x,on:!hidden.includes(x.name)}));
+      }
+      function setScheduleCategoryHidden(cat,hide){
+        cat=String(cat||'').trim();if(!cat)return;
+        const hidden=readLocalJSON(SCHEDULE_CAT_HIDDEN_KEY,[]).filter(x=>x!==cat);
+        if(hide)hidden.push(cat);
+        writeLocalJSON(SCHEDULE_CAT_HIDDEN_KEY,hidden);
+        if(hide&&!CATEGORY_PRESETS.includes(cat)){const usage=readLocalJSON(SCHEDULE_CAT_USAGE_KEY,{});if(!(cat in usage)){usage[cat]=0;writeLocalJSON(SCHEDULE_CAT_USAGE_KEY,usage)}}
+      }
+      function renderCategoryVisPanel(msg=''){
+        const panel=$('#entryCategoryVisPanel');if(!panel)return;
+        panel.innerHTML='<div class="projVisNew"><input type="text" id="catVisNewName" placeholder="새 분류 이름" maxlength="40" enterkeyhint="done"><button type="button" id="catVisNewBtn">＋ 추가</button></div>'
+          +(msg?`<p class="projVisNote">${escAttr(msg)}</p>`:'')
+          +'<p class="projVisNote">체크한 분류만 칩으로 보여요. (이 기기에 저장)</p>'
+          +allScheduleCategories().map(x=>`<label class="projVisRow${x.on?'':' off'}"><input type="checkbox" data-cat-vis="${escAttr(x.name)}"${x.on?' checked':''}><span class="projVisName">${escAttr(x.name)}</span><span class="projVisStatus">${x.preset?'기본':''}</span></label>`).join('');
+      }
+      function toggleCategoryVisPanel(force){
+        const panel=$('#entryCategoryVisPanel');if(!panel)return;
+        const open=typeof force==='boolean'?force:panel.hidden;
+        panel.hidden=!open;
+        if(open)renderCategoryVisPanel();
+        renderEntryCategoryChips();
+      }
+      function addScheduleCategoryFromPanel(){
+        const input=$('#catVisNewName');const name=String(input?.value||'').trim();if(!name)return;
+        if(name==='__custom'||name==='__new'){renderCategoryVisPanel('쓸 수 없는 이름이에요.');return}
+        const usage=readLocalJSON(SCHEDULE_CAT_USAGE_KEY,{});if(!(name in usage)){usage[name]=0;writeLocalJSON(SCHEDULE_CAT_USAGE_KEY,usage)}
+        setScheduleCategoryHidden(name,false);
+        setCategoryValue(name);
+        updateAppointmentTargetVisibility();
+        applyRememberedCategoryProject(name);
+        renderCategoryVisPanel(`'${name}' 분류를 추가하고 선택했어요.`);
+        renderEntryCategoryChips();
+      }
       function renderEntryCategoryChips(){
         const wrap=$('#entryCategoryChips'), sel=$('#entryCategorySelect');if(!wrap||!sel)return;
         const {presets,custom}=getScheduleCategoryList();
         const current=getCategoryValue();
         const isCustomMode=sel.value==='__custom';
         let shownCustom=custom;
+        if(current&&!isCustomMode&&!presets.includes(current)&&!custom.includes(current))shownCustom=[...custom,current];
         const overflow=!categoryChipsExpanded&&!categoryChipsEditing&&custom.length>CATEGORY_CHIP_LIMIT;
         if(overflow){
           shownCustom=custom.slice(0,CATEGORY_CHIP_LIMIT);
@@ -3003,7 +3046,7 @@
           +(overflow?`<button type="button" class="catChipMore" data-cat-more>+${custom.length-shownCustom.length}개 더</button>`:'')
           +`<button type="button" class="catChip add${isCustomMode?' on':''}" data-cat-new>＋ 새 분류</button>`;
         const editBtn=$('#entryCategoryEdit');
-        if(editBtn){editBtn.hidden=!custom.length;editBtn.setAttribute('aria-pressed',String(categoryChipsEditing));editBtn.textContent=categoryChipsEditing?'완료':'정리'}
+        if(editBtn){const open=!$('#entryCategoryVisPanel')?.hidden;editBtn.hidden=false;editBtn.setAttribute('aria-pressed',String(open));editBtn.textContent=open?'완료':'목록 편집'}
       }
       function getCategoryValue(){
         const sel=$('#entryCategorySelect');if(!sel)return '';
@@ -3055,7 +3098,10 @@
         applyRememberedCategoryProject(cat);
         renderEntryCategoryChips();
       });
-      $('#entryCategoryEdit')?.addEventListener('click',()=>{categoryChipsEditing=!categoryChipsEditing;renderEntryCategoryChips()});
+      $('#entryCategoryEdit')?.addEventListener('click',()=>toggleCategoryVisPanel());
+      $('#entryCategoryVisPanel')?.addEventListener('click',e=>{if(e.target.closest('#catVisNewBtn'))addScheduleCategoryFromPanel()});
+      $('#entryCategoryVisPanel')?.addEventListener('keydown',e=>{if(e.target.id==='catVisNewName'&&e.key==='Enter'&&!e.isComposing){e.preventDefault();addScheduleCategoryFromPanel()}});
+      $('#entryCategoryVisPanel')?.addEventListener('change',e=>{const cb=e.target.closest('[data-cat-vis]');if(!cb)return;setScheduleCategoryHidden(cb.dataset.catVis,!cb.checked);cb.closest('.projVisRow')?.classList.toggle('off',!cb.checked);syncCategorySelectOptions(getCategoryValue());renderEntryCategoryChips()});
       $('#entryCategoryCustom')?.addEventListener('change',()=>{const v=getCategoryValue();if(v)applyRememberedCategoryProject(v)});
       function updateAppointmentTargetVisibility(){
         const form=$('#entryForm');if(!form)return;
@@ -3298,7 +3344,7 @@
         setCategoryValue('');
         $('#entryDate').value=selected;
         $('#entryEndDate').value='';
-        populateProjectSelect();toggleProjectVisPanel(false);
+        populateProjectSelect();toggleProjectVisPanel(false);toggleCategoryVisPanel(false);
         const projectSel=$('#entryProject');if(projectSel)projectSel.value='';
         $('#entryDone')&&($('#entryDone').value='personal');
         selectPersonalProject();
@@ -3357,7 +3403,7 @@
         const item=(type==='schedule'?state.schedules:state.tasks).find(x=>x.id===id);
         if(!item)return;
         editingCalendarRecord={type,id,item};
-        populateProjectSelect((item.projectIds||[])[0]);toggleProjectVisPanel(false);
+        populateProjectSelect((item.projectIds||[])[0]);toggleProjectVisPanel(false);toggleCategoryVisPanel(false);
         $('#entrySheetTitle')&&($('#entrySheetTitle').textContent=type==='schedule'?'일정 수정':type==='todo'?'할 일 수정':'하루 기록 수정');
         $('#entrySaveBtn')&&($('#entrySaveBtn').textContent='Notion에 수정하기');
         $('#deleteEntry')&&($('#deleteEntry').hidden=false);
