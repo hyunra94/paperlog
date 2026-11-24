@@ -6881,7 +6881,11 @@
           const state = await withTimeout(pushPermissionState(), 3000, '').catch(() => '');
           // 사이트 권한이 '묻기' 상태인데 허용 창이 안 뜨는 경우: 크롬의 '조용한 알림 요청' 때문에 앱에선 창이 숨겨진다.
           if (Notification.permission === 'default' && (!state || state === 'prompt')) {
-            setPushStatus(`알림 허용 창이 휴대폰에서 숨겨져 있어요. 크롬 브라우저에서 paperlog.hyunra.kr을 열고 주소창 왼쪽 아이콘 → 권한(사이트 설정) → 알림 → 허용으로 바꾼 뒤, 앱을 껐다 켜고 다시 눌러 주세요. 크롬 설정 → 사이트 설정 → 알림에서 '조용한 메시지 사용'은 꺼 두는 게 좋아요. [확인용: 앱 권한=${Notification.permission}, 푸시 권한=${state || '모름'}, ${pushDeviceLabel()}]`);
+            const samsung = /SamsungBrowser/i.test(navigator.userAgent);
+            const how = samsung
+              ? '삼성 인터넷에서 paperlog.hyunra.kr을 열고 아래 메뉴(≡) → 설정 → 사이트 및 다운로드(또는 개인정보 보호) → 사이트 권한 → 알림에서 이 사이트를 허용하고, 휴대폰 설정 → 애플리케이션 → 삼성 인터넷 → 알림도 켜 주세요.'
+              : '크롬 브라우저에서 paperlog.hyunra.kr을 열고 주소창 왼쪽 아이콘 → 권한(사이트 설정) → 알림 → 허용으로 바꿔 주세요. 크롬 설정 → 사이트 설정 → 알림에서 \'조용한 메시지 사용\'은 꺼 두는 게 좋아요.';
+            setPushStatus(`알림 허용 창이 휴대폰에서 숨겨져 있어요. ${how} 그다음 앱을 껐다 켜고 다시 눌러 주세요. [확인용: 앱 권한=${Notification.permission}, 푸시 권한=${state || '모름'}, ${samsung ? '삼성 인터넷' : ''} ${pushDeviceLabel()}]`);
             return;
           }
           setPushStatus(`알림 설정 실패: ${err.message} [확인용: 앱 권한=${Notification.permission}, 푸시 권한=${state || '모름'}, ${pushDeviceLabel()}]`);
