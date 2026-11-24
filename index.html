@@ -6771,15 +6771,45 @@
         else setPushStatus(on ? `이 기기(${pushDeviceLabel()})에서 알림을 받고 있어요.` : '');
       }
 
+      // 단계마다 시간 제한을 둬서 '켜는 중...'에서 멈추지 않고 어디서 막혔는지 알려준다.
+      function withTimeout(promise, ms, message) {
+        let timer;
+        return Promise.race([promise, new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(message)), ms); })]).finally(() => clearTimeout(timer));
+      }
+
+      async function readyServiceWorker() {
+        let reg = await navigator.serviceWorker.getRegistration('./').catch(() => null);
+        if (!reg) reg = await navigator.serviceWorker.register('./sw.js', { scope: './' });
+        if (reg.active) return reg;
+        return withTimeout(navigator.serviceWorker.ready, 15000, '앱 백그라운드(서비스 워커)가 준비되지 않았어요. 앱을 완전히 껐다가 다시 열고 시도해 주세요.');
+      }
+
       async function enablePush() {
+        setPushStatus('알림을 켜는 중... (1/4 권한 확인)');
         const permission = await Notification.requestPermission();
-        if (permission !== 'granted') throw new Error('알림 권한이 허용되지 않았어요.');
-        const config = await pushApi('/api/push/config');
+        if (permission !== 'granted') throw new Error('알림 권한이 허용되지 않았어요. 휴대폰 설정 > 앱 > 알림에서 허용해 주세요.');
+        setPushStatus('알림을 켜는 중... (2/4 서버 설정 확인)');
+        const config = await withTimeout(pushApi('/api/push/config'), 15000, 'Worker 서버가 응답하지 않아요. 인터넷 연결을 확인해 주세요.');
         if (!config.enabled || !config.publicKey) throw new Error('Worker에 알림 설정(PUSH_KV/VAPID 키)이 아직 없어요.');
-        const reg = await navigator.serviceWorker.ready;
+        setPushStatus('알림을 켜는 중... (3/4 기기 등록)');
+        const reg = await readyServiceWorker();
+        const key = urlBase64ToUint8Array(config.publicKey);
         let sub = await reg.pushManager.getSubscription();
-        if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(config.publicKey) });
-        await pushApi('/api/push/subscribe', { subscription: sub.toJSON(), label: pushDeviceLabel() });
+        // 예전 키로 만든 구독이 남아 있으면 새 키로 다시 만든다.
+        const oldKey = sub?.options?.applicationServerKey;
+        if (sub && oldKey && btoa(String.fromCharCode(...new Uint8Array(oldKey))) !== btoa(String.fromCharCode(...key))) {
+          await sub.unsubscribe().catch(() => {});
+          sub = null;
+        }
+        if (!sub) {
+          sub = await withTimeout(
+            reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key }),
+            20000,
+            '휴대폰이 푸시 서버(구글)에 연결하지 못했어요. 크롬 브라우저로 설치한 앱인지, 데이터 절약·배터리 최적화가 켜져 있지 않은지 확인해 주세요.'
+          );
+        }
+        setPushStatus('알림을 켜는 중... (4/4 서버에 저장)');
+        await withTimeout(pushApi('/api/push/subscribe', { subscription: sub.toJSON(), label: pushDeviceLabel() }), 15000, 'Worker 서버에 기기를 저장하지 못했어요. 잠시 후 다시 시도해 주세요.');
       }
 
       // 기기에는 구독이 살아 있는데 서버 목록에서 빠지는 경우가 있어서(만료 정리 등), 앱을 열 때마다 서버에 다시 등록해 둔다.
