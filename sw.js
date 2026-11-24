@@ -1,4 +1,4 @@
-const CACHE_NAME = "paper-log-v125";
+const CACHE_NAME = "paper-log-v126";
 
 const APP_SHELL = [
   "./",
@@ -42,14 +42,23 @@ self.addEventListener("push", event => {
     data = { body: event.data ? event.data.text() : "" };
   }
 
+  // 같은 tag 알림이 알림창에 남아 있으면 소리·팝업 없이 조용히 바뀌므로 renotify로 다시 울리게 한다.
+  // 열려 있는 앱 화면에 '도착/표시 결과'를 알려 줘서 테스트 때 어디서 막히는지 확인할 수 있게 한다.
+  const report = msg => self.clients.matchAll({ type: "window", includeUncontrolled: true })
+    .then(list => list.forEach(c => c.postMessage({ type: "paperlog-push", ...msg })))
+    .catch(() => {});
+
   event.waitUntil(
     self.registration.showNotification(data.title || "Paper Log", {
       body: data.body || "",
       tag: data.tag || undefined,
+      renotify: Boolean(data.tag),
       icon: "./icons/icon-192.png",
       badge: "./icons/icon-192.png",
       data: { url: data.url || "./" }
     })
+      .then(() => report({ shown: true, tag: data.tag || "" }))
+      .catch(err => report({ shown: false, tag: data.tag || "", error: String(err && err.message || err) }))
   );
 });
 
