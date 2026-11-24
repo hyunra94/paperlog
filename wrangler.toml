@@ -1,0 +1,41 @@
+name = "paperlog"
+main = "worker_paperlog_money_calc_edit_fixed.js"
+compatibility_date = "2026-05-29"
+# Cloudflare 대시보드에만 있는 일반 변수도 자동 배포 때 지워지지 않게 유지
+keep_vars = true
+
+[vars]
+BOSS_RECORD_WEEK_PROP = "Maple Week"
+CORS_ORIGIN = "https://hyunra94.github.io"
+DAILY_DATE_PROP = "날짜"
+DAILY_MOOD_PROP = "mood"
+DAILY_TEXT_PROP = "한줄일기"
+DAILY_TITLE_PROP = "제목"
+NOTION_BOSS_CHARACTER_DB_ID = "2076b59b-151a-80e3-8876-000b90247900"
+NOTION_BOSS_CRYSTAL_DB_ID = "3156b59b-151a-81bb-b9e2-000b5727ae89"
+NOTION_BOSS_RECORD_DB_ID = "3156b59b-151a-80f2-89b6-000b1c07b550"
+NOTION_BOSS_THIS_WEEK_DB_ID = "36f6b59b-151a-8026-a617-000b69d4605c"
+NOTION_BOSS_WEEK_DB_ID = "2076b59b-151a-8066-9f64-000b10317adf"
+NOTION_CATEGORY_DB_ID = "2fc6b59b151a80059e0bd53a9f6f764d"
+NOTION_DAILY_LOG_DB_ID = "3716b59b-151a-8091-8f6b-000bbf7d6d45"
+NOTION_EXPENSE_DB_ID = "2fc6b59b-151a-8192-b855-000b2eda1402"
+NOTION_INCOME_DB_ID = "2fc6b59b-151a-81c8-9ba5-000bd2830d1b"
+NOTION_MEMO_DB_ID = "3bf6b59b-151a-80ee-acd3-000b18449c4a"
+NOTION_PROJECT_DB_ID = "1ff6b59b-151a-81ab-89da-000b670b3d57"
+NOTION_SCHEDULE_DB_ID = "1ff6b59b-151a-8124-9557-000b4f60b050"
+NOTION_TODO_DB_ID = "1ff6b59b-151a-8171-b546-000bd07b3438"
+TODO_PERSONAL_TEMPLATE_ID = "2076b59b-151a-80e9-ab6d-e1e540f61cea"
+TODO_WORK_TEMPLATE_ID = "1ff6b59b-151a-81a7-955a-eb3a7dd78397"
+VAPID_PUBLIC_KEY = "BC9C_tjq-bJNHkhkdHgp5sHM4svkT44UNPkfYPD5y7ItAQN4qj5FBENGwguZlPo0aEUPfXNeF5sO1QjS5bYIpzg"
+VAPID_SUBJECT = "https://paperlog.hyunra.kr"
+
+[[kv_namespaces]]
+binding = "PUSH_KV"
+id = "579904da774947fca37b867aea077c5b"
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[[services]]
+binding = "MAPLE_WORKER"
+service = "mapleboss"
