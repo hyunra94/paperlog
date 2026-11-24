@@ -6786,10 +6786,23 @@
         return withTimeout(navigator.serviceWorker.ready, 15000, '앱 백그라운드(서비스 워커)가 준비되지 않았어요. 앱을 완전히 껐다가 다시 열고 시도해 주세요.');
       }
 
-      async function enablePush() {
-        setPushStatus('알림을 켜는 중... (1/4 권한 확인)');
-        const permission = await Notification.requestPermission();
-        if (permission !== 'granted') throw new Error('알림 권한이 허용되지 않았어요. 휴대폰 설정 > 앱 > 알림에서 허용해 주세요.');
+      const PUSH_PERMISSION_HELP = '휴대폰 설정 > 애플리케이션 > Paper Log(없으면 Chrome) > 알림 > 허용으로 바꾼 뒤, 앱을 껐다 켜고 다시 눌러 주세요.';
+
+      // 크롬은 버튼을 누른 '직후'에 권한을 물어야 허용 창을 띄워 준다. 다른 작업을 기다린 뒤 물으면
+      // 조용한 알림(주소창 종 아이콘)으로 바뀌는데, 설치한 앱에는 주소창이 없어 창이 안 보이고 멈춘다.
+      function requestPushPermission() {
+        if (Notification.permission !== 'default') return Promise.resolve(Notification.permission);
+        let p;
+        try { p = Notification.requestPermission(); } catch { p = null; }
+        if (!p || typeof p.then !== 'function') p = new Promise(resolve => Notification.requestPermission(resolve));
+        return withTimeout(p, 20000, `알림 허용 창이 뜨지 않았어요. ${PUSH_PERMISSION_HELP}`);
+      }
+
+      async function enablePush(permissionPromise) {
+        setPushStatus('알림을 켜는 중... (1/4 권한 확인 — 허용 창이 뜨면 "허용"을 눌러 주세요)');
+        const permission = await (permissionPromise || requestPushPermission());
+        if (permission === 'denied') throw new Error(`알림이 차단돼 있어요. ${PUSH_PERMISSION_HELP}`);
+        if (permission !== 'granted') throw new Error('알림 허용을 누르지 않았어요. 다시 눌러서 "허용"을 선택해 주세요.');
         setPushStatus('알림을 켜는 중... (2/4 서버 설정 확인)');
         const config = await withTimeout(pushApi('/api/push/config'), 15000, 'Worker 서버가 응답하지 않아요. 인터넷 연결을 확인해 주세요.');
         if (!config.enabled || !config.publicKey) throw new Error('Worker에 알림 설정(PUSH_KV/VAPID 키)이 아직 없어요.');
@@ -6831,15 +6844,17 @@
 
       async function togglePush() {
         const toggle = document.getElementById('pushToggleBtn');
+        const turningOn = !toggle || toggle.textContent.includes('켜기');
+        // 켜는 경우엔 다른 await보다 먼저, 버튼을 누른 그 순간에 권한을 요청한다.
+        const permissionPromise = turningOn ? requestPushPermission() : null;
+        permissionPromise?.catch(() => {});
         if (toggle) toggle.disabled = true;
         try {
-          const sub = await currentPushSubscription();
-          if (sub && Notification.permission === 'granted') {
+          if (turningOn) {
+            await enablePush(permissionPromise);
+          } else {
             setPushStatus('알림을 끄는 중...');
             await disablePush();
-          } else {
-            setPushStatus('알림을 켜는 중...');
-            await enablePush();
           }
           await refreshPushUi();
         } catch (err) {
