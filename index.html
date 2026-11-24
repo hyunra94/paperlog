@@ -6879,6 +6879,11 @@
           await refreshPushUi();
         } catch (err) {
           const state = await withTimeout(pushPermissionState(), 3000, '').catch(() => '');
+          // 사이트 권한이 '묻기' 상태인데 허용 창이 안 뜨는 경우: 크롬의 '조용한 알림 요청' 때문에 앱에선 창이 숨겨진다.
+          if (Notification.permission === 'default' && (!state || state === 'prompt')) {
+            setPushStatus(`알림 허용 창이 휴대폰에서 숨겨져 있어요. 크롬 브라우저에서 paperlog.hyunra.kr을 열고 주소창 왼쪽 아이콘 → 권한(사이트 설정) → 알림 → 허용으로 바꾼 뒤, 앱을 껐다 켜고 다시 눌러 주세요. 크롬 설정 → 사이트 설정 → 알림에서 '조용한 메시지 사용'은 꺼 두는 게 좋아요. [확인용: 앱 권한=${Notification.permission}, 푸시 권한=${state || '모름'}, ${pushDeviceLabel()}]`);
+            return;
+          }
           setPushStatus(`알림 설정 실패: ${err.message} [확인용: 앱 권한=${Notification.permission}, 푸시 권한=${state || '모름'}, ${pushDeviceLabel()}]`);
         } finally {
           if (toggle) toggle.disabled = false;
