@@ -1673,6 +1673,37 @@ async function getBossRecordDataForWeek(env, weekPage, info = {}) {
   };
 }
 
+// 월간보스(검은 마법사)는 한 달에 한 번이라, 같은 달의 다른 주차에 저장된 기록도 함께 가져온다.
+async function getBossRecordDataForSameMonth(env, weekPage, info = {}) {
+  if (!env.NOTION_BOSS_WEEK_DB_ID || !env.NOTION_BOSS_RECORD_DB_ID) return { results: [] };
+  const wp = bossWeekProps(env);
+  const p = bossRecordProps(env);
+  const normalized = normalizeBossWeekInfo(info);
+  const monthPrefix = normalized.weekStart.slice(0, 7);
+  const [yy, mm] = [monthPrefix.slice(2, 4), String(Number(monthPrefix.slice(5, 7)))];
+  const titlePrefix = `${yy}년 ${mm}월 `;
+
+  const weeks = await safeBossQuery(env, env.NOTION_BOSS_WEEK_DB_ID, { page_size: 100 });
+  const weekIds = (weeks.results || []).filter(page => {
+    if (weekPage?.id && page.id === weekPage.id) return false;
+    const props = page.properties || {};
+    const date = readDateRange(props, wp.date).date || "";
+    if (date) return date.startsWith(monthPrefix);
+    return readTitle(props, wp.title).startsWith(titlePrefix);
+  }).map(page => page.id);
+
+  if (!weekIds.length) return { results: [] };
+  try {
+    return await notionQuery(env, env.NOTION_BOSS_RECORD_DB_ID, {
+      page_size: 100,
+      filter: { or: weekIds.map(id => ({ property: p.week, relation: { contains: id } })) },
+    });
+  } catch (err) {
+    console.warn("Boss record same-month query failed:", err.message);
+    return { results: [] };
+  }
+}
+
 function bossRecordPageToStates(page, env) {
   const p = bossRecordProps(env);
   const props = page.properties || {};
@@ -1805,13 +1836,14 @@ async function getBossData(request, env) {
   const crystalProps = bossCrystalProps(env);
   const setupProps = bossSetupProps(env);
 
-  const [characterData, crystalData, setupData, recordData] = await Promise.all([
+  const [characterData, crystalData, setupData, recordData, monthRecordData] = await Promise.all([
     safeBossQuery(env, env.NOTION_BOSS_CHARACTER_DB_ID),
     safeBossQuery(env, env.NOTION_BOSS_CRYSTAL_DB_ID),
     safeBossQuery(env, env.NOTION_BOSS_THIS_WEEK_DB_ID, {
       page_size: 100,
     }),
     getBossRecordDataForWeek(env, weekPage, weekInfo),
+    getBossRecordDataForSameMonth(env, weekPage, weekInfo),
   ]);
 
   const characters = (characterData.results || []).map(page => {
@@ -1851,11 +1883,17 @@ async function getBossData(request, env) {
   const characterMap = new Map(characters.map(x => [x.id, x]));
 
   const existingBossRecordStates = (recordData.results || []).flatMap(page => bossRecordPageToStates(page, env)).filter(x => x.charId && x.bossId);
+  const isMonthlyState = state => crystalMap.get(state.bossId)?.cycle === "monthly";
+  // 같은 달 다른 주차에 잡은 월간보스: 이번 주에 저장하지 않고 표시만 한다(sharedMonthly).
+  const sharedMonthlyStates = (monthRecordData.results || [])
+    .flatMap(page => bossRecordPageToStates(page, env))
+    .filter(x => x.charId && x.bossId && isMonthlyState(x))
+    .map(x => ({ ...x, sharedMonthly: true }));
   const bossRecordMap = new Map();
   const bossRecordNameMap = new Map();
   const bossRecordFamilyMap = new Map();
 
-  for (const state of existingBossRecordStates) {
+  for (const state of [...existingBossRecordStates, ...sharedMonthlyStates]) {
     const crystalForState = crystalMap.get(state.bossId);
     const key = `${state.charId}_${state.bossId}`;
     if (!bossRecordMap.has(key)) bossRecordMap.set(key, state);
@@ -1923,6 +1961,7 @@ async function getBossData(request, env) {
           partyType: existingState?.partyType || "solo",
           otherParty: existingState?.otherParty || 3,
           clear: Boolean(existingState?.recordId),
+          sharedMonthly: Boolean(existingState?.sharedMonthly),
           source: "notion",
         });
       }
@@ -1937,6 +1976,40 @@ async function getBossData(request, env) {
     if (seenRecordKeys.has(key)) continue;
     seenRecordKeys.add(key);
     dedupedRecords.push(record);
+  }
+
+  // 보스 설정에 없는 월간보스(캐릭터 카드에서 바로 체크한 것)도 기록이 있으면 보여 준다.
+  const monthlyFamilySeen = new Set(dedupedRecords
+    .filter(r => r.cycle === "monthly" && r.clear)
+    .map(r => `${r.charId}_${normalizeBossPriceName(r.family)}`));
+  for (const state of [...existingBossRecordStates.filter(isMonthlyState), ...sharedMonthlyStates]) {
+    const character = characterMap.get(state.charId);
+    if (!character) continue;
+    const crystal = crystalMap.get(state.bossId);
+    const key = `${state.charId}_${state.bossId}`;
+    const familyKey = `${state.charId}_${normalizeBossPriceName(crystal?.family || crystal?.name)}`;
+    if (seenRecordKeys.has(key) || monthlyFamilySeen.has(familyKey)) continue;
+    seenRecordKeys.add(key);
+    monthlyFamilySeen.add(familyKey);
+    dedupedRecords.push({
+      key: `monthly_${state.charId}_${state.bossId}`,
+      setupId: "",
+      recordId: state.recordId || "",
+      charId: state.charId,
+      charName: character.name,
+      bossId: state.bossId,
+      name: crystal?.name || "검은 마법사",
+      family: crystal?.family || crystal?.name || "검은 마법사",
+      cycle: "monthly",
+      price: Number(crystal?.price || 0),
+      applyDate: crystal?.applyDate || "",
+      memo: "",
+      partyType: state.partyType || "solo",
+      otherParty: state.otherParty || 3,
+      clear: true,
+      sharedMonthly: Boolean(state.sharedMonthly),
+      source: "notion",
+    });
   }
 
   const bossMemos = [];

@@ -3881,7 +3881,8 @@
         $('#bossLootSheet')&&($('#bossLootSheet').hidden=true);
       }
       function weeklyBossPayloadForChar(charId){
-        const rows=bossRecords.filter(r=>r.charId===charId&&r.clear);
+        // 같은 달 다른 주에 잡아 둔 월간보스(sharedMonthly)는 그 주 기록에 있으니 이번 주에 다시 넣지 않는다
+        const rows=bossRecords.filter(r=>r.charId===charId&&r.clear&&!r.sharedMonthly);
         const solo=rows.filter(r=>r.partyType==='solo').map(r=>r.bossId).filter(isValidNotionId);
         const duo=rows.filter(r=>r.partyType==='duo').map(r=>r.bossId).filter(isValidNotionId);
         const otherRows=rows.filter(r=>r.partyType==='other');
@@ -4019,6 +4020,7 @@
               partyType:r.partyType||'solo',
               otherParty:Number(r.otherParty||3),
               clear:!!r.clear,
+              sharedMonthly:!!r.sharedMonthly,
               memo:r.memo||'',
               charName:r.charName||''
             })));
@@ -4884,6 +4886,9 @@
         document.addEventListener('pointerup',bossCharDragPointerUp,{once:true});
       });
       $('#bossList').onclick=async e=>{
+        const sharedCtl=e.target.closest('[data-bosskey],[data-deleteboss]');
+        const sharedRec=sharedCtl&&bossRecords.find(x=>x.key===(sharedCtl.dataset.bosskey||sharedCtl.dataset.deleteboss));
+        if(sharedRec?.sharedMonthly){alert('이 월간보스는 이번 달 다른 주에 잡은 기록이에요. 해제하려면 잡은 주로 이동해서 해제해 주세요.');return}
         const charToggle=e.target.closest('[data-boss-char-toggle]');
         if(charToggle){const cid=charToggle.dataset.bossCharToggle;bossCardOpenCharId=bossCardOpenCharId===cid?'':cid;renderBoss();return}
         const charSetting=e.target.closest('[data-open-boss-setting]');
