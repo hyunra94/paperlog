@@ -1712,6 +1712,7 @@
         <div style="display:flex;align-items:center;justify-content:center;gap:36px;padding:4px 0;">
           <button id="dashMemoBtn" type="button" style="display:flex;flex-direction:column;align-items:center;gap:6px;background:transparent;border:0;padding:0;"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#8a7d6a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15H6z"/><path d="M15 3v3h3"/><path d="M9 11h6M9 14h6M9 17h4"/></svg><span style="font-family:'Gaegu';font-size:19px;">메모</span></button>
           <button id="dashHabitBtn" type="button" style="display:flex;flex-direction:column;align-items:center;gap:6px;background:transparent;border:0;padding:0;"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#8a7d6a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="6" height="6" rx="1.3"/><rect x="14.5" y="3.5" width="6" height="6" rx="1.3"/><rect x="3.5" y="14.5" width="6" height="6" rx="1.3"/><path d="M16 16.5l1.4 1.4L20.5 14.5"/></svg><span style="font-family:'Gaegu';font-size:19px;">해빗</span></button>
+          <button id="dashAsBtn" type="button" style="display:flex;flex-direction:column;align-items:center;gap:6px;background:transparent;border:0;padding:0;"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#8a7d6a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L3.5 17.3a1.8 1.8 0 0 0 2.6 2.6l5.8-5.8a4 4 0 0 0 5.2-5.4l-2.4 2.4-2.3-.6-.6-2.3z"/></svg><span style="font-family:'Gaegu';font-size:19px;">하자·AS</span></button>
         </div>
       </article>
     </section>
@@ -1923,6 +1924,32 @@
         </div>
         <div id="dailyLogFeedList" class="list"></div>
         <button class="charHiddenToggle" id="loadMoreDailyLogFeed" type="button">이전 기록 더 불러오기</button>
+      </section>
+    </div>
+
+    <div class="sheetBg" id="asSheet" hidden>
+      <section class="sheet">
+        <div class="handle"></div>
+        <div class="sheetHead entrySheetHead">
+          <h3 id="asSheetTitle">하자·AS 기록</h3>
+          <div class="entrySheetHeadActions">
+            <button class="icon" id="closeAsSheet" type="button">×</button>
+          </div>
+        </div>
+        <form class="entryForm" id="asForm">
+          <div class="field"><label>제목</label><input id="asTitle" placeholder="예: 욕실 실리콘 하자 접수" maxlength="200" required></div>
+          <div class="row2" style="grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);">
+            <div class="field" style="min-width:0;"><label>날짜</label><input id="asDate" type="date" required style="width:100%;min-width:0;box-sizing:border-box;"></div>
+            <div class="field" style="min-width:0;"><label>시간 (선택)</label><input id="asTime" type="time" style="width:100%;min-width:0;box-sizing:border-box;"></div>
+          </div>
+          <div class="field"><label>상황 메모</label><textarea id="asMemo" rows="5" placeholder="증상, 접수번호, 기사님 연락처, 처리 결과 등" style="width:100%;padding:12px;border:1.5px solid var(--line);border-radius:14px;background:var(--card);font:inherit;font-size:15px;line-height:1.6;resize:vertical;"></textarea></div>
+          <button class="save" id="asSaveBtn" type="submit">기록 저장</button>
+          <p class="sheetNote" id="asNote">공유 앱(언니와 같이 보는 앱)의 하자·AS 기록과 같은 곳에 저장돼요.</p>
+        </form>
+        <div class="group">
+          <p class="groupT"><span class="hl">지난 기록</span></p>
+          <div id="asListWrap"></div>
+        </div>
       </section>
     </div>
 
@@ -5128,6 +5155,79 @@
       }
       const dashMemoBtn=$('#dashMemoBtn');
       if(dashMemoBtn)dashMemoBtn.onclick=openMemoSheet;
+
+      // ── 하자·AS 기록 (공유 앱과 같은 일정 DB, '공유 분류'=하자·AS) ──
+      let asListCache=[], editingAsId=null, asSaving=false;
+      const AS_NOTE_DEFAULT='공유 앱(언니와 같이 보는 앱)의 하자·AS 기록과 같은 곳에 저장돼요.';
+      function resetAsForm(){
+        editingAsId=null;
+        $('#asTitle').value='';$('#asDate').value=key(today);$('#asTime').value='';$('#asMemo').value='';
+        $('#asSheetTitle').textContent='하자·AS 기록';
+        $('#asSaveBtn').textContent='기록 저장';
+        $('#asNote').textContent=AS_NOTE_DEFAULT;
+      }
+      function renderAsList(){
+        const wrap=$('#asListWrap');if(!wrap)return;
+        if(!asListCache.length){wrap.innerHTML='<p class="muted" style="padding:6px 0;">아직 하자·AS 기록이 없어요.</p>';return}
+        wrap.innerHTML=asListCache.map(x=>{
+          const memo=String(x.memo||'').replace(/\s+/g,' ').trim();
+          return `<div class="scheduleItem" data-as-id="${escAttr(x.id)}" style="cursor:pointer;"><span class="time">${escapeHTML((x.date||'').slice(2).replace(/-/g,'.'))}${x.time?`<br>${escapeHTML(x.time)}`:''}</span><span>🔧 ${escapeHTML(x.title)}${memo?`<small style="display:block;color:var(--sub);">${escapeHTML(memo.slice(0,70))}${memo.length>70?'…':''}</small>`:''}</span></div>`;
+        }).join('');
+      }
+      async function loadAsList(){
+        const wrap=$('#asListWrap');
+        if(wrap)wrap.innerHTML='<p class="muted" style="padding:6px 0;">불러오는 중...</p>';
+        try{
+          const res=await window.paperLog.fetch('/api/as');
+          if(res.status===404||res.status===405)throw new Error('Worker를 새로 배포해야 볼 수 있어요.');
+          const data=await res.json().catch(()=>({}));
+          if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'불러오기 실패');
+          asListCache=data.records||[];
+          renderAsList();
+        }catch(err){
+          if(wrap)wrap.innerHTML=`<p class="muted" style="padding:6px 0;">불러오기 실패: ${escapeHTML(err.message)}</p>`;
+        }
+      }
+      function openAsSheet(){
+        resetAsForm();
+        $('#asSheet').hidden=false;
+        if(hasPaperConfig())loadAsList();
+        else{$('#asListWrap').innerHTML='';$('#asNote').textContent='설정 메뉴에서 Worker 주소와 SECRET Key를 먼저 저장해 주세요.'}
+      }
+      async function saveAsEntry(e){
+        e.preventDefault();
+        if(asSaving)return;
+        const title=$('#asTitle').value.trim(), date=$('#asDate').value, time=$('#asTime').value, memo=$('#asMemo').value;
+        if(!title||!date)return;
+        if(!hasPaperConfig()){$('#asNote').textContent='설정 메뉴에서 Worker 주소와 SECRET Key를 먼저 저장해 주세요.';return}
+        asSaving=true;$('#asNote').textContent='저장 중...';
+        try{
+          const body=editingAsId?{id:editingAsId,title,date,time,memo}:{title,date,time,memo};
+          const res=await window.paperLog.fetch('/api/as',{method:editingAsId?'PATCH':'POST',body:JSON.stringify(body)});
+          if(res.status===404||res.status===405)throw new Error('Worker를 새로 배포해야 저장할 수 있어요.');
+          const data=await res.json().catch(()=>({}));
+          if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'저장 실패');
+          resetAsForm();
+          $('#asNote').textContent='저장했어요. 달력에도 같이 보여요.';
+          loadAsList();
+        }catch(err){
+          $('#asNote').textContent=`저장 실패: ${err.message}`;
+        }finally{asSaving=false}
+      }
+      $('#dashAsBtn')?.addEventListener('click',openAsSheet);
+      $('#closeAsSheet')?.addEventListener('click',()=>{$('#asSheet').hidden=true});
+      $('#asSheet')?.addEventListener('click',e=>{if(e.target===$('#asSheet'))$('#asSheet').hidden=true});
+      $('#asForm')?.addEventListener('submit',saveAsEntry);
+      $('#asListWrap')?.addEventListener('click',e=>{
+        const item=e.target.closest('[data-as-id]');if(!item)return;
+        const r=asListCache.find(x=>x.id===item.dataset.asId);if(!r)return;
+        editingAsId=r.id;
+        $('#asTitle').value=r.title||'';$('#asDate').value=r.date||key(today);$('#asTime').value=r.time||'';$('#asMemo').value=r.memo||'';
+        $('#asSheetTitle').textContent='하자·AS 기록 수정';
+        $('#asSaveBtn').textContent='수정 저장';
+        $('#asNote').textContent='수정 중 — 저장하면 공유 앱에도 바로 반영돼요.';
+        $('#asForm')?.scrollIntoView({block:'start',behavior:'smooth'});
+      });
       const closeMemoSheetBtn=$('#closeMemoSheet');
       if(closeMemoSheetBtn)closeMemoSheetBtn.onclick=()=>{$('#memoSheet').hidden=true;};
       const memoSheetBg=$('#memoSheet');

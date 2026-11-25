@@ -43,6 +43,9 @@ export default {
           routes: [
             "/api/projects",
             "POST /api/projects",
+            "/api/as",
+            "POST /api/as",
+            "PATCH /api/as",
             "/api/calendar",
             "POST /api/content-check",
             "/api/todo",
@@ -68,6 +71,21 @@ export default {
       if (url.pathname === "/api/projects" && request.method === "POST") {
         const project = await createProject(request, env);
         return json({ ok: true, project }, 200, cors);
+      }
+
+      if (url.pathname === "/api/as" && request.method === "GET") {
+        const records = await getAsRecords(env);
+        return json({ ok: true, records }, 200, cors);
+      }
+
+      if (url.pathname === "/api/as" && request.method === "POST") {
+        const record = await createAsRecord(request, env);
+        return json({ ok: true, record }, 200, cors);
+      }
+
+      if (url.pathname === "/api/as" && request.method === "PATCH") {
+        const record = await updateAsRecord(request, env);
+        return json({ ok: true, record }, 200, cors);
       }
 
       if (url.pathname === "/api/projects" && request.method === "GET") {
@@ -1079,6 +1097,85 @@ async function getSchedules(request, env) {
     .filter(item => item.category !== HOME_ANNIV_CATEGORY);
 
   return uniqueByOccurrence(items.flatMap(item => expandDateRange(item, from, to)));
+}
+
+/* =========================
+   하자·AS 기록 (공유 앱과 같은 일정 DB, '공유 분류' = 하자·AS)
+========================= */
+
+const AS_KIND = "하자·AS";
+function asProps(env) {
+  return {
+    kind: env.SHARE_KIND_PROP || "공유 분류",
+    memo: env.SHARE_MEMO_PROP || "공유 메모",
+  };
+}
+
+function mapAsPage(page, env) {
+  const p = scheduleProps(env);
+  const a = asProps(env);
+  const props = page.properties || {};
+  const d = readDateRange(props, p.date);
+  return {
+    id: page.id,
+    url: page.url,
+    title: readTitle(props, p.title) || "제목 없음",
+    date: d.date,
+    time: d.time,
+    endDate: d.endDate && d.endDate !== d.date ? d.endDate : "",
+    memo: readRichText(props, a.memo),
+    canceled: readCheckbox(props, p.cancel),
+  };
+}
+
+async function getAsRecords(env) {
+  const p = scheduleProps(env);
+  const a = asProps(env);
+  try {
+    const data = await notionQuery(env, env.NOTION_SCHEDULE_DB_ID, {
+      filter: { property: a.kind, select: { equals: AS_KIND } },
+      sorts: [{ property: p.date, direction: "descending" }],
+    });
+    return (data.results || []).map(page => mapAsPage(page, env)).filter(x => !x.canceled);
+  } catch (err) {
+    // 아직 '공유 분류' 속성이 없으면 기록도 없다
+    console.warn("AS query failed:", err.message);
+    return [];
+  }
+}
+
+function asFields(body, env, create) {
+  const p = scheduleProps(env);
+  const a = asProps(env);
+  const out = {};
+  if (create || body.title !== undefined) {
+    const title = String(body.title || "").trim().slice(0, 200);
+    if (!title) throw new Error("제목을 입력해 주세요.");
+    out[p.title] = { title: [{ text: { content: title } }] };
+  }
+  if (create || body.date !== undefined) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(body.date || "")) throw new Error("날짜를 확인해 주세요.");
+    out[p.date] = { date: notionDatePayload({ date: body.date, time: /^\d{2}:\d{2}$/.test(body.time || "") ? body.time : "" }) };
+  }
+  if (create || body.memo !== undefined) {
+    const memo = String(body.memo || "").replace(/\r\n/g, "\n").trim().slice(0, 2000);
+    out[a.memo] = { rich_text: memo ? [{ text: { content: memo } }] : [] };
+  }
+  if (create) out[a.kind] = { select: { name: AS_KIND } };
+  return out;
+}
+
+async function createAsRecord(request, env) {
+  const body = await request.json();
+  const page = await notionCreatePage(env, env.NOTION_SCHEDULE_DB_ID, asFields(body, env, true));
+  return mapAsPage(page, env);
+}
+
+async function updateAsRecord(request, env) {
+  const body = await request.json();
+  if (!body.id) throw new Error("id is required");
+  const page = await notionUpdatePage(env, body.id, asFields(body, env, false));
+  return mapAsPage(page, env);
 }
 
 async function createSchedule(request, env) {
