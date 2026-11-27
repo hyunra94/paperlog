@@ -1008,6 +1008,37 @@
     .bossIndexBtn.on[data-boss-view="shortcuts"]{background:var(--blue)}
     .bossIndexBtn.on[data-boss-view="boss"]{background:var(--green)}
     .bossIndexBtn.on[data-boss-view="todo"]{background:var(--purple)}
+    /* 메소 가계부 */
+    .mlSheetHeadActions{display:flex;align-items:center;gap:6px}
+    .mlNav{display:grid;grid-template-columns:40px 1fr 40px;gap:8px;align-items:center;margin:2px 0 12px}
+    .mlNav .moneyMonthTitle{cursor:default;font-size:26px}
+    .mlCharRow{display:grid;grid-template-columns:72px 1fr auto;gap:8px;align-items:center;font-size:13px;margin-top:6px}
+    .mlCharRow .mapleBar{margin-top:0}
+    .mlCharRow b{font-family:'Gaegu';font-size:17px;font-weight:700;white-space:nowrap}
+    .mlItem{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center;padding:9px 2px;border-top:1px dashed rgba(47,42,40,.18)}
+    .mlItem:first-child{border-top:0}
+    .mlItemTitle{font-size:14px;line-height:1.35;word-break:keep-all}
+    .mlItemMeso{font-family:'Gaegu';font-size:21px;font-weight:700;white-space:nowrap;text-align:right}
+    .mlItemMeta{grid-column:1/-1;display:flex;gap:5px;align-items:center;flex-wrap:wrap;color:var(--sub);font-size:11px}
+    .mlItemMeta .miniTag.mlKindCostume{background:rgba(201,184,232,.5)}
+    .mlItemMeta .miniTag.mlKindSpec{background:rgba(159,203,223,.5)}
+    .mlTariffRow{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--sub)}
+    .mlTariffRow input{width:auto}
+    /* 메소 가계부 시트: 포인트 색 한 가지, 가는 숫자, 넉넉한 줄 간격 */
+    #mlViewSheet .bossSum>div{background:rgba(255,253,247,.9)!important;border:1px solid rgba(47,42,40,.22)!important;box-shadow:none!important}
+    #mlViewSheet .bossSum>div:first-child{background:rgba(246,231,166,.55)!important}
+    #mlViewSheet .bossSum strong{font-family:'Gowun Dodum',sans-serif!important;font-weight:400!important;font-size:21px!important;letter-spacing:-.02em}
+    #mlViewSheet .bossSum span{font-size:12px;color:var(--sub)}
+    #mlViewSheet .mapleBar{height:6px;background:rgba(47,42,40,.08)}
+    #mlViewSheet .mapleBarFill{background:var(--yellow)!important}
+    #mlViewSheet .mlCharRow{margin-top:10px}
+    #mlViewSheet .mlCharRow b,#mlViewSheet .mlItemMeso{font-family:'Gowun Dodum',sans-serif;font-weight:400;font-size:16px;letter-spacing:-.02em}
+    #mlViewSheet .mlItem{padding:14px 2px;border-top:1px solid rgba(47,42,40,.1)}
+    #mlViewSheet .mlItem:first-child{border-top:0}
+    #mlViewSheet .mlItemTitle{font-size:15px}
+    #mlViewSheet .mlItemMeta{margin-top:3px}
+    #mlViewSheet .mlItemMeta .miniTag{background:transparent!important;border-color:rgba(47,42,40,.25)}
+    #mlViewSheet .bossAddCharBtn{background:var(--yellow)}
     .bossViewPanel[data-boss-panel="shortcuts"] .card{background:linear-gradient(180deg,rgba(159,203,223,.2),rgba(255,253,247,.92) 65%)}
     .bossViewPanel[data-boss-panel="boss"] .card{background:linear-gradient(180deg,rgba(191,216,184,.22),rgba(255,253,247,.92) 65%)}
     .bossViewPanel[data-boss-panel="todo"] .card{background:linear-gradient(180deg,rgba(201,184,232,.2),rgba(255,253,247,.92) 65%)}
@@ -1709,10 +1740,11 @@
       </article>
       <article class="card">
         <div class="divTitle">빠른 기록</div>
-        <div style="display:flex;align-items:center;justify-content:center;gap:36px;padding:4px 0;">
+        <div style="display:flex;align-items:center;justify-content:center;gap:26px;padding:4px 0;">
           <button id="dashMemoBtn" type="button" style="display:flex;flex-direction:column;align-items:center;gap:6px;background:transparent;border:0;padding:0;"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#8a7d6a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15H6z"/><path d="M15 3v3h3"/><path d="M9 11h6M9 14h6M9 17h4"/></svg><span style="font-family:'Gaegu';font-size:19px;">메모</span></button>
           <button id="dashHabitBtn" type="button" style="display:flex;flex-direction:column;align-items:center;gap:6px;background:transparent;border:0;padding:0;"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#8a7d6a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="6" height="6" rx="1.3"/><rect x="14.5" y="3.5" width="6" height="6" rx="1.3"/><rect x="3.5" y="14.5" width="6" height="6" rx="1.3"/><path d="M16 16.5l1.4 1.4L20.5 14.5"/></svg><span style="font-family:'Gaegu';font-size:19px;">해빗</span></button>
           <button id="dashAsBtn" type="button" style="display:flex;flex-direction:column;align-items:center;gap:6px;background:transparent;border:0;padding:0;"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#8a7d6a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.2L3.5 17.3a1.8 1.8 0 0 0 2.6 2.6l5.8-5.8a4 4 0 0 0 5.2-5.4l-2.4 2.4-2.3-.6-.6-2.3z"/></svg><span style="font-family:'Gaegu';font-size:19px;">하자·AS</span></button>
+          <button id="dashMesoBtn" type="button" style="display:flex;flex-direction:column;align-items:center;gap:6px;background:transparent;border:0;padding:0;"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#8a7d6a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="7" rx="7.5" ry="3.2"/><path d="M4.5 7v5c0 1.8 3.4 3.2 7.5 3.2s7.5-1.4 7.5-3.2V7"/><path d="M4.5 12v5c0 1.8 3.4 3.2 7.5 3.2s7.5-1.4 7.5-3.2v-5"/></svg><span style="font-family:'Gaegu';font-size:19px;">메소</span></button>
         </div>
       </article>
     </section>
@@ -1870,6 +1902,36 @@
 <div class="row2 dailyOnly"><div class="field"><label>Mood</label><select id="entryMood"><option value="happy">happy · 좋음</option><option value="sad">sad · 슬픔</option><option value="angry">angry · 화남</option><option value="sleepy">sleepy · 졸림</option><option value="surprised">surprised · 놀람</option><option value="excited">excited · 신남</option><option value="calm">calm · 편안</option><option value="anxious">anxious · 불안</option><option value="lonely">lonely · 외로움</option><option value="love">love · 설렘</option><option value="sick">sick · 아픔</option><option value="absurd">absurd · 어이없음</option></select></div></div>
 <div class="field dailyOnly"><label>한줄 일기</label><input id="entryDailyText" placeholder="오늘을 한 줄로 남겨줘"></div>
 <div class="field scheduleTodoOnly"><div class="catChipHead"><label>관련 프로젝트</label><button type="button" class="catChipEdit" id="entryProjectEdit">목록 편집</button></div><select id="entryProject"><option value="">선택 안 함</option></select><div class="projVisPanel" id="entryProjectVisPanel" hidden></div></div><button class="save" id="entrySaveBtn">Notion에 추가하기</button><p class="sheetNote">할 일은 업무/개인을 고를 수 있고, 개인 선택 시 개인 프로젝트가 자동 선택돼요.</p></form></section></div>
+
+    <div class="sheetBg" id="mlViewSheet" hidden>
+      <section class="sheet">
+        <div class="handle"></div>
+        <div class="sheetHead"><h3>메소 가계부</h3><div class="mlSheetHeadActions"><button class="charEditBtn" id="mlRefreshBtn" type="button">새로고침</button><button class="bossAddCharBtn" id="mlAddBtn" type="button">+ 구매</button><button class="icon" id="mlCloseView" type="button">×</button></div></div>
+        <div class="mlNav"><button class="moneyMonthBtn" id="mlPrev" type="button" aria-label="이전 달">‹</button><div class="moneyMonthTitle" id="mlMonthTitle">-</div><button class="moneyMonthBtn" id="mlNext" type="button" aria-label="다음 달">›</button></div>
+        <div class="bossSum bossSumV47" id="mlSummary" style="grid-template-columns:repeat(2,minmax(0,1fr))"></div>
+        <div id="mlCharBars"></div>
+        <div class="divTitle" style="margin-top:14px">구매 내역</div>
+        <div id="mlList"></div>
+        <p class="sheetNote">노션 Maple Ledger 기준이에요.</p>
+      </section>
+    </div>
+
+    <div class="sheetBg" id="mlSheet" hidden>
+      <section class="sheet">
+        <div class="handle"></div>
+        <div class="sheetHead"><h3>메소 구매 기록</h3><button class="icon" id="mlCloseSheet" type="button">×</button></div>
+        <form class="entryForm" id="mlForm">
+          <div class="field"><label>아이템</label><input id="mlTitle" placeholder="예: 보조무기" autocomplete="off" required></div>
+          <div class="field"><label>금액 (억)</label><input id="mlEok" type="number" inputmode="decimal" min="0" step="any" placeholder="예: 35 / 0.8" required></div>
+          <label class="mlTariffRow"><input id="mlTariff" type="checkbox">타 월드 관세 10% 더하기 <span id="mlTariffPreview"></span></label>
+          <div class="field"><label>날짜</label><input id="mlDate" type="date" required></div>
+          <div class="field"><label>구분</label><select id="mlKind"><option value="스펙업">스펙업</option><option value="치장">치장</option><option value="쌀먹">쌀먹</option></select></div>
+          <div class="field"><label>캐릭터</label><select id="mlChar"><option value="">선택 안 함</option></select></div>
+          <button class="save" id="mlSaveBtn" type="submit">기록 저장</button>
+          <p class="sheetNote" id="mlStatus">노션 Maple Ledger에 한 줄로 저장돼요.</p>
+        </form>
+      </section>
+    </div>
 
     <div class="sheetBg" id="dailySheet" hidden>
       <section class="sheet">
@@ -4747,6 +4809,119 @@
           return;
         }
       });
+      /* ===== 메소 가계부 (Maple Ledger) ===== */
+      const ML_CACHE_KEY='paperLogMapleLedgerCache';
+      let mlItems=[],mlCharNames={},mlLoaded=false,mlLoading=false,mlMonth='';
+      const mlPad=n=>String(n).padStart(2,'0');
+      function mlTodayISO(){const d=new Date();return `${d.getFullYear()}-${mlPad(d.getMonth()+1)}-${mlPad(d.getDate())}`}
+      function mlCurrentMonth(){return mlTodayISO().slice(2,7).replace('-','')}
+      function mlMonthOf(item){return mlPad(Math.floor(Number(item.date||0)/100)).padStart(4,'0')}
+      function mlShiftMonth(yymm,diff){let y=Number(yymm.slice(0,2)),m=Number(yymm.slice(2))+diff;while(m<1){m+=12;y--}while(m>12){m-=12;y++}return mlPad(y)+mlPad(m)}
+      function mlFmt(meso){
+        const n=Number(meso||0);
+        if(n>=100000000)return `${(Math.round(n/1000000)/100).toLocaleString('ko-KR',{maximumFractionDigits:2})}억`;
+        if(n>=10000)return `${Math.round(n/10000).toLocaleString('ko-KR')}만`;
+        return n.toLocaleString('ko-KR');
+      }
+      function mlCharName(item){return (item.characterIds||[]).map(id=>mlCharNames[id]).filter(Boolean).join(', ')}
+      function mlApplyData(data){
+        mlItems=Array.isArray(data.items)?data.items:[];
+        mlCharNames={};(data.characters||[]).forEach(c=>{mlCharNames[c.id]=c.name});
+      }
+      function renderMapleLedger(message=''){
+        const title=$('#mlMonthTitle'),sum=$('#mlSummary'),bars=$('#mlCharBars'),list=$('#mlList');
+        if(!title||!sum||!bars||!list)return;
+        if(!mlMonth)mlMonth=mlCurrentMonth();
+        title.textContent=`20${mlMonth.slice(0,2)}년 ${Number(mlMonth.slice(2))}월`;
+        const monthItems=mlItems.filter(x=>mlMonthOf(x)===mlMonth);
+        const total=a=>a.reduce((s,x)=>s+Number(x.meso||0),0);
+        const byKind=k=>total(monthItems.filter(x=>x.kind===k));
+        sum.innerHTML=[['이번 달',mlFmt(total(monthItems))],['스펙업',mlFmt(byKind('스펙업'))],['치장',mlFmt(byKind('치장'))],['전체 누적',mlFmt(total(mlItems))]].map(([k,v])=>`<div><span>${k}</span><strong>${v}</strong></div>`).join('');
+        const charTotals={};
+        monthItems.forEach(x=>{const name=mlCharName(x)||'미지정';charTotals[name]=(charTotals[name]||0)+Number(x.meso||0)});
+        const charRows=Object.entries(charTotals).sort((a,b)=>b[1]-a[1]);
+        const max=charRows.length?charRows[0][1]:0;
+        bars.innerHTML=charRows.map(([name,v])=>`<div class="mlCharRow"><span>${escapeHTML(name)}</span><div class="mapleBar"><div class="mapleBarFill" style="width:${max?Math.max(3,Math.round(v/max*100)):0}%"></div></div><b>${mlFmt(v)}</b></div>`).join('');
+        if(message&&!mlItems.length){list.innerHTML=`<p class="empty-msg">${escapeHTML(message)}</p>`;return}
+        if(!monthItems.length){list.innerHTML='<p class="empty-msg">이 달에는 구매 기록이 없어요.</p>';return}
+        list.innerHTML=monthItems.map(x=>{
+          const d=mlPad(Number(x.date||0)%10000).padStart(4,'0');
+          const kindCls=x.kind==='치장'?'mlKindCostume':x.kind==='스펙업'?'mlKindSpec':'';
+          const charName=mlCharName(x);
+          return `<div class="mlItem"><div class="mlItemTitle">${escapeHTML(x.title)}</div><div class="mlItemMeso">${mlFmt(x.meso)}</div><div class="mlItemMeta"><span>${Number(d.slice(0,2))}/${Number(d.slice(2))}</span>${x.kind?`<span class="miniTag ${kindCls}">${escapeHTML(x.kind)}</span>`:''}${charName?`<span class="miniTag">${escapeHTML(charName)}</span>`:''}</div></div>`;
+        }).join('');
+      }
+      async function loadMapleLedger(force=false){
+        if(mlLoading||(mlLoaded&&!force))return;
+        if(!mlLoaded){try{const cached=JSON.parse(localStorage.getItem(ML_CACHE_KEY)||'null');if(cached){mlApplyData(cached);renderMapleLedger()}}catch{}}
+        if(!window.paperLog?.fetch){renderMapleLedger('워커 연결 설정이 필요해요.');return}
+        mlLoading=true;
+        if(!mlItems.length)renderMapleLedger('메소 가계부를 불러오는 중...');
+        try{
+          const res=await window.paperLog.fetch('/api/maple-ledger');
+          const data=await res.json().catch(()=>({}));
+          if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'메소 가계부 불러오기 실패');
+          mlApplyData(data);mlLoaded=true;
+          try{localStorage.setItem(ML_CACHE_KEY,JSON.stringify({items:data.items,characters:data.characters}))}catch{}
+          renderMapleLedger();
+        }catch(err){
+          renderMapleLedger(`불러오지 못했어요: ${err.message}`);
+          if(mlItems.length){const list=$('#mlList');list&&list.insertAdjacentHTML('afterbegin',`<p class="empty-msg">최신 내용을 불러오지 못해 저장된 내용을 보여줘요. (${escapeHTML(err.message)})</p>`)}
+        }finally{mlLoading=false}
+      }
+      function mlTariffPreview(){
+        const el=$('#mlTariffPreview');if(!el)return;
+        const meso=mlFormMeso();
+        el.textContent=$('#mlTariff')?.checked&&meso>0?`→ ${mlFmt(meso)}`:'';
+      }
+      function mlFormMeso(){
+        const base=Math.round(Number($('#mlEok')?.value||0)*100000000);
+        if(!Number.isFinite(base)||base<=0)return 0;
+        return $('#mlTariff')?.checked?base+Math.floor(base*0.1):base;
+      }
+      function openMapleLedgerSheet(){
+        const sheet=$('#mlSheet');if(!sheet)return;
+        $('#mlForm').reset();
+        $('#mlDate').value=mlTodayISO();
+        const hidden=getHiddenCharIdSet();
+        const order=chars.map(c=>c.id);
+        const rank=id=>{const i=order.indexOf(id);return i<0?999:i};
+        const options=Object.entries(mlCharNames).filter(([id,name])=>!hidden.has(id)&&!isHiddenBossCharacterName(name)&&!['총합','득템'].includes(String(name).trim())).sort((a,b)=>rank(a[0])-rank(b[0]));
+        $('#mlChar').innerHTML='<option value="">선택 안 함</option>'+options.map(([id,name])=>`<option value="${escapeAttr(id)}">${escapeHTML(name)}</option>`).join('');
+        $('#mlStatus').textContent='노션 Maple Ledger에 한 줄로 저장돼요.';
+        mlTariffPreview();
+        sheet.hidden=false;
+      }
+      async function saveMapleLedgerItem(e){
+        e.preventDefault();
+        const status=$('#mlStatus'),btn=$('#mlSaveBtn');
+        const title=$('#mlTitle').value.trim(),meso=mlFormMeso(),date=$('#mlDate').value;
+        if(!title||!meso||!date){status.textContent='아이템, 금액, 날짜를 모두 적어줘.';return}
+        if(!window.paperLog?.fetch){status.textContent='워커 연결 설정이 필요해요.';return}
+        btn.disabled=true;status.textContent='저장 중...';
+        try{
+          const res=await window.paperLog.fetch('/api/maple-ledger',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,meso,date,kind:$('#mlKind').value,characterId:$('#mlChar').value})});
+          const data=await res.json().catch(()=>({}));
+          if(!res.ok||data.ok===false)throw new Error(data.message||data.error||'저장 실패');
+          if(data.item){mlItems.unshift(data.item);mlItems.sort((a,b)=>Number(b.date||0)-Number(a.date||0));mlMonth=mlMonthOf(data.item)}
+          renderMapleLedger();
+          $('#mlSheet').hidden=true;
+          loadMapleLedger(true);
+        }catch(err){status.textContent=`저장하지 못했어요: ${err.message}`}
+        finally{btn.disabled=false}
+      }
+      $('#mlPrev')&&($('#mlPrev').onclick=()=>{mlMonth=mlShiftMonth(mlMonth||mlCurrentMonth(),-1);renderMapleLedger()});
+      $('#mlNext')&&($('#mlNext').onclick=()=>{mlMonth=mlShiftMonth(mlMonth||mlCurrentMonth(),1);renderMapleLedger()});
+      $('#mlRefreshBtn')&&($('#mlRefreshBtn').onclick=()=>loadMapleLedger(true));
+      $('#mlAddBtn')&&($('#mlAddBtn').onclick=openMapleLedgerSheet);
+      $('#dashMesoBtn')&&($('#dashMesoBtn').onclick=()=>{mlMonth=mlCurrentMonth();$('#mlViewSheet').hidden=false;renderMapleLedger();loadMapleLedger(true)});
+      $('#mlCloseView')&&($('#mlCloseView').onclick=()=>{$('#mlViewSheet').hidden=true});
+      $('#mlViewSheet')&&$('#mlViewSheet').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.hidden=true});
+      $('#mlCloseSheet')&&($('#mlCloseSheet').onclick=()=>{$('#mlSheet').hidden=true});
+      $('#mlSheet')&&$('#mlSheet').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.hidden=true});
+      $('#mlForm')&&$('#mlForm').addEventListener('submit',saveMapleLedgerItem);
+      $('#mlEok')&&$('#mlEok').addEventListener('input',mlTariffPreview);
+      $('#mlTariff')&&$('#mlTariff').addEventListener('change',mlTariffPreview);
       function syncBossIndexBtns(){
         const isTodo=bossActiveView==='todo';
         const isWide=window.innerWidth>=960;
