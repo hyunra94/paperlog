@@ -275,6 +275,16 @@ export default {
         return json({ ok: true, page: result }, 200, cors);
       }
 
+      if (url.pathname === "/api/maple-ledger" && request.method === "GET") {
+        const ledger = await getMapleLedger(env);
+        return json({ ok: true, ...ledger }, 200, cors);
+      }
+
+      if (url.pathname === "/api/maple-ledger" && request.method === "POST") {
+        const item = await createMapleLedgerItem(request, env);
+        return json({ ok: true, item }, 200, cors);
+      }
+
       if (url.pathname === "/api/money" && request.method === "GET") {
         const money = await getMoney(request, env);
         return json({ ok: true, ...money }, 200, cors);
@@ -1511,6 +1521,99 @@ async function safeBossQuery(env, databaseId, body = {}) {
     console.warn("Boss query failed:", err.message);
     return { results: [] };
   }
+}
+
+/* =========================
+   메소 가계부 (Maple Ledger)
+========================= */
+
+const MAPLE_LEDGER_KINDS = ["스펙업", "치장", "쌀먹"];
+
+function mapleLedgerProps(env) {
+  return {
+    title: env.MAPLE_LEDGER_TITLE_PROP || "제목",
+    date: env.MAPLE_LEDGER_DATE_PROP || "날짜",
+    meso: env.MAPLE_LEDGER_MESO_PROP || "메소",
+    eok: env.MAPLE_LEDGER_EOK_PROP || "메소(간소화)",
+    kind: env.MAPLE_LEDGER_KIND_PROP || "구분",
+    character: env.MAPLE_LEDGER_CHARACTER_PROP || "캐릭터",
+    total: env.MAPLE_LEDGER_TOTAL_PROP || "Maple",
+  };
+}
+
+function mapleLedgerPageToItem(page, p) {
+  const props = page.properties || {};
+  const meso = readNumber(props, p.meso);
+  const eok = readNumber(props, p.eok);
+  return {
+    id: page.id,
+    url: page.url,
+    title: readTitle(props, p.title) || "(제목 없음)",
+    date: readNumber(props, p.date), // YYMMDD 숫자
+    meso: meso || Math.round(eok * 100000000),
+    kind: readSelect(props, p.kind),
+    characterIds: readRelationIds(props, p.character),
+  };
+}
+
+async function getMapleLedger(env) {
+  if (!env.NOTION_MAPLE_LEDGER_DB_ID) throw new Error("NOTION_MAPLE_LEDGER_DB_ID is not configured");
+  const p = mapleLedgerProps(env);
+  const characterProps = bossCharacterProps(env);
+
+  const [ledgerData, characterData] = await Promise.all([
+    notionQuery(env, env.NOTION_MAPLE_LEDGER_DB_ID, {
+      sorts: [{ property: p.date, direction: "descending" }],
+    }),
+    safeBossQuery(env, env.NOTION_BOSS_CHARACTER_DB_ID),
+  ]);
+
+  const items = (ledgerData.results || []).map(page => mapleLedgerPageToItem(page, p));
+  const characters = (characterData.results || []).map(page => ({
+    id: page.id,
+    name: readTitle(page.properties || {}, characterProps.title) || "캐릭터",
+  }));
+
+  return { items, characters, kinds: MAPLE_LEDGER_KINDS };
+}
+
+async function createMapleLedgerItem(request, env) {
+  if (!env.NOTION_MAPLE_LEDGER_DB_ID) throw new Error("NOTION_MAPLE_LEDGER_DB_ID is not configured");
+  const body = await request.json();
+  const p = mapleLedgerProps(env);
+
+  const title = String(body.title || "").trim();
+  if (!title) throw new Error("title is required");
+
+  const meso = Math.round(Number(body.meso));
+  if (!Number.isFinite(meso) || meso <= 0) throw new Error("meso must be a positive number");
+
+  // 날짜: "YYYY-MM-DD" 또는 YYMMDD → 노션에는 YYMMDD 숫자로 저장
+  const dateDigits = String(body.date || "").replace(/\D/g, "");
+  const yymmdd = Number(dateDigits.length === 8 ? dateDigits.slice(2) : dateDigits);
+  if (!(dateDigits.length === 8 || dateDigits.length === 6) || !Number.isFinite(yymmdd)) {
+    throw new Error("date must be YYYY-MM-DD");
+  }
+
+  const properties = {
+    [p.title]: { title: [{ text: { content: title } }] },
+    [p.date]: { number: yymmdd },
+    [p.meso]: { number: meso },
+    [p.eok]: { number: Math.round(meso / 1000000) / 100 },
+  };
+
+  if (MAPLE_LEDGER_KINDS.includes(body.kind)) {
+    properties[p.kind] = { select: { name: body.kind } };
+  }
+  if (body.characterId && isValidNotionPageId(body.characterId)) {
+    properties[p.character] = { relation: relationValue(body.characterId) };
+  }
+  if (env.MAPLE_LEDGER_TOTAL_PAGE_ID) {
+    properties[p.total] = { relation: relationValue(env.MAPLE_LEDGER_TOTAL_PAGE_ID) };
+  }
+
+  const page = await notionCreatePage(env, env.NOTION_MAPLE_LEDGER_DB_ID, properties);
+  return mapleLedgerPageToItem(page, p);
 }
 
 function bossTitleFallback(props, primary, secondary) {
