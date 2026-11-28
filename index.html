@@ -7237,5 +7237,20 @@
       });
     })();
   </script>
+  <script>
+    // 앱 아이콘 길게 누르기 바로가기(manifest shortcuts)의 ?open=… 처리: 화면이 준비된 뒤 해당 시트를 연다.
+    (()=>{
+      const params=new URLSearchParams(location.search);
+      const open=params.get('open');
+      const targets={memo:'#dashMemoBtn',habit:'#dashHabitBtn',as:'#dashAsBtn',meso:'#dashMesoBtn',expense:'#openMoneyEntry'};
+      if(!open||!targets[open])return;
+      const run=()=>setTimeout(()=>{
+        const settingsOpen=document.querySelector('#settingsSheet:not([hidden])');
+        if(!settingsOpen)document.querySelector(targets[open])?.click();
+        history.replaceState(null,'',location.pathname);
+      },450);
+      if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run);else run();
+    })();
+  </script>
 </body>
 </html>
