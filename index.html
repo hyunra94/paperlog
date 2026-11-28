@@ -205,7 +205,9 @@
       #dashboard.page.on,#budget.page.on{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;align-items:start;}
       #dashboard .title,#budget .title,#boss .title,#calendar .title{grid-column:1/-1;margin-bottom:0;}
       #dashboard .card,#budget .card,#boss .card{margin-bottom:0;}.moneyTopBar{grid-column:1/-1;}
-      #dashboard #anniversaryBlock,#budget article:last-child{grid-column:1/-1;}
+      /* 기념일은 태블릿에서 빠른 기록과 반반으로 나란히 */
+      #budget article:last-child{grid-column:1/-1;}
+      #dashboard #anniversaryBlock,#dashboard #anniversaryBlock+.card{align-self:stretch;}
       .moneyTabs{margin-top:12px;}
       .chips{grid-template-columns:repeat(6,minmax(0,1fr));}
       /* 보스 탭: 태블릿 이상에서는 메인/보스 패널을 좌우로 나란히 배치 */
